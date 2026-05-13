@@ -1,6 +1,6 @@
 -- Envers revision info table
 CREATE TABLE REVINFO (
-    REV BIGINT PRIMARY KEY,
+    REV BIGINT AUTO_INCREMENT PRIMARY KEY,
     REVTSTMP BIGINT,
     username VARCHAR(255)
 );
