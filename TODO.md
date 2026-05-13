@@ -9,31 +9,33 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 ## Today
 
-- integrate toggles
+- Stage Inheritance
+- add tests!
+- is @Transactional implemented properly? there seem to be a lot and is it right on the level of service or better on boundary? or does that start a default tx anyway?
+- change package name from demo
+
+
+- [ ] - Update SECURITY_DESIGN.md with project-specific information
+- [ ] - Replace `src/main/webui/src/app/demo` with project-specific components
+- [ ] - Update database migration files
+- [ ] - remove all references to `demo` in the entire project
+- [ ] - remove all files with `demo` in their name
+
+- **Database migration files** — The existing migration files use demo/baseline table structures. Update them to reflect the abstoggle feature toggle schema once that is designed.
+- **`e2e-tests/pages/TODO.page.ts`** — This file should be renamed and populated with actual page objects for abstoggle's UI once the feature toggle pages exist.
+- **`docs/ephemeral-and-volatile-and-temporary-but-interesting/`** — The files in this directory still reference `abstracore` as the service name in example Loki queries. Update once the observability stack is configured for abstoggle.
+- **`e2e-tests/tests/happy.spec.ts`** — The test body is empty. Write actual e2e tests once feature toggle UI is implemented.
+
+
+
 
 ## Tomorrow
 
+- performance: rather than loading all toggles with all their content, load only the names and descriptions and let the user load details when needed
 
 ## Later (not yet necessary for initial release)
 
 
-# TODOs for Abstracore (to be deleted downstream)
 
-- add a banner for non-prod envs with a custom string to warn users that they are not using prod
-- add observability (logging, metrics, tracing)
-- fix tracking of the url in the auth service, so that if the user clicks or enters a link, they are redirected, regardless of whether they are already signed in, or need to sign in
-- allow other addresses than localhost to read management/metrics. need to also expose it in docker file?
-- add a link to the sbom in readme: e.g. https://github.com/abstratium-dev/abnemo/dependency-graph/sbom. although a copy needs adding to the release! what does the law say?
-- observability
-  - see https://quarkus.io/quarkus-workshop-langchain4j/section-1/step-10/#tracing
 
-    # quarkus.otel.exporter.otlp.traces.endpoint=http://localhost:4317
-    quarkus.otel.exporter.otlp.traces.headers=authorization=Bearer my_secret 
-    quarkus.log.console.format=%d{HH:mm:ss} %-5p traceId=%X{traceId}, parentId=%X{parentId}, spanId=%X{spanId}, sampled=%X{sampled} [%c{2.}] (%t) %s%e%n  
-    # enable tracing db requests
-    quarkus.datasource.jdbc.telemetry=true
-- fix security testing
-  - use # Disable OIDC tenant in test mode to allow @TestSecurity to work without 302 redirects
-        %test.quarkus.oidc.tenant-enabled=false
-    in application.properties and then add     @TestSecurity(user = "testUser", roles = {Roles.USER})
-    to any tests that need security 
+

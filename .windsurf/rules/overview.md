@@ -4,6 +4,8 @@ trigger: always_on
 
 The aim of the project is to implement a functional component which includes the backend and frontend.
 
+It implements a feature toggle service.
+
 The project uses the quarkus framework with Java 21. The extensions in use are:
 
 - Hibernate ORM [quarkus-hibernate-orm] Define your persistent model with Hibernate ORM and Jakarta Persistence

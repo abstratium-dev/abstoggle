@@ -1,0 +1,23 @@
+[
+  {
+    "name": "org.hibernate.envers.DefaultRevisionEntity",
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true,
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "org.hibernate.envers.RevisionType",
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "java.time.Instant",
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "java.util.UUID",
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  }
+]

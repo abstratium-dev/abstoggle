@@ -16,19 +16,17 @@ This component requires a MySQL database. Create a database and user with the fo
 1. **Connect to MySQL** as root or admin user:
 
 (change `<password>` to your password)
-(change `<TODO>` to the project name)
-
 ```bash
 docker run -it --rm --network abstratium mysql mysql -h abstratium-mysql --port 3306 -u root -p<password>
 
-DROP USER IF EXISTS 'TODO'@'%';
+DROP USER IF EXISTS 'abstoggle'@'%';
 
-CREATE USER 'TODO'@'%' IDENTIFIED BY '<password>';
+CREATE USER 'abstoggle'@'%' IDENTIFIED BY '<password>';
 
-DROP DATABASE IF EXISTS TODO;
+DROP DATABASE IF EXISTS abstoggle;
 
-CREATE DATABASE TODO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-GRANT ALL PRIVILEGES ON TODO.* TO TODO@'%'; -- on own database
+CREATE DATABASE abstoggle CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+GRANT ALL PRIVILEGES ON abstoggle.* TO abstoggle@'%'; -- on own database
 
 FLUSH PRIVILEGES;
 
@@ -53,24 +51,24 @@ TODO any env vars that need generating are to be described here.
 
 1. **Pull the latest image** from GitHub Container Registry:
    ```bash
-   docker pull ghcr.io/abstratium-dev/TODO:latest
+   docker pull ghcr.io/abstratium-dev/abstoggle:latest
    ```
 
 2. **Run the container**:
 
-_Replace all `TODO_...` values with the values generated above.
+_Replace all placeholder values with the values generated above.
 
    ```bash
    docker run -d \
-     --name TODO \
+     --name abstoggle \
      --network your-network \
-     -p 127.0.0.1:4108x:808x \
-     -p 127.0.0.1:900x:900x \
-     -e QUARKUS_DATASOURCE_JDBC_URL="jdbc:mysql://your-mysql-host:3306/TODO" \
-     -e QUARKUS_DATASOURCE_USERNAME="TODO_YOUR_USERNAME" \
-     -e QUARKUS_DATASOURCE_PASSWORD="TODO_YOUR_SECURE_PASSWORD" \
-     -e COOKIE_ENCRYPTION_SECRET="TODO_YOUR_COOKIE_ENCRYPTION_SECRET" \
-     ghcr.io/abstratium-dev/TODO:latest
+     -p 127.0.0.1:41087:8087 \
+     -p 127.0.0.1:9009:9009 \
+     -e QUARKUS_DATASOURCE_JDBC_URL="jdbc:mysql://your-mysql-host:3306/abstoggle" \
+     -e QUARKUS_DATASOURCE_USERNAME="abstoggle" \
+     -e QUARKUS_DATASOURCE_PASSWORD="YOUR_SECURE_PASSWORD" \
+     -e COOKIE_ENCRYPTION_SECRET="YOUR_COOKIE_ENCRYPTION_SECRET" \
+     ghcr.io/abstratium-dev/abstoggle:latest
    ```
 
    **Required Environment Variables:**
@@ -89,14 +87,14 @@ _Replace all `TODO_...` values with the values generated above.
 3. **Verify the container is running**:
    ```bash
    docker ps
-   docker logs TODO
-   curl http://localhost:4108x/m/health
-   curl http://localhost:4108x/m/info
+   docker logs abstoggle
+   curl http://localhost:41087/m/health
+   curl http://localhost:41087/m/info
    ```
 
 4. **Access the application**:
-   - Main application: http://localhost:4108x
-   - Management interface: http://localhost:900x/m/info
+   - Main application: http://localhost:41087
+   - Management interface: http://localhost:9009/m/info
 
 ### Prerequisites
 
@@ -115,7 +113,7 @@ TODO
 
 ## Account and Role Management
 
-This component requires that users can authenticate using an oauth authorization server. That requires that an administrator signs into something like `abstratium-abstrauth` first, to create the oauth2 client. The callback url should be `http://localhost:808x/oauth/callback` and one for the production environment, also ending in `/oauth/callback`. Use the `client_id` and `client_secret` that it provides, to set the values of the environment variables above, so that users can sign in.
+This component requires that users can authenticate using an oauth authorization server. That requires that an administrator signs into something like `abstratium-abstrauth` first, to create the oauth2 client. The callback url should be `http://localhost:8087/oauth/callback` and one for the production environment, also ending in `/oauth/callback`. Use the `client_id` and `client_secret` that it provides, to set the values of the environment variables above, so that users can sign in.
 
 ## TODO
 
@@ -125,11 +123,11 @@ TODO describe other functionality here.
 
 This project provides several endpoints for monitoring:
 
-- **Health Check**: `http://localhost:900x/m/health`
+- **Health Check**: `http://localhost:9009/m/health`
   - Returns application health status
   - Includes database connectivity check
 
-- **Info Endpoint**: `http://localhost:900x/m/info`
+- **Info Endpoint**: `http://localhost:9009/m/info`
   - Returns build information, version, and configuration
   - Useful for verifying deployment
 
@@ -137,14 +135,14 @@ This project provides several endpoints for monitoring:
 
 ### Container won't start
 
-1. Check Docker logs: `docker logs TODO`
+1. Check Docker logs: `docker logs abstoggle`
 2. Verify environment variables are set correctly
 3. Ensure database is accessible from container
 4. Check network connectivity: `docker network inspect your-network`
 
 ### Database connection errors
 
-1. Verify MySQL is running: `mysql -u TODO -p -h your-mysql-host`
+1. Verify MySQL is running: `mysql -u abstoggle -p -h your-mysql-host`
 2. Check firewall rules allow connection on port 3306
 3. Verify database user has correct permissions
 4. Check JDBC URL format is correct

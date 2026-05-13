@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { Config, Demo, ModelService } from './model.service';
+import { Config, Demo, ModelService, Stage } from './model.service';
 
 @Injectable({
   providedIn: 'root',
@@ -90,6 +90,72 @@ export class Controller {
       return config;
     } catch (error) {
       console.error('Error loading config:', error);
+      throw error;
+    }
+  }
+
+  loadStages() {
+    this.modelService.setStagesLoading(true);
+    this.modelService.setStagesError(null);
+
+    this.http.get<Stage[]>('/api/admin/stages').subscribe({
+      next: (stages) => {
+        this.modelService.setStages(stages);
+        this.modelService.setStagesLoading(false);
+      },
+      error: (err) => {
+        console.error('Error loading stages:', err);
+        this.modelService.setStages([]);
+        this.modelService.setStagesError('Failed to load stages');
+        this.modelService.setStagesLoading(false);
+      }
+    });
+  }
+
+  async createStage(name: string, description: string, displayOrder: number, parentStageName?: string): Promise<Stage> {
+    try {
+      const response = await firstValueFrom(
+        this.http.post<Stage>('/api/admin/stages', {
+          name,
+          description,
+          displayOrder,
+          parentStageName
+        })
+      );
+      this.loadStages();
+      return response;
+    } catch (error) {
+      console.error('Error creating stage:', error);
+      throw error;
+    }
+  }
+
+  async updateStage(name: string, newName: string, description: string, displayOrder: number, parentStageName?: string): Promise<Stage> {
+    try {
+      const response = await firstValueFrom(
+        this.http.put<Stage>(`/api/admin/stages/${name}`, {
+          name: newName,
+          description,
+          displayOrder,
+          parentStageName
+        })
+      );
+      this.loadStages();
+      return response;
+    } catch (error) {
+      console.error('Error updating stage:', error);
+      throw error;
+    }
+  }
+
+  async deleteStage(name: string): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.http.delete<void>(`/api/admin/stages/${name}`)
+      );
+      this.loadStages();
+    } catch (error) {
+      console.error('Error deleting stage:', error);
       throw error;
     }
   }

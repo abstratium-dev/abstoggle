@@ -1,0 +1,130 @@
+<div class="container">
+  <div class="page-header">
+    <h1>Stages</h1>
+    <div class="header-actions">
+      <button class="btn-add" (click)="toggleAddForm()" [disabled]="formSubmitting">
+        {{ showAddForm ? 'Cancel' : '+ Add Stage' }}
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading()" class="loading">
+    <p>Loading stages...</p>
+  </div>
+
+  <div *ngIf="error()" class="error-box">
+    <p>{{ error() }}</p>
+    <button (click)="onRetry()">Retry</button>
+  </div>
+
+  <!-- Add/Edit Form -->
+  <div *ngIf="showAddForm" class="form-container">
+    <h2>{{ editingStage ? 'Edit Stage' : 'Create New Stage' }}</h2>
+
+    <form (ngSubmit)="onSubmit()">
+      <div *ngIf="formError" class="error-box">
+        {{ formError }}
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="stageName">Stage Name *</label>
+          <input
+            id="stageName"
+            type="text"
+            [(ngModel)]="stageName"
+            name="stageName"
+            placeholder="Enter stage name"
+            required
+            [disabled]="formSubmitting"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="stageDisplayOrder">Display Order</label>
+          <input
+            id="stageDisplayOrder"
+            type="number"
+            [(ngModel)]="stageDisplayOrder"
+            name="stageDisplayOrder"
+            placeholder="0"
+            [disabled]="formSubmitting"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="stageDescription">Description</label>
+        <textarea
+          id="stageDescription"
+          [(ngModel)]="stageDescription"
+          name="stageDescription"
+          placeholder="Enter stage description (optional)"
+          rows="3"
+          [disabled]="formSubmitting"
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="stageParentName">Parent Stage</label>
+        <select
+          id="stageParentName"
+          [(ngModel)]="stageParentName"
+          name="stageParentName"
+          [disabled]="formSubmitting"
+        >
+          <option value="">-- No Parent --</option>
+          <option *ngFor="let stage of getAvailableParentStages(editingStage || undefined)" [value]="stage.name">
+            {{ stage.name }}
+          </option>
+        </select>
+        <span class="form-hint">Select a parent stage to create a hierarchy (optional)</span>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary" [disabled]="formSubmitting">
+          {{ formSubmitting ? 'Saving...' : (editingStage ? 'Update Stage' : 'Create Stage') }}
+        </button>
+        <button type="button" class="btn-secondary" (click)="cancelEdit()" [disabled]="formSubmitting">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div *ngIf="!loading() && !error() && stages().length === 0" class="info-message">
+    <p>No stages found. Click "Add Stage" to create your first stage.</p>
+  </div>
+
+  <div *ngIf="!loading() && !error() && stages().length > 0">
+    <table class="standard-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Display Order</th>
+          <th>Parent Stage</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let stage of stages()">
+          <td><strong>{{ stage.name }}</strong></td>
+          <td>{{ stage.description || '-' }}</td>
+          <td>{{ stage.displayOrder }}</td>
+          <td>{{ getParentStageName(stage) }}</td>
+          <td>
+            <div class="card-actions">
+              <button class="btn-icon" (click)="startEdit(stage)" title="Edit stage">
+                ✏️
+              </button>
+              <button class="btn-icon btn-icon-danger" (click)="deleteStage(stage)" title="Delete stage">
+                🗑️
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
