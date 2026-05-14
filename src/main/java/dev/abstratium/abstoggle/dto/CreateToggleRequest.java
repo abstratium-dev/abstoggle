@@ -7,13 +7,15 @@ public class CreateToggleRequest {
     private String name;
     private String description;
     private Boolean enabled;
+    private String context;
 
     public CreateToggleRequest() {}
 
-    public CreateToggleRequest(String name, String description, Boolean enabled) {
+    public CreateToggleRequest(String name, String description, Boolean enabled, String context) {
         this.name = name;
         this.description = description;
         this.enabled = enabled;
+        this.context = context;
     }
 
     public String getName() {
@@ -38,5 +40,13 @@ public class CreateToggleRequest {
 
     public void setEnabled(Boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public String getContext() {
+        return context;
+    }
+
+    public void setContext(String context) {
+        this.context = context;
     }
 }

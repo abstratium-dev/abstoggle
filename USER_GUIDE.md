@@ -4,7 +4,17 @@
 
 ### Overview
 
-Abstoggle is a feature toggle service. It lets you control which features are active for different environments and user groups — without redeploying your application.
+Abstoggle is a feature toggle service — a tool that lets teams enable or disable application features at runtime, without redeploying code. It lets you control which features are active for different environments and user groups by evaluating configurable rules against client context.
+
+#### Key Features
+
+- **OAuth Authentication** — Secure login via OAuth2/OpenID Connect providers. User sessions are managed with encrypted cookies and CSRF protection.
+- **Auditing** — All administrative changes (create, update, delete operations on toggles, stages, and rules) are tracked with timestamps and user attribution for accountability and compliance.
+- **In-Memory Caching** — Toggle query results are cached using Google Guava with configurable TTL and size limits to reduce database load and improve response times.
+- **Stage Inheritance** — Stages can inherit configuration from parent stages. A toggle defined only for `prod` is automatically available to child stages like `test` and `dev`.
+- **Built-in Tester** — Interactive testing page lets you simulate toggle evaluation with custom client context without writing any code.
+- **Dark Mode** — Full dark mode support in the web UI for comfortable administration in low-light environments.
+- **Low Footprint Native Image** — Built as a GraalVM native image for optimal performance, using as little as 64MB RAM and idling at near zero CPU.
 
 #### Core concepts
 
@@ -64,12 +74,13 @@ erDiagram
 Your application fetches toggle configuration from the unauthenticated endpoint:
 
 ```
-GET /public/toggles?stage=<stageName>[&nameFilter=<toggleName>][&includeDisabled=true]
+GET /public/toggles?stage=<stageName>&context=<contextName>[&nameFilter=<toggleName>][&includeDisabled=true]
 ```
 
 | Parameter | Required | Description |
 |---|---|---|
 | `stage` | Yes | The stage name your application is running in |
+| `context` | Yes | Only toggles whose context matches this value are returned |
 | `nameFilter` | No | Return only the named toggle (exact match) |
 | `includeDisabled` | No | Include disabled toggles (default: `false`) |
 
@@ -144,6 +155,20 @@ The keys must match the criterion keys configured in the rules. Any key not pres
 #### Algorithm
 
 Rules are sorted by priority (ascending). For each rule, all criteria are tested against the client context. If all criteria match, that rule's value is returned immediately. If no rule matches, `"off"` is returned.
+
+#### Caching Considerations
+
+The backend caches toggle query results using an in-memory cache with a configurable TTL (default: 60 seconds). The `cacheHit` flag in the response metadata indicates whether the result was served from cache.
+
+While you could add caching to your client code, it generally makes little sense to cache the *evaluated results* — the same toggle can resolve to different values for different users based on their context. Caching evaluated results per user would require complex invalidation logic and could lead to stale feature states.
+
+However, caching the *server response* (the raw toggle configuration) can be beneficial:
+- Cache the `/public/toggles` response for short periods (e.g., 10-30 seconds) to reduce server load
+- Use the `cacheHit` flag to monitor cache effectiveness
+- Consider that the backend cache TTL is configurable via `toggle.cache.ttl-seconds`
+- When you do fetch fresh data, perform the rule evaluation fresh each time — don't cache the evaluated result per user
+
+#### Example Client Implementation
 
 **JavaScript / TypeScript**
 
@@ -334,6 +359,78 @@ func Evaluate(toggle Toggle, clientContext map[string]string) string {
 
 ---
 
+### Public API Security Considerations
+
+The `/public/toggles` endpoint is unauthenticated and **enabled by default**. Every response exposes toggle names, rule priorities, values, descriptions, and all criteria patterns. An attacker can use this to enumerate features under development, reverse-engineer targeting logic, forge context attributes to unlock features client-side, or identify which security controls exist.
+
+**Toggles that are dangerous to expose publicly:**
+
+| Toggle name | Risk |
+|---|---|
+| `fraud-detection-enabled` | Reveals whether fraud checking is active |
+| `rate-limiting-bypass` | Discloses that a bypass exists and its criteria |
+| `admin-panel-visible` | Tells attackers what attributes unlock the admin panel |
+| `payment-provider-failover` | Exposes fallback payment routing logic |
+| `kyc-check-required` | Discloses when identity verification is skipped |
+| `new-auth-flow` | Signals an alternative auth path with potentially different security properties |
+
+#### Strategy 1 — Use the context field to limit exposure
+
+Every toggle has a **context** field (set in the create/edit form). The public API requires `context` as a mandatory parameter and returns **only toggles whose context matches**. This means you can:
+
+- Place low-risk, UI-facing toggles in a context like `frontend` or `ui` and expose only those via the public endpoint.
+- Keep sensitive toggles (payments, fraud, admin) in a different context such as `internal` — they are never returned by a public query.
+
+```
+GET /public/toggles?stage=prod&context=frontend
+```
+
+With well-chosen contexts, the public API is safe to call from a browser because the response is structurally limited to the toggles you explicitly put in that context bucket. **Always use `nameFilter` too** when you only need specific toggles:
+
+```
+GET /public/toggles?stage=prod&context=frontend&nameFilter=new-checkout-flow
+```
+
+#### Strategy 2 — Use the authenticated query endpoint
+
+For sensitive toggles, call the authenticated endpoint from your backend instead. Your backend assembles the client context from trusted sources (session, JWT claims), evaluates the toggles, and returns only the resolved `on`/`off` values to the frontend — the rule logic is never exposed.
+
+```
+GET /api/query/toggles?stage=prod&context=internal
+Authorization: Bearer <token>
+```
+
+This endpoint accepts tokens whose `groups` claim includes `abstratium-abstoggle_query` or `abstratium-abstoggle_user`. To obtain a token from your backend service:
+
+```bash
+curl -s -X POST https://your-auth-server/token \
+  -d "grant_type=client_credentials" \
+  -d "client_id=my-app-backend" \
+  -d "client_secret=YOUR_SECRET" \
+  -d "scope=openid"
+```
+
+Cache the token until its `expires_in` elapses to avoid a round-trip on every fetch.
+
+#### Strategy 3 — Disable the public endpoint entirely
+
+Set `PUBLIC_API_ENABLED=false` to make `/public/toggles` return `404`. All queries must then go through `/api/query/toggles` with a valid token. Use this when you cannot guarantee that your context grouping is sufficient.
+
+#### Decision guide
+
+```mermaid
+flowchart TD
+    A[Do any toggles control security controls, payments, or admin features?] -->|Yes| B[Keep those in a non-public context. Use authenticated endpoint for them]
+    A -->|No| C[Can you group all public-facing toggles into a dedicated context?]
+    C -->|Yes| D[Use context-filtered public endpoint for non-risky contexts only]
+    C -->|No| E[Disable public API entirely. Use authenticated endpoint]
+    B --> D
+```
+
+> **Rule of thumb:** assign a `context` to every toggle from day one. Toggles in `frontend` are safe to query publicly. Toggles in `internal`, `payments`, or `security` should only be queried server-side via the authenticated endpoint.
+
+---
+
 ### Testing
 
 The built-in **Tester** page (accessible via the navigation bar) lets you simulate the evaluation without writing any code.
@@ -438,8 +535,18 @@ _Replace all placeholder values with the values generated above.
    - `QUARKUS_DATASOURCE_PASSWORD`: Database password (use strong, unique password)
    - `COOKIE_ENCRYPTION_SECRET`: Cookie encryption secret (min 32 chars, generate with `openssl rand -base64 32`)
    - `CSRF_TOKEN_SIGNATURE_KEY`: CSRF token signature key (min 32 chars, generate with `openssl rand -base64 64 | tr -d '\n'`)
+   - `ABSTRATIUM_CLIENT_SECRET`: OIDC client secret for OAuth authentication (must be set)
+
+   **Optional Environment Variables:**
    - `ABSTRA_WARNING_MESSAGE`: Warning banner message displayed at the top of the UI (e.g., "You are in the TEST environment!"). Set to "-" or leave empty to hide the banner.
    - `STAGE`: Deployment stage identifier exposed to the frontend (e.g., "dev", "test", "prod", defaults to "dev")
+   - `ABSTRATIUM_CLIENT_ID`: OIDC client ID for OAuth authentication (defaults to `abstratium-abstoggle`)
+   - `OTEL_EXPORTER_OTLP_ENDPOINT`: OpenTelemetry OTLP endpoint for traces and logs (e.g., `http://localhost:4317`, only used in production profile)
+   - `DEPLOYMENT_ENV`: Deployment environment label for telemetry resource attributes (defaults to `dev`)
+   - `PUBLIC_API_ENABLED`: Enable or disable the unauthenticated `/public/toggles` endpoint (defaults to `true`). Set to `false` to require all toggle queries to use the authenticated `/api/query/toggles` endpoint instead — see [Public API Security Considerations](#public-api-security-considerations).
+   - `TOGGLE_CACHE_ENABLED`: Enable/disable caching for public toggle queries (defaults to `true`)
+   - `TOGGLE_CACHE_TTL_SECONDS`: Cache TTL in seconds for toggle query results (defaults to `60`)
+   - `TOGGLE_CACHE_MAX_SIZE_MB`: Maximum cache size in MB (defaults to `5`)
    
 
 3. **Verify the container is running**:

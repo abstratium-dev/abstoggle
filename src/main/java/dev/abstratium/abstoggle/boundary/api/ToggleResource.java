@@ -43,13 +43,14 @@ public class ToggleResource {
             @QueryParam("stage") String stage,
             @QueryParam("nameFilter") String nameFilter,
             @QueryParam("includeDisabled") Boolean includeDisabled) {
-        
+
         // Validate required parameter
         if (stage == null || stage.trim().isEmpty()) {
             throw new IllegalArgumentException("Stage parameter is required");
         }
-        
-        return toggleQueryService.queryToggles(stage, nameFilter, includeDisabled);
+
+        // Use non-cached query for management endpoints to ensure fresh data
+        return toggleQueryService.queryTogglesWithoutCache(stage, null, nameFilter, includeDisabled);
     }
 
     @GET
@@ -74,7 +75,8 @@ public class ToggleResource {
         Toggle toggle = toggleService.create(
             request.getName(),
             request.getDescription(),
-            request.getEnabled()
+            request.getEnabled(),
+            request.getContext()
         );
         
         return convertToDto(toggle);
@@ -92,7 +94,8 @@ public class ToggleResource {
         Toggle toggle = toggleService.updateByName(
             name,
             request.getDescription(),
-            request.getEnabled()
+            request.getEnabled(),
+            request.getContext()
         );
         
         return convertToDto(toggle);
@@ -113,6 +116,6 @@ public class ToggleResource {
 
     private ToggleDto convertToDto(Toggle toggle) {
         // Simple DTO without rules for basic toggle operations
-        return new ToggleDto(toggle.getName(), null, toggle.getDescription(), toggle.getEnabled(), null);
+        return new ToggleDto(toggle.getName(), null, toggle.getDescription(), toggle.getEnabled(), toggle.getContext(), null);
     }
 }

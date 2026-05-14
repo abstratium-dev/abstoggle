@@ -3,12 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
+import { InfoButtonComponent } from '../core/info-button/info-button.component';
 import { Stage, ModelService } from '../model.service';
 import { Controller } from '../controller';
 
 @Component({
   selector: 'app-stages',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, InfoButtonComponent],
   templateUrl: './stages.component.html',
   styleUrl: './stages.component.scss'
 })

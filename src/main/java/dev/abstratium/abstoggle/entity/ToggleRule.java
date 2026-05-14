@@ -6,15 +6,19 @@ import org.hibernate.envers.Audited;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "T_toggle_rule")
+@Table(
+    name = "T_toggle_rule",
+    uniqueConstraints = @UniqueConstraint(
+        name = "UQ_toggle_rule_name",
+        columnNames = {"name"}
+    )
+)
 @Audited
 public class ToggleRule {
 
@@ -22,22 +26,14 @@ public class ToggleRule {
     @Column(length = 36)
     private String id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-        name = "toggle_stage_id",
-        nullable = false,
-        foreignKey = @jakarta.persistence.ForeignKey(name = "FK_toggle_rule_stage_id")
-    )
-    private ToggleStage toggleStage;
+    @Column(length = 255, nullable = false)
+    private String name;
 
     @Column(name = "rule_value", length = 255, nullable = false)
     private String ruleValue = "off";
 
     @Column(length = 500)
     private String description;
-
-    @Column(nullable = false)
-    private Integer priority = 100;
 
     @PrePersist
     public void prePersist() {
@@ -55,12 +51,12 @@ public class ToggleRule {
         this.id = id;
     }
 
-    public ToggleStage getToggleStage() {
-        return toggleStage;
+    public String getName() {
+        return name;
     }
 
-    public void setToggleStage(ToggleStage toggleStage) {
-        this.toggleStage = toggleStage;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getRuleValue() {
@@ -77,13 +73,5 @@ public class ToggleRule {
 
     public void setDescription(String description) {
         this.description = description;
-    }
-
-    public Integer getPriority() {
-        return priority;
-    }
-
-    public void setPriority(Integer priority) {
-        this.priority = priority;
     }
 }

@@ -1,6 +1,6 @@
 # abstoggle
 
-**abstoggle** is feature toggle microservice. Built on the Quarkus subatomic Java stack, Quinoa for seamless integration, and Angular for the frontend, it serves as the upstream source for all specific project forks.
+**abstoggle** is an audited feature toggle microservice. A feature toggle service lets teams enable or disable application features at runtime—without redeploying code — by evaluating configurable rules per environment, user, or other criteria. Built on the Quarkus subatomic Java stack, Quinoa for seamless integration, and Angular for the frontend, it serves as the upstream source for all specific project forks.
 
 ## 📦 Tech Stack
 

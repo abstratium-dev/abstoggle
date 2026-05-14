@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { Config, ModelService, Rule, Stage, Toggle, ToggleDto, ToggleQueryResponse, ToggleStage } from './model.service';
+import { Config, ModelService, Rule, Stage, Toggle, ToggleDto, ToggleQueryResponse } from './model.service';
 
 @Injectable({
   providedIn: 'root',
@@ -108,13 +108,14 @@ export class Controller {
     });
   }
 
-  async createToggle(name: string, description: string, enabled: boolean): Promise<Toggle> {
+  async createToggle(name: string, description: string, enabled: boolean, context: string): Promise<Toggle> {
     try {
       const response = await firstValueFrom(
         this.http.post<Toggle>('/api/toggles', {
           name,
           description,
-          enabled
+          enabled,
+          context
         })
       );
       this.loadToggles();
@@ -125,12 +126,13 @@ export class Controller {
     }
   }
 
-  async updateToggle(name: string, description: string, enabled: boolean): Promise<Toggle> {
+  async updateToggle(name: string, description: string, enabled: boolean, context: string): Promise<Toggle> {
     try {
       const response = await firstValueFrom(
         this.http.put<Toggle>(`/api/toggles/${name}`, {
           description,
-          enabled
+          enabled,
+          context
         })
       );
       this.loadToggles();
@@ -154,9 +156,9 @@ export class Controller {
   }
 
   // Public toggle query (no auth required)
-  async queryToggles(stage: string, nameFilter?: string): Promise<ToggleQueryResponse> {
+  async queryToggles(stage: string, context: string, nameFilter?: string): Promise<ToggleQueryResponse> {
     try {
-      let url = `/public/toggles?stage=${encodeURIComponent(stage)}`;
+      let url = `/public/toggles?stage=${encodeURIComponent(stage)}&context=${encodeURIComponent(context)}`;
       if (nameFilter) {
         url += `&nameFilter=${encodeURIComponent(nameFilter)}`;
       }
@@ -180,10 +182,10 @@ export class Controller {
     }
   }
 
-  async addStageToToggle(toggleName: string, stageName: string): Promise<ToggleStage> {
+  async addStageToToggle(toggleName: string, stageName: string): Promise<string> {
     try {
       const response = await firstValueFrom(
-        this.http.post<ToggleStage>(`/api/toggles/${toggleName}/stages/${stageName}`, {})
+        this.http.post<string>(`/api/toggles/${toggleName}/stages/${stageName}`, {})
       );
       return response;
     } catch (error) {
@@ -212,6 +214,26 @@ export class Controller {
       return response;
     } catch (error) {
       console.error('Error loading rules:', error);
+      throw error;
+    }
+  }
+
+  async assignExistingRule(
+    toggleName: string,
+    stageName: string,
+    ruleId: string,
+    priority?: number
+  ): Promise<Rule> {
+    try {
+      const response = await firstValueFrom(
+        this.http.post<Rule>(
+          `/api/toggles/${toggleName}/stages/${stageName}/rules/existing/${ruleId}`,
+          priority !== undefined ? { priority } : {}
+        )
+      );
+      return response;
+    } catch (error) {
+      console.error('Error assigning existing rule:', error);
       throw error;
     }
   }

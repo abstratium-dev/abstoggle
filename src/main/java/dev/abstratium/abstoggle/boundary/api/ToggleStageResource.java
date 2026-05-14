@@ -3,8 +3,7 @@ package dev.abstratium.abstoggle.boundary.api;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import dev.abstratium.abstoggle.Roles;
-import dev.abstratium.abstoggle.entity.ToggleStage;
-import dev.abstratium.abstoggle.service.ToggleStageService;
+import dev.abstratium.abstoggle.service.ToggleStageRuleService;
 import java.util.List;
 
 import jakarta.annotation.security.RolesAllowed;
@@ -23,7 +22,7 @@ import jakarta.ws.rs.core.Response;
 public class ToggleStageResource {
 
     @Inject
-    ToggleStageService toggleStageService;
+    ToggleStageRuleService toggleStageService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -47,8 +46,8 @@ public class ToggleStageResource {
             throw new IllegalArgumentException("Stage name is required");
         }
         
-        ToggleStage toggleStage = toggleStageService.addStageToToggle(toggleName, stageName);
-        return Response.ok(toggleStage).build();
+        String stage = toggleStageService.addStageToToggle(toggleName, stageName);
+        return Response.ok(stage).build();
     }
 
     @DELETE

@@ -36,11 +36,12 @@ public class ToggleService {
     }
 
     @Transactional
-    public Toggle create(String name, String description, Boolean enabled) {
+    public Toggle create(String name, String description, Boolean enabled, String context) {
         Toggle toggle = new Toggle();
         toggle.setName(name);
         toggle.setDescription(description);
         toggle.setEnabled(enabled != null ? enabled : true);
+        toggle.setContext(context != null ? context : "");
 
         em.persist(toggle);
         return toggle;
@@ -75,7 +76,7 @@ public class ToggleService {
     }
 
     @Transactional
-    public Toggle updateByName(String name, String description, Boolean enabled) {
+    public Toggle updateByName(String name, String description, Boolean enabled, String context) {
         Optional<Toggle> toggleOpt = findByName(name);
         if (toggleOpt.isEmpty()) {
             throw new IllegalArgumentException("Toggle not found with name: " + name);
@@ -88,6 +89,10 @@ public class ToggleService {
         
         if (enabled != null) {
             toggle.setEnabled(enabled);
+        }
+
+        if (context != null) {
+            toggle.setContext(context);
         }
         
         em.merge(toggle);

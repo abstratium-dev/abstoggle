@@ -1,6 +1,6 @@
 <div class="container">
   <div class="page-header">
-    <h1>Toggles</h1>
+    <h1>Toggles <app-info-button tooltipText="A toggle is a named feature flag. You can enable or disable it globally, assign it to stages, and define rules that control what value is returned for different client attributes." /></h1>
     <div class="header-actions">
       <button class="btn-add" (click)="toggleAddForm()" [disabled]="formSubmitting">
         {{ showAddForm ? 'Cancel' : '+ Add Toggle' }}
@@ -51,6 +51,19 @@
         ></textarea>
       </div>
 
+      <div class="form-group">
+        <label for="toggleContext">Context</label>
+        <input
+          id="toggleContext"
+          type="text"
+          [(ngModel)]="toggleContext"
+          name="toggleContext"
+          placeholder="e.g. frontend, payments, internal"
+          [disabled]="formSubmitting"
+        />
+        <span class="form-hint">Groups this toggle for context-filtered public API queries</span>
+      </div>
+
       <div class="form-group checkbox-group">
         <input
           id="toggleEnabled"
@@ -76,7 +89,7 @@
   <!-- Stage Management Section -->
   <div *ngIf="managingToggle" class="form-container">
     <div class="section-header">
-      <h2>Manage Stages for "{{ managingToggle.name }}"</h2>
+      <h2>Manage Stages for "{{ managingToggle.name }}" <app-info-button tooltipText="Assign a toggle to a stage to make it available in that environment. Stages that inherit from a parent will automatically include toggles configured on the parent." /></h2>
       <button class="btn-secondary" (click)="cancelManageStages()">Close</button>
     </div>
 
@@ -112,7 +125,7 @@
 
     <!-- Assigned Stages with Rules -->
     <div class="assigned-stages" *ngIf="toggleStages.size > 0">
-      <h3>Assigned Stages & Rules</h3>
+      <h3>Assigned Stages & Rules <app-info-button tooltipText="Rules are evaluated in ascending priority order (lower number = higher priority). The first matching rule wins. A rule with no criteria is a catch-all that always matches." /></h3>
 
       <div *ngFor="let stageEntry of toggleStages | keyvalue" class="stage-card">
         <div class="stage-header">
@@ -175,7 +188,7 @@
 
           <!-- Criteria Management -->
           <div class="criteria-section">
-            <h6>Criteria</h6>
+            <h6>Criteria <app-info-button tooltipText="Criteria are key→pattern pairs. The pattern is tested against the client's context value. Supports regex: 'de' matches anywhere, '/^DE$/i' matches case-insensitively. If pattern is not valid regex, exact string equality is used." /></h6>
 
             <!-- Existing Criteria -->
             <div *ngIf="hasCriteria(stageEntry.value.ruleForm.criteria)" class="criteria-list">
@@ -261,6 +274,7 @@
       <thead>
         <tr>
           <th>Name</th>
+          <th>Context</th>
           <th>Description</th>
           <th>Enabled</th>
           <th>Actions</th>
@@ -269,6 +283,7 @@
       <tbody>
         <tr *ngFor="let toggle of toggles()">
           <td><strong>{{ toggle.name }}</strong></td>
+          <td><code>{{ toggle.context || '-' }}</code></td>
           <td>{{ toggle.description || '-' }}</td>
           <td>{{ getEnabledStatus(toggle) }}</td>
           <td>

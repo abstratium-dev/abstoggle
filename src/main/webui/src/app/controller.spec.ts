@@ -121,7 +121,7 @@ describe('Controller', () => {
 
       const createPromise = controller.createStage('QA', 'QA environment', 2, 'Staging');
 
-      const createReq = httpMock.expectOne('/api/stages');
+      const createReq = httpMock.expectOne(req => req.method === 'POST' && req.url === '/api/stages');
       expect(createReq.request.body).toEqual({
         name: 'QA',
         description: 'QA environment',
@@ -132,6 +132,10 @@ describe('Controller', () => {
 
       const result = await createPromise;
       expect(result).toEqual(newStage);
+
+      // createStage calls loadStages() after success — flush the resulting GET
+      const loadReq = httpMock.expectOne(req => req.method === 'GET' && req.url === '/api/stages');
+      loadReq.flush([newStage]);
     });
 
     it('should throw error on failed creation', async () => {

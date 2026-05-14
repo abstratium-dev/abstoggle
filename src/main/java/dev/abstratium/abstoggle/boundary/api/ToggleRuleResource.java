@@ -6,10 +6,12 @@ import java.util.stream.Collectors;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import dev.abstratium.abstoggle.Roles;
+import dev.abstratium.abstoggle.dto.AssignRuleRequest;
 import dev.abstratium.abstoggle.dto.CreateRuleRequest;
 import dev.abstratium.abstoggle.dto.RuleDto;
 import dev.abstratium.abstoggle.dto.UpdateRuleRequest;
 import dev.abstratium.abstoggle.entity.ToggleRule;
+import dev.abstratium.abstoggle.entity.ToggleStageRule;
 import dev.abstratium.abstoggle.service.ToggleRuleService;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -41,9 +43,9 @@ public class ToggleRuleResource {
             throw new IllegalArgumentException("Stage name is required");
         }
         
-        List<ToggleRule> rules = toggleRuleService.findByToggleAndStage(toggleName, stageName);
-        return rules.stream()
-            .map(this::convertToDto)
+        List<ToggleStageRule> assignments = toggleRuleService.getAssignmentsForToggleAndStage(toggleName, stageName);
+        return assignments.stream()
+            .map(this::convertAssignmentToDto)
             .collect(Collectors.toList());
     }
 
@@ -69,8 +71,9 @@ public class ToggleRuleResource {
             request.getDescription(),
             request.getCriteriaData()
         );
-        
-        return convertToDto(rule);
+        ToggleStageRule assignment = toggleRuleService.findAssignment(toggleName, stageName, rule.getId())
+            .orElseThrow(() -> new IllegalStateException("Assignment not found after create"));
+        return convertAssignmentToDto(assignment);
     }
 
     @PUT
@@ -95,12 +98,16 @@ public class ToggleRuleResource {
         ToggleRule rule = toggleRuleService.updateRule(
             ruleId,
             request.getRuleValue(),
-            request.getPriority(),
+            null,
             request.getDescription(),
             request.getCriteriaData()
         );
-        
-        return convertToDto(rule);
+        if (request.getPriority() != null) {
+            toggleRuleService.updateAssignmentPriority(toggleName, stageName, ruleId, request.getPriority());
+        }
+        ToggleStageRule assignment = toggleRuleService.findAssignment(toggleName, stageName, ruleId)
+            .orElseThrow(() -> new IllegalStateException("Assignment not found for rule " + ruleId));
+        return convertAssignmentToDto(assignment);
     }
 
     @DELETE
@@ -119,23 +126,45 @@ public class ToggleRuleResource {
             throw new IllegalArgumentException("Rule ID is required");
         }
         
+        toggleRuleService.unassignRule(toggleName, stageName, ruleId);
         toggleRuleService.deleteRule(ruleId);
         return Response.ok().build();
     }
 
-    private RuleDto convertToDto(ToggleRule rule) {
+    @POST
+    @Path("/existing/{ruleId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @RolesAllowed({Roles.USER})
+    public RuleDto assignExistingRule(@PathParam("name") String toggleName, @PathParam("stageName") String stageName,
+                                     @PathParam("ruleId") String ruleId, AssignRuleRequest request) {
+        if (toggleName == null || toggleName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Toggle name is required");
+        }
+        if (stageName == null || stageName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Stage name is required");
+        }
+        if (ruleId == null || ruleId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Rule ID is required");
+        }
+        Integer priority = request != null ? request.getPriority() : null;
+        ToggleStageRule assignment = toggleRuleService.assignRule(toggleName, stageName, ruleId, priority);
+        return convertAssignmentToDto(assignment);
+    }
+
+    private RuleDto convertAssignmentToDto(ToggleStageRule assignment) {
+        ToggleRule rule = assignment.getRule();
         // Get criteria for this rule
         List<dev.abstratium.abstoggle.entity.ToggleCriterion> criteria = toggleRuleService.getCriteriaForRule(rule.getId());
-        
+
         // Build criteria map
         java.util.Map<String, String> criteriaMap = new java.util.HashMap<>();
         for (dev.abstratium.abstoggle.entity.ToggleCriterion criterion : criteria) {
             criteriaMap.put(criterion.getCriterionKey(), criterion.getCriterionValue());
         }
-        
+
         return new RuleDto(
             rule.getId(),
-            rule.getPriority(),
+            assignment.getPriority(),
             rule.getRuleValue(),
             rule.getDescription(),
             criteriaMap

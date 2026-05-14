@@ -1,0 +1,133 @@
+<div class="container">
+  <div class="page-header">
+    <h1>Help</h1>
+  </div>
+
+  <div class="help-content">
+    <section class="help-section">
+      <h2>Overview</h2>
+      <p>
+        Abstoggle is a feature toggle service. It lets you control which features are active for different
+        environments and user groups — without redeploying your application.
+      </p>
+    </section>
+
+    <section class="help-section">
+      <h2>Core Concepts</h2>
+      <div class="concept-list">
+        <div class="concept-item">
+          <h3>Toggle</h3>
+          <p>
+            A named feature flag (e.g. <code>new-checkout-flow</code>). A toggle has a description and can be
+            enabled or disabled globally.
+          </p>
+        </div>
+        <div class="concept-item">
+          <h3>Stage</h3>
+          <p>
+            An environment (e.g. <code>dev</code>, <code>test</code>, <code>prod</code>). Stages can inherit from a
+            parent stage, so a toggle configured only for <code>prod</code> is automatically available to any stage
+            that inherits from it.
+          </p>
+        </div>
+        <div class="concept-item">
+          <h3>Toggle Stage</h3>
+          <p>
+            A toggle is activated for a stage by assigning it. Only assigned toggle-stage combinations are returned
+            by the public query endpoint.
+          </p>
+        </div>
+        <div class="concept-item">
+          <h3>Rule</h3>
+          <p>
+            Defines what value a toggle resolves to for a given set of client attributes. Each rule has:
+          </p>
+          <ul>
+            <li><strong>Priority</strong> (integer, lower = higher priority) — rules are evaluated in ascending priority order; the first match wins.</li>
+            <li><strong>Value</strong> — the string to return when the rule matches (e.g. <code>on</code>, <code>off</code>, or any custom string like <code>variant-b</code>).</li>
+            <li><strong>Criteria</strong> — a map of <code>key → pattern</code> pairs. The key names a client context attribute; the pattern is tested against the client's value for that attribute. If all criteria match, the rule matches. A rule with no criteria is a catch-all and always matches.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="help-section">
+      <h2>Typical Workflow</h2>
+      <ol class="workflow-list">
+        <li>Create one or more <strong>Stages</strong> (e.g. <code>prod</code>, <code>test</code>, <code>dev</code> with <code>test</code> inheriting from <code>prod</code>).</li>
+        <li>Create a <strong>Toggle</strong> and assign it to the relevant stages.</li>
+        <li>Add <strong>Rules</strong> to control what value is returned for different client attributes.</li>
+        <li>Your application calls the public endpoint, evaluates the rules client-side, and gates behaviour on the resolved value.</li>
+      </ol>
+    </section>
+
+    <section class="help-section">
+      <h2>Pattern Matching</h2>
+      <p>Criteria values are matched using regular expressions. Two formats are supported:</p>
+      <ul>
+        <li><strong>Literal regex string</strong>: <code>de</code> — matches if the value contains <code>de</code></li>
+        <li><strong>Slash-delimited with flags</strong>: <code>/^DE$/i</code> — standard JS literal notation; <code>i</code> makes it case-insensitive</li>
+      </ul>
+      <p>If the pattern is not a valid regex, exact string equality is used as a fallback.</p>
+    </section>
+
+    <section class="help-section">
+      <h2>Evaluation Algorithm</h2>
+      <p>
+        Rules are sorted by priority (ascending). For each rule, all criteria are tested against the client context.
+        If all criteria match, that rule's value is returned immediately. If no rule matches, <code>"off"</code> is returned.
+      </p>
+    </section>
+
+    <section class="help-section">
+      <h2>Public API</h2>
+      <p>Your application fetches toggle configuration from the unauthenticated endpoint:</p>
+      <pre><code>GET /public/toggles?stage=&lt;stageName&gt;[&amp;nameFilter=&lt;toggleName&gt;][&amp;includeDisabled=true]</code></pre>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Required</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>stage</code></td>
+            <td>Yes</td>
+            <td>The stage name your application is running in</td>
+          </tr>
+          <tr>
+            <td><code>nameFilter</code></td>
+            <td>No</td>
+            <td>Return only the named toggle (exact match)</td>
+          </tr>
+          <tr>
+            <td><code>includeDisabled</code></td>
+            <td>No</td>
+            <td>Include disabled toggles (default: false)</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="help-section">
+      <h2>Tester</h2>
+      <p>
+        The <a routerLink="/toggle-tester">Tester</a> page lets you simulate toggle evaluation with custom
+        client context without writing any code. Select a stage, enter a context, add client attributes, and click
+        <strong>Run Query</strong> to see the resolved values.
+      </p>
+    </section>
+
+    <section class="help-section">
+      <h2>Tips</h2>
+      <ul>
+        <li>Use <code>/pattern/i</code> syntax in criteria values for case-insensitive matching (e.g. <code>/^DE$/i</code> matches <code>DE</code>, <code>de</code>, <code>De</code>).</li>
+        <li>A rule with <strong>no criteria</strong> is a catch-all — it always matches. Place it at the lowest priority (highest number) to act as a default.</li>
+        <li>Rules are evaluated in <strong>ascending priority order</strong> — priority <code>1</code> is checked before priority <code>10</code>. The first matching rule wins.</li>
+        <li>If a toggle is configured on a <strong>parent stage</strong> only, it will still appear when querying a child stage — the <code>stage</code> field in the response shows which stage provided the configuration.</li>
+      </ul>
+    </section>
+  </div>
+</div>

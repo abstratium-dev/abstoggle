@@ -28,6 +28,9 @@ public class Toggle {
     @Column(nullable = false)
     private Boolean enabled = true;
 
+    @Column(length = 255, nullable = false)
+    private String context = "";
+
     @PrePersist
     public void prePersist() {
         if (id == null) {
@@ -66,5 +69,13 @@ public class Toggle {
 
     public void setEnabled(Boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public String getContext() {
+        return context;
+    }
+
+    public void setContext(String context) {
+        this.context = context != null ? context : "";
     }
 }

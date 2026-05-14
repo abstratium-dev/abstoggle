@@ -16,14 +16,14 @@ import jakarta.persistence.UniqueConstraint;
 
 @Entity
 @Table(
-    name = "T_toggle_stage",
+    name = "T_toggle_stage_rule",
     uniqueConstraints = @UniqueConstraint(
-        name = "UQ_toggle_stage_toggle_stage",
-        columnNames = {"toggle_id", "stage_id"}
+        name = "UQ_toggle_stage_rule_toggle_stage_rule",
+        columnNames = {"toggle_id", "stage_id", "rule_id"}
     )
 )
 @Audited
-public class ToggleStage {
+public class ToggleStageRule {
 
     @Id
     @Column(length = 36)
@@ -33,7 +33,7 @@ public class ToggleStage {
     @JoinColumn(
         name = "toggle_id",
         nullable = false,
-        foreignKey = @jakarta.persistence.ForeignKey(name = "FK_toggle_stage_toggle_id")
+        foreignKey = @jakarta.persistence.ForeignKey(name = "FK_toggle_stage_rule_toggle_id")
     )
     private Toggle toggle;
 
@@ -41,9 +41,20 @@ public class ToggleStage {
     @JoinColumn(
         name = "stage_id",
         nullable = false,
-        foreignKey = @jakarta.persistence.ForeignKey(name = "FK_toggle_stage_stage_id")
+        foreignKey = @jakarta.persistence.ForeignKey(name = "FK_toggle_stage_rule_stage_id")
     )
     private Stage stage;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+        name = "rule_id",
+        nullable = false,
+        foreignKey = @jakarta.persistence.ForeignKey(name = "FK_toggle_stage_rule_rule_id")
+    )
+    private ToggleRule rule;
+
+    @Column(nullable = false)
+    private Integer priority = 100;
 
     @PrePersist
     public void prePersist() {
@@ -75,5 +86,21 @@ public class ToggleStage {
 
     public void setStage(Stage stage) {
         this.stage = stage;
+    }
+
+    public ToggleRule getRule() {
+        return rule;
+    }
+
+    public void setRule(ToggleRule rule) {
+        this.rule = rule;
+    }
+
+    public Integer getPriority() {
+        return priority;
+    }
+
+    public void setPriority(Integer priority) {
+        this.priority = priority;
     }
 }

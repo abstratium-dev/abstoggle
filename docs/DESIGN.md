@@ -29,18 +29,19 @@ erDiagram
         char(36) parent_stage_id FK "inherits from"
     }
 
-    T_toggle_stage {
+    T_toggle_rule {
+        char(36) id PK
+        varchar name "unique rule identifier"
+        varchar rule_value "off or custom value"
+        varchar description
+    }
+
+    T_toggle_stage_rule {
         char(36) id PK
         char(36) toggle_id FK
         char(36) stage_id FK
-    }
-
-    T_toggle_rule {
-        char(36) id PK
-        char(36) toggle_stage_id FK
-        varchar rule_value "off or custom value"
+        char(36) rule_id FK
         int priority "evaluation order"
-        varchar description
     }
 
     T_toggle_criterion {
@@ -51,9 +52,9 @@ erDiagram
     }
 
     T_stage ||--o{ T_stage : inherits
-    T_toggle ||--o{ T_toggle_stage : has
-    T_stage ||--o{ T_toggle_stage : defines
-    T_toggle_stage ||--o{ T_toggle_rule : contains
+    T_toggle ||--o{ T_toggle_stage_rule : "assigned via"
+    T_stage ||--o{ T_toggle_stage_rule : "used in"
+    T_toggle_rule ||--o{ T_toggle_stage_rule : "assigned via"
     T_toggle_rule ||--o{ T_toggle_criterion : defines
 ```
 
@@ -67,12 +68,14 @@ erDiagram
 | `description` | String | Human-readable description |
 | `enabled` | Boolean | Master switch to enable/disable toggle |
 
-#### ToggleStage
+#### ToggleStageRule
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | UUID (PK) | v4 UUID generated in Java code |
-| `toggle` | ManyToOne | Reference to parent Toggle |
-| `stage` | ManyToOne | Reference to T_stage (defines valid stage) |
+| `toggle` | ManyToOne | Reference to `T_toggle` (cascade delete) |
+| `stage` | ManyToOne | Reference to `T_stage` |
+| `rule` | ManyToOne | Reference to `T_toggle_rule` |
+| `priority` | Integer | Evaluation order within this toggle+stage (lower = first) |
 
 #### Stage
 | Field | Type | Description |
@@ -87,9 +90,8 @@ erDiagram
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | UUID (PK) | v4 UUID generated in Java code |
-| `toggleStage` | ManyToOne | Reference to parent ToggleStage |
+| `name` | String (unique) | Unique identifier so rules can be picked and reused |
 | `ruleValue` | String | Value when criteria match (default: "off") |
-| `priority` | Integer | Evaluation order (lower = evaluated first) |
 | `description` | String | Human-readable description of this rule |
 
 #### ToggleCriterion
@@ -318,11 +320,13 @@ This rule only matches EU users AND age 50+.
 | `POST` | `/api/toggles` | Create new toggle |
 | `PUT` | `/api/toggles/{name}` | Update toggle metadata |
 | `DELETE` | `/api/toggles/{name}` | Delete toggle |
-| `POST` | `/api/toggles/{name}/stages` | Add stage to toggle |
-| `DELETE` | `/api/toggles/{name}/stages/{stageName}` | Remove stage |
-| `POST` | `/api/toggles/{name}/stages/{stageName}/rules` | Add rule to stage |
-| `PUT` | `/api/toggles/{name}/stages/{stageName}/rules/{ruleId}` | Update rule value/criteria/priority |
-| `DELETE` | `/api/toggles/{name}/stages/{stageName}/rules/{ruleId}` | Remove rule |
+| `POST` | `/api/toggles/{name}/stages/{stageName}/rules/{ruleId}` | Assign a rule to a toggle+stage (with priority) |
+| `PUT` | `/api/toggles/{name}/stages/{stageName}/rules/{ruleId}` | Update priority of an assignment |
+| `DELETE` | `/api/toggles/{name}/stages/{stageName}/rules/{ruleId}` | Remove rule assignment from toggle+stage |
+| `GET` | `/api/rules` | List all rules |
+| `POST` | `/api/rules` | Create a new reusable rule |
+| `PUT` | `/api/rules/{ruleId}` | Update rule value/description/criteria |
+| `DELETE` | `/api/rules/{ruleId}` | Delete a rule (only if not assigned) |
 | `GET` | `/api/stages` | List configured stages |
 | `POST` | `/api/stages` | Define new stage |
 | `DELETE` | `/api/ stages/{name}` | Remove stage |
@@ -371,7 +375,7 @@ The complete SQL DDL schema with all columns, constraints, and indexes is docume
 - **UUIDs**: All primary keys are `VARCHAR(36)` storing v4 UUIDs generated in Java
 - **Naming**: Tables use `T_` prefix, FKs use `FK_`, indexes use `I_`
 - **Audit**: All tables audited via Hibernate Envers (creates `_AUD` shadow tables)
-- **Cascade Deletes**: `T_toggle` → `T_toggle_stage` → `T_toggle_rule` → `T_toggle_criterion`
+- **Cascade Deletes**: `T_toggle` → `T_toggle_stage_rule` (assignments only; `T_toggle_rule` and `T_toggle_criterion` are preserved)
 - **Inheritance**: `T_stage` has self-referencing `parent_stage_id` for stage fallback chains
 
 ---
@@ -537,13 +541,13 @@ public class Toggle {
 
 @Entity
 @Audited
-public class ToggleStage {
+public class ToggleRule {
     // ... fields
 }
 
 @Entity
 @Audited
-public class ToggleRule {
+public class ToggleStageRule {
     // ... fields
 }
 
@@ -561,8 +565,8 @@ Envers automatically creates audit tables with `_AUD` suffix:
 | Table | Audit Table | Description |
 |-------|-------------|-------------|
 | `T_toggle` | `T_toggle_AUD` | Tracks toggle metadata changes |
-| `T_toggle_stage` | `T_toggle_stage_AUD` | Tracks stage additions/removals |
-| `T_toggle_rule` | `T_toggle_rule_AUD` | Tracks rule changes (value, priority, description) |
+| `T_toggle_rule` | `T_toggle_rule_AUD` | Tracks rule definition changes (value, name, description) |
+| `T_toggle_stage_rule` | `T_toggle_stage_rule_AUD` | Tracks rule assignments (toggle+stage+rule+priority) |
 | `T_toggle_criterion` | `T_toggle_criterion_AUD` | Tracks criteria changes |
 
 ### Audit Table Structure

@@ -312,8 +312,9 @@ describe('StagesComponent', () => {
 
       const available = component.getAvailableParentStages(mockStages[0]);
 
-      expect(available.length).toBe(2);
+      expect(available.length).toBe(1);
       expect(available.find(s => s.name === 'Development')).toBeUndefined();
+      expect(available.find(s => s.name === 'Staging')).toBeUndefined();
     });
 
     it('should include all stages when no current stage', () => {

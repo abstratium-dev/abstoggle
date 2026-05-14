@@ -2,6 +2,7 @@ import { Component, inject, OnInit, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { InfoButtonComponent } from '../core/info-button/info-button.component';
 import { Controller } from '../controller';
 import { ModelService, Stage, ToggleDto } from '../model.service';
 import { ToggleResult, evaluateToggle } from './toggle-evaluator';
@@ -20,7 +21,7 @@ const DEFAULT_CONTEXT: { [key: string]: string } = {
 
 @Component({
   selector: 'app-toggle-tester',
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, InfoButtonComponent],
   templateUrl: './toggle-tester.component.html',
   styleUrl: './toggle-tester.component.scss'
 })
@@ -33,6 +34,7 @@ export class ToggleTesterComponent implements OnInit {
   stages: Signal<Stage[]> = this.modelService.stages$;
 
   selectedStage = '';
+  selectedContext = '';
   nameFilter = '';
   contextEntries: ContextEntry[] = [];
   newContextKey = '';
@@ -87,6 +89,11 @@ export class ToggleTesterComponent implements OnInit {
       return;
     }
 
+    if (!this.selectedContext.trim()) {
+      this.queryError = 'Context is required';
+      return;
+    }
+
     this.querying = true;
     this.queryError = null;
     this.results = null;
@@ -101,6 +108,7 @@ export class ToggleTesterComponent implements OnInit {
     try {
       const response = await this.controller.queryToggles(
         this.selectedStage,
+        this.selectedContext.trim(),
         this.nameFilter.trim() || undefined
       );
 

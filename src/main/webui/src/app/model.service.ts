@@ -17,6 +17,7 @@ export interface Toggle {
   name: string;
   description?: string;
   enabled?: boolean;
+  context?: string;
 }
 
 export interface ToggleDto {
@@ -24,6 +25,7 @@ export interface ToggleDto {
   stage: string;
   description?: string;
   enabled?: boolean;
+  context?: string;
   rules: Rule[];
 }
 
@@ -32,10 +34,12 @@ export interface ToggleQueryResponse {
   queryMetadata?: { [key: string]: any };
 }
 
-export interface ToggleStage {
+export interface ToggleStageRule {
   id: string;
   toggleName: string;
   stageName: string;
+  ruleName: string;
+  priority: number;
 }
 
 export interface Rule {

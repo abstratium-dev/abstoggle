@@ -6,6 +6,7 @@ import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
 import { AuthService } from '../core/auth.service';
 import { signal } from '@angular/core';
+import { provideRouter } from '@angular/router';
 
 describe('TogglesComponent', () => {
   let component: TogglesComponent;
@@ -29,8 +30,8 @@ describe('TogglesComponent', () => {
 
   beforeEach(async () => {
     const controllerSpy = jasmine.createSpyObj('Controller', [
-      'loadToggles', 'createToggle', 'updateToggle', 'deleteToggle',
-      'addStageToToggle', 'removeStageFromToggle', 'getRulesForToggle',
+      'loadToggles', 'loadStages', 'createToggle', 'updateToggle', 'deleteToggle',
+      'addStageToToggle', 'removeStageFromToggle', 'getStagesForToggle', 'getRulesForToggle',
       'createRule', 'updateRule', 'deleteRule'
     ]);
 
@@ -52,6 +53,7 @@ describe('TogglesComponent', () => {
     await TestBed.configureTestingModule({
       imports: [TogglesComponent],
       providers: [
+        provideRouter([]),
         { provide: Controller, useValue: controllerSpy },
         { provide: ModelService, useValue: modelServiceSpy },
         { provide: ToastService, useValue: toastServiceSpy },
@@ -171,8 +173,8 @@ describe('TogglesComponent', () => {
       expect(controller.createToggle).toHaveBeenCalledWith(
         'new-toggle',
         'New Description',
-        'test@example.com',
-        true
+        true,
+        ''
       );
       expect(toastService.success).toHaveBeenCalledWith('Toggle created successfully');
       expect(component.showAddForm).toBe(false);
@@ -194,8 +196,8 @@ describe('TogglesComponent', () => {
       expect(controller.createToggle).toHaveBeenCalledWith(
         'minimal-toggle',
         '',
-        'test@example.com',
-        true
+        true,
+        ''
       );
     });
 
@@ -224,8 +226,8 @@ describe('TogglesComponent', () => {
       expect(controller.createToggle).toHaveBeenCalledWith(
         'Test Toggle',
         'Test Description',
-        'test@example.com',
-        true
+        true,
+        ''
       );
     });
   });
@@ -249,7 +251,8 @@ describe('TogglesComponent', () => {
       expect(controller.updateToggle).toHaveBeenCalledWith(
         'feature-a',
         'Updated Description',
-        false
+        false,
+        ''
       );
       expect(toastService.success).toHaveBeenCalledWith('Toggle updated successfully');
       expect(component.showAddForm).toBe(false);
@@ -273,7 +276,8 @@ describe('TogglesComponent', () => {
       expect(controller.updateToggle).toHaveBeenCalledWith(
         'feature-b',
         'Feature B toggle',
-        true
+        true,
+        ''
       );
     });
   });

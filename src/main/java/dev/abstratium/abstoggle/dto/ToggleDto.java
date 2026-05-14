@@ -10,15 +10,17 @@ public class ToggleDto {
     private String stage;
     private String description;
     private Boolean enabled;
+    private String context;
     private List<RuleDto> rules;
 
     public ToggleDto() {}
 
-    public ToggleDto(String name, String stage, String description, Boolean enabled, List<RuleDto> rules) {
+    public ToggleDto(String name, String stage, String description, Boolean enabled, String context, List<RuleDto> rules) {
         this.name = name;
         this.stage = stage;
         this.description = description;
         this.enabled = enabled;
+        this.context = context;
         this.rules = rules;
     }
 
@@ -60,5 +62,13 @@ public class ToggleDto {
 
     public void setEnabled(Boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public String getContext() {
+        return context;
+    }
+
+    public void setContext(String context) {
+        this.context = context;
     }
 }

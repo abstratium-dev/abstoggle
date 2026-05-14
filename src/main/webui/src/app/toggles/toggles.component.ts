@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
+import { InfoButtonComponent } from '../core/info-button/info-button.component';
 import { Toggle, ModelService, Stage, Rule } from '../model.service';
 import { Controller } from '../controller';
 import { AuthService } from '../core/auth.service';
@@ -26,7 +27,7 @@ interface ToggleStageInfo {
 
 @Component({
   selector: 'app-toggles',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, InfoButtonComponent],
   templateUrl: './toggles.component.html',
   styleUrl: './toggles.component.scss'
 })
@@ -56,6 +57,7 @@ export class TogglesComponent implements OnInit {
   toggleName = '';
   toggleDescription = '';
   toggleEnabled = true;
+  toggleContext = '';
 
   // Stage management
   managingToggle: Toggle | null = null;
@@ -109,6 +111,7 @@ export class TogglesComponent implements OnInit {
     this.toggleName = toggle.name;
     this.toggleDescription = toggle.description || '';
     this.toggleEnabled = toggle.enabled ?? true;
+    this.toggleContext = toggle.context || '';
     this.showAddForm = true;
     this.formError = null;
   }
@@ -123,6 +126,7 @@ export class TogglesComponent implements OnInit {
     this.toggleName = '';
     this.toggleDescription = '';
     this.toggleEnabled = true;
+    this.toggleContext = '';
     this.formError = null;
   }
 
@@ -144,14 +148,16 @@ export class TogglesComponent implements OnInit {
         await this.controller.updateToggle(
           this.editingToggle.name,
           this.toggleDescription.trim(),
-          this.toggleEnabled
+          this.toggleEnabled,
+          this.toggleContext.trim()
         );
         this.toastService.success('Toggle updated successfully');
       } else {
         await this.controller.createToggle(
           this.toggleName.trim(),
           this.toggleDescription.trim(),
-          this.toggleEnabled
+          this.toggleEnabled,
+          this.toggleContext.trim()
         );
         this.toastService.success('Toggle created successfully');
       }

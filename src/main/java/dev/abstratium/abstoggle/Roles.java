@@ -9,4 +9,7 @@ public interface Roles {
 
     /** The user is simply that. Used to ensure that they can only call some APIs if they are also signed in. */
     String USER = CLIENT_ID + "_user";
+
+    /** Server-to-server role for backend clients that query toggle evaluations on behalf of their users. */
+    String QUERY = CLIENT_ID + "_query";
 }
