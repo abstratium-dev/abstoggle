@@ -103,6 +103,14 @@ public class ToggleService {
     public void delete(String id) {
         Toggle toggle = em.find(Toggle.class, id);
         if (toggle != null) {
+            List<dev.abstratium.abstoggle.entity.ToggleStageRule> assignments = em.createQuery(
+                "SELECT tsr FROM ToggleStageRule tsr WHERE tsr.toggle.id = :toggleId",
+                dev.abstratium.abstoggle.entity.ToggleStageRule.class)
+                .setParameter("toggleId", id)
+                .getResultList();
+            if (!assignments.isEmpty()) {
+                throw new IllegalArgumentException("Cannot delete toggle: it is still used by " + assignments.size() + " rule assignment(s). Remove the rules first.");
+            }
             em.remove(toggle);
         }
     }
@@ -111,8 +119,48 @@ public class ToggleService {
     public void deleteByName(String name) {
         Optional<Toggle> toggleOpt = findByName(name);
         if (toggleOpt.isPresent()) {
-            em.remove(toggleOpt.get());
+            delete(toggleOpt.get().getId());
         }
+    }
+
+    @Transactional
+    public List<Toggle> findAll(String assignedToStage, String assignedToRule) {
+        boolean hasStage = assignedToStage != null && !assignedToStage.isBlank();
+        boolean hasRule = assignedToRule != null && !assignedToRule.isBlank();
+
+        if (!hasStage && !hasRule) {
+            return findAll();
+        }
+
+        StringBuilder jpql = new StringBuilder("SELECT DISTINCT t FROM Toggle t");
+        jpql.append(" JOIN ToggleStageRule tsr ON tsr.toggle.id = t.id");
+
+        if (hasStage) {
+            jpql.append(" JOIN tsr.stage s");
+        }
+        if (hasRule) {
+            jpql.append(" JOIN tsr.rule r");
+        }
+
+        jpql.append(" WHERE 1=1");
+
+        if (hasStage) {
+            jpql.append(" AND s.name = :stageName");
+        }
+        if (hasRule) {
+            jpql.append(" AND r.name = :ruleName");
+        }
+
+        jpql.append(" ORDER BY t.name");
+
+        var query = em.createQuery(jpql.toString(), Toggle.class);
+        if (hasStage) {
+            query.setParameter("stageName", assignedToStage);
+        }
+        if (hasRule) {
+            query.setParameter("ruleName", assignedToRule);
+        }
+        return query.getResultList();
     }
 
     @Transactional

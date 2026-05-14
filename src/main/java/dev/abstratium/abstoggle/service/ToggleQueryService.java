@@ -1,11 +1,11 @@
 package dev.abstratium.abstoggle.service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.time.Duration;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -121,7 +121,7 @@ public class ToggleQueryService {
         }
         
         // Get inheritance chain for stage fallback
-        Set<String> stageChain = stageService.getInheritanceChainNames(stage);
+        List<String> stageChain = stageService.getInheritanceChainNames(stage);
         
         // Find toggles matching the criteria
         List<Toggle> toggles = findToggles(context, nameFilter, includeDisabled);
@@ -182,7 +182,7 @@ public class ToggleQueryService {
         return query.getResultList();
     }
 
-    private ToggleDto buildToggleDto(Toggle toggle, String stage, Set<String> stageChain) {
+    private ToggleDto buildToggleDto(Toggle toggle, String stage, List<String> stageChain) {
         // Find the first matching ToggleStageRule assignment in the inheritance chain
         List<ToggleStageRule> assignments = findAssignmentsInChain(toggle.getName(), stageChain);
         if (assignments.isEmpty()) {
@@ -203,12 +203,11 @@ public class ToggleQueryService {
         return new ToggleDto(toggle.getName(), actualStage, toggle.getDescription(), toggle.getEnabled(), toggle.getContext(), ruleDtos);
     }
 
-    private List<ToggleStageRule> findAssignmentsInChain(String toggleName, Set<String> stageChain) {
-        // Get all assignments for this toggle in the chain, ordered by stage displayOrder then priority
+    private List<ToggleStageRule> findAssignmentsInChain(String toggleName, List<String> stageChain) {
+        // Get all assignments for this toggle in the chain
         List<ToggleStageRule> all = em.createQuery(
             "SELECT tsr FROM ToggleStageRule tsr " +
-            "WHERE tsr.toggle.name = :toggleName AND tsr.stage.name IN :stageNames " +
-            "ORDER BY tsr.stage.displayOrder ASC, tsr.priority ASC",
+            "WHERE tsr.toggle.name = :toggleName AND tsr.stage.name IN :stageNames",
             ToggleStageRule.class)
             .setParameter("toggleName", toggleName)
             .setParameter("stageNames", stageChain)
@@ -217,6 +216,16 @@ public class ToggleQueryService {
         if (all.isEmpty()) {
             return all;
         }
+
+        // Sort by inheritance chain order (closest stage first), then by priority
+        Map<String, Integer> chainOrder = new HashMap<>();
+        for (int i = 0; i < stageChain.size(); i++) {
+            chainOrder.put(stageChain.get(i), i);
+        }
+
+        all.sort(Comparator
+            .comparing((ToggleStageRule tsr) -> chainOrder.getOrDefault(tsr.getStage().getName(), Integer.MAX_VALUE))
+            .thenComparing(ToggleStageRule::getPriority));
 
         // Only return assignments from the closest stage in the chain
         String closestStage = all.get(0).getStage().getName();
@@ -242,6 +251,7 @@ public class ToggleQueryService {
 
         return new RuleDto(
             rule.getId(),
+            rule.getName(),
             assignment.getPriority(),
             rule.getRuleValue(),
             rule.getDescription(),
@@ -335,7 +345,7 @@ public class ToggleQueryService {
             return null;
         }
         
-        Set<String> stageChain = Set.of(stage); // Only this stage, no inheritance
+        List<String> stageChain = List.of(stage); // Only this stage, no inheritance
         return buildToggleDto(toggleOpt.get(), stage, stageChain);
     }
 }

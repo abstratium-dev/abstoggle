@@ -36,7 +36,6 @@ public class ToggleStageResource {
 
     @POST
     @Path("/{stageName}")
-    @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
     public Response addStageToToggle(@PathParam("name") String toggleName, @PathParam("stageName") String stageName) {
         if (toggleName == null || toggleName.trim().isEmpty()) {
@@ -45,9 +44,9 @@ public class ToggleStageResource {
         if (stageName == null || stageName.trim().isEmpty()) {
             throw new IllegalArgumentException("Stage name is required");
         }
-        
-        String stage = toggleStageService.addStageToToggle(toggleName, stageName);
-        return Response.ok(stage).build();
+
+        toggleStageService.addStageToToggle(toggleName, stageName);
+        return Response.ok().build();
     }
 
     @DELETE

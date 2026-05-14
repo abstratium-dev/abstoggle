@@ -11,6 +11,11 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
+/**
+ * Represents a reusable rule that defines a value and a set of criteria for
+ * matching against client context. Enables OR logic by allowing multiple rules
+ * for the same toggle.
+ */
 @Entity
 @Table(
     name = "T_toggle_rule",
@@ -22,16 +27,28 @@ import jakarta.persistence.UniqueConstraint;
 @Audited
 public class ToggleRule {
 
+    /**
+     * v4 UUID generated in Java code.
+     */
     @Id
     @Column(length = 36)
     private String id;
 
+    /**
+     * Unique identifier so rules can be picked and reused across toggles.
+     */
     @Column(length = 255, nullable = false)
     private String name;
 
+    /**
+     * Value when criteria match (default: "off").
+     */
     @Column(name = "rule_value", length = 255, nullable = false)
     private String ruleValue = "off";
 
+    /**
+     * Human-readable description of this rule.
+     */
     @Column(length = 500)
     private String description;
 

@@ -57,8 +57,10 @@ public class ToggleResource {
     @Path("/all")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
-    public List<ToggleDto> getAllToggles() {
-        List<Toggle> toggles = toggleService.findAll();
+    public List<ToggleDto> getAllToggles(
+            @QueryParam("assignedToStage") String assignedToStage,
+            @QueryParam("assignedToRule") String assignedToRule) {
+        List<Toggle> toggles = toggleService.findAll(assignedToStage, assignedToRule);
         return toggles.stream()
             .map(this::convertToDto)
             .collect(Collectors.toList());

@@ -114,8 +114,8 @@
           <th>Description</th>
           <th>Resolved Value</th>
           <th>Matched Rule</th>
-          <th></th>
-          <th></th>
+          <th>Logs</th>
+          <th>Configure</th>
         </tr>
       </thead>
       <tbody>
@@ -135,7 +135,7 @@
               </button>
             </td>
             <td>
-              <a [routerLink]="['/toggles', result.name]" class="btn-add-small">⚙️ Configure</a>
+              <a [routerLink]="['/toggles', result.name]" title="Configure toggle">⚙️</a>
             </td>
           </tr>
           <tr *ngIf="result.showLog" class="tester-log-row">

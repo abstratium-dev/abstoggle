@@ -30,20 +30,26 @@ describe('TogglesComponent', () => {
 
   beforeEach(async () => {
     const controllerSpy = jasmine.createSpyObj('Controller', [
-      'loadToggles', 'loadStages', 'createToggle', 'updateToggle', 'deleteToggle',
-      'addStageToToggle', 'removeStageFromToggle', 'getStagesForToggle', 'getRulesForToggle',
-      'createRule', 'updateRule', 'deleteRule'
+      'loadToggles', 'loadStages', 'loadRules', 'createToggle', 'updateToggle', 'deleteToggle',
+      'getToggleStageRules', 'createToggleStageRule', 'updateToggleStageRule', 'deleteToggleStageRule'
     ]);
 
     // Create writable signals for testing
     togglesSignal = signal<Toggle[]>([]);
     loadingSignal = signal<boolean>(false);
     errorSignal = signal<string | null>(null);
+    const rulesSignal = signal<[]>([]);
+    const rulesLoadingSignal = signal<boolean>(false);
+    const rulesErrorSignal = signal<string | null>(null);
 
     const modelServiceSpy = jasmine.createSpyObj('ModelService', [], {
       toggles$: togglesSignal,
       togglesLoading$: loadingSignal,
-      togglesError$: errorSignal
+      togglesError$: errorSignal,
+      stages$: signal<[]>([]),
+      rules$: rulesSignal,
+      rulesLoading$: rulesLoadingSignal,
+      rulesError$: rulesErrorSignal
     });
     const toastServiceSpy = jasmine.createSpyObj('ToastService', ['success', 'error']);
     const confirmServiceSpy = jasmine.createSpyObj('ConfirmDialogService', ['confirm']);
@@ -77,9 +83,11 @@ describe('TogglesComponent', () => {
   });
 
   describe('Initialization', () => {
-    it('should load toggles on init', () => {
+    it('should load toggles, stages and rules on init', () => {
       fixture.detectChanges();
       expect(controller.loadToggles).toHaveBeenCalled();
+      expect(controller.loadStages).toHaveBeenCalled();
+      expect(controller.loadRules).toHaveBeenCalled();
     });
   });
 
@@ -352,10 +360,178 @@ describe('TogglesComponent', () => {
     });
   });
 
+  describe('Toggle Stage Rule Management', () => {
+    const mockStageRules = [
+      { id: 'sr-1', toggleName: 'feature-a', stageName: 'dev', ruleId: 'rule-1', ruleName: 'eu-rule', ruleValue: 'on', priority: 1, criteria: {} },
+      { id: 'sr-2', toggleName: 'feature-a', stageName: 'prod', ruleId: 'rule-2', ruleName: 'default-rule', ruleValue: 'off', priority: 100, criteria: {} }
+    ];
+
+    it('should load stage rules when starting management', async () => {
+      controller.getToggleStageRules.and.returnValue(Promise.resolve(mockStageRules));
+
+      await component.startManageStageRules(mockToggles[0]);
+
+      expect(component.managingToggle).toBe(mockToggles[0]);
+      expect(controller.getToggleStageRules).toHaveBeenCalledWith('feature-a');
+      expect(component.toggleStageRules).toEqual(mockStageRules);
+      expect(component.stageRulesLoading).toBe(false);
+    });
+
+    it('should handle error loading stage rules', async () => {
+      controller.getToggleStageRules.and.returnValue(Promise.reject({
+        error: { detail: 'Toggle not found' }
+      }));
+
+      await component.startManageStageRules(mockToggles[0]);
+
+      expect(toastService.error).toHaveBeenCalledWith('Toggle not found');
+      expect(component.stageRulesLoading).toBe(false);
+    });
+
+    it('should cancel management and clear state', () => {
+      component.managingToggle = mockToggles[0];
+      component.toggleStageRules = mockStageRules;
+
+      component.cancelManageStageRules();
+
+      expect(component.managingToggle).toBeNull();
+      expect(component.toggleStageRules).toEqual([]);
+    });
+
+    it('should create stage rule successfully', async () => {
+      controller.createToggleStageRule.and.returnValue(Promise.resolve());
+      controller.getToggleStageRules.and.returnValue(Promise.resolve(mockStageRules));
+
+      component.managingToggle = mockToggles[0];
+      component.selectedStageName = 'dev';
+      component.selectedRuleId = 'rule-1';
+      component.newRulePriority = 5;
+
+      await component.saveStageRule();
+
+      expect(controller.createToggleStageRule).toHaveBeenCalledWith('feature-a', 'dev', 'rule-1', 5);
+      expect(toastService.success).toHaveBeenCalledWith('Assignment created successfully');
+      expect(component.showAddStageRuleForm).toBe(false);
+    });
+
+    it('should require stage and rule for creation', async () => {
+      component.managingToggle = mockToggles[0];
+      component.selectedStageName = '';
+      component.selectedRuleId = '';
+
+      await component.saveStageRule();
+
+      expect(controller.createToggleStageRule).not.toHaveBeenCalled();
+      expect(toastService.error).toHaveBeenCalledWith('Stage and rule are required');
+    });
+
+    it('should update stage rule priority successfully', async () => {
+      controller.updateToggleStageRule.and.returnValue(Promise.resolve(mockStageRules[0]));
+      controller.getToggleStageRules.and.returnValue(Promise.resolve(mockStageRules));
+
+      component.managingToggle = mockToggles[0];
+      component.editingStageRule = mockStageRules[0];
+      component.editRulePriority = 10;
+
+      await component.saveStageRule();
+
+      expect(controller.updateToggleStageRule).toHaveBeenCalledWith('feature-a', 'sr-1', 10);
+      expect(toastService.success).toHaveBeenCalledWith('Assignment updated successfully');
+    });
+
+    it('should delete stage rule after confirmation', async () => {
+      confirmService.confirm.and.returnValue(Promise.resolve(true));
+      controller.deleteToggleStageRule.and.returnValue(Promise.resolve());
+      controller.getToggleStageRules.and.returnValue(Promise.resolve([]));
+
+      component.managingToggle = mockToggles[0];
+      await component.deleteStageRule(mockStageRules[0]);
+
+      expect(confirmService.confirm).toHaveBeenCalled();
+      expect(controller.deleteToggleStageRule).toHaveBeenCalledWith('feature-a', 'sr-1');
+      expect(toastService.success).toHaveBeenCalledWith('Assignment deleted successfully');
+    });
+
+    it('should not delete stage rule if user cancels', async () => {
+      confirmService.confirm.and.returnValue(Promise.resolve(false));
+
+      component.managingToggle = mockToggles[0];
+      await component.deleteStageRule(mockStageRules[0]);
+
+      expect(controller.deleteToggleStageRule).not.toHaveBeenCalled();
+    });
+
+    it('should toggle add stage rule form', () => {
+      expect(component.showAddStageRuleForm).toBe(false);
+
+      component.toggleAddStageRuleForm();
+      expect(component.showAddStageRuleForm).toBe(true);
+      expect(component.selectedStageName).toBe('');
+      expect(component.selectedRuleId).toBe('');
+
+      component.toggleAddStageRuleForm();
+      expect(component.showAddStageRuleForm).toBe(false);
+    });
+
+    it('should start editing stage rule', () => {
+      component.toggleAddStageRuleForm(); // open form first
+      component.startEditStageRule(mockStageRules[0]);
+
+      expect(component.editingStageRule).toBe(mockStageRules[0]);
+      expect(component.editRulePriority).toBe(1);
+      expect(component.showAddStageRuleForm).toBe(true);
+    });
+
+    it('should cancel editing stage rule', () => {
+      component.editingStageRule = mockStageRules[0];
+      component.showAddStageRuleForm = true;
+
+      component.cancelEditStageRule();
+
+      expect(component.editingStageRule).toBeNull();
+      expect(component.showAddStageRuleForm).toBe(false);
+    });
+  });
+
   describe('Retry', () => {
-    it('should call controller loadToggles on retry', () => {
+    it('should call controller loadToggles with current filters on retry', () => {
+      component.filterStageName = 'dev';
+      component.filterRuleName = 'eu-rule';
       component.onRetry();
-      expect(controller.loadToggles).toHaveBeenCalled();
+      expect(controller.loadToggles).toHaveBeenCalledWith('dev', 'eu-rule');
+    });
+  });
+
+  describe('Filters', () => {
+    it('should call loadToggles with stage filter when filter changes', () => {
+      component.filterStageName = 'prod';
+      component.onFilterChange();
+      expect(controller.loadToggles).toHaveBeenCalledWith('prod', undefined);
+    });
+
+    it('should call loadToggles with rule filter when filter changes', () => {
+      component.filterRuleName = 'default-rule';
+      component.onFilterChange();
+      expect(controller.loadToggles).toHaveBeenCalledWith(undefined, 'default-rule');
+    });
+
+    it('should call loadToggles with both filters when both are set', () => {
+      component.filterStageName = 'dev';
+      component.filterRuleName = 'beta-rule';
+      component.onFilterChange();
+      expect(controller.loadToggles).toHaveBeenCalledWith('dev', 'beta-rule');
+    });
+
+    it('should clear filters and reload toggles', () => {
+      component.filterStageName = 'dev';
+      component.filterRuleName = 'beta-rule';
+      controller.loadToggles.calls.reset();
+
+      component.clearFilters();
+
+      expect(component.filterStageName).toBeNull();
+      expect(component.filterRuleName).toBeNull();
+      expect(controller.loadToggles).toHaveBeenCalledWith(undefined, undefined);
     });
   });
 });

@@ -10,24 +10,42 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
+/**
+ * Represents a feature flag that can have different values based on stages and matching criteria.
+ */
 @Entity
 @Table(name = "T_toggle")
 @Audited
 public class Toggle {
 
+    /**
+     * v4 UUID generated in Java code.
+     */
     @Id
     @Column(length = 36)
     private String id;
 
+    /**
+     * Toggle identifier (e.g., "new-feature-x"). Must be unique.
+     */
     @Column(length = 255, nullable = false, unique = true)
     private String name;
 
+    /**
+     * Human-readable description of this toggle.
+     */
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    /**
+     * Master switch to enable or disable this toggle.
+     */
     @Column(nullable = false)
     private Boolean enabled = true;
 
+    /**
+     * Context string for this toggle.
+     */
     @Column(length = 255, nullable = false)
     private String context = "";
 

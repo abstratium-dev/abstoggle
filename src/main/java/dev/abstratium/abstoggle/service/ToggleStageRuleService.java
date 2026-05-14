@@ -65,9 +65,9 @@ public class ToggleStageRuleService {
     @Transactional
     public List<String> getStagesForToggle(String toggleName) {
         return em.createQuery(
-            "SELECT DISTINCT tsr.stage.name FROM ToggleStageRule tsr " +
-            "WHERE tsr.toggle.name = :toggleName " +
-            "ORDER BY tsr.stage.displayOrder, tsr.stage.name",
+            "SELECT s.name FROM Stage s " +
+            "WHERE s.id IN (SELECT tsr.stage.id FROM ToggleStageRule tsr WHERE tsr.toggle.name = :toggleName) " +
+            "ORDER BY s.displayOrder, s.name",
             String.class)
             .setParameter("toggleName", toggleName)
             .getResultList();

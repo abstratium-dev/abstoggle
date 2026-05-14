@@ -19,15 +19,17 @@
         <a href="https://abstratium.dev/docs/legal">Legal</a>
         @if(isSignedIn) {
             &nbsp;|&nbsp;
+            <a id="help-link" routerLink="/help" routerLinkActive="inactive-link">📚</a>
+            &nbsp;|&nbsp;
             <a id="home-link" routerLink="/" routerLinkActive="inactive-link">🏠</a>
             &nbsp;|&nbsp;
             <a id="stages-link" routerLink="/stages" routerLinkActive="inactive-link">Stages</a>
             &nbsp;|&nbsp;
+            <a id="rules-link" routerLink="/rules" routerLinkActive="inactive-link">Rules</a>
+            &nbsp;|&nbsp;
             <a id="toggles-link" routerLink="/toggles" routerLinkActive="inactive-link">Toggles</a>
             &nbsp;|&nbsp;
             <a id="toggle-tester-link" routerLink="/toggle-tester" routerLinkActive="inactive-link">Tester</a>
-            &nbsp;|&nbsp;
-            <a id="help-link" routerLink="/help" routerLinkActive="inactive-link">❔</a>
             &nbsp;|&nbsp;
             <a id="signout-link" class="alink" (click)="signout()">Sign out</a>
         }

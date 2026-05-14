@@ -7,6 +7,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 @RegisterForReflection
 public class RuleDto {
     private String id;
+    private String name;
     private Integer priority;
     private String value;
     private String description;
@@ -14,8 +15,9 @@ public class RuleDto {
 
     public RuleDto() {}
 
-    public RuleDto(String id, Integer priority, String value, String description, Map<String, String> criteria) {
+    public RuleDto(String id, String name, Integer priority, String value, String description, Map<String, String> criteria) {
         this.id = id;
+        this.name = name;
         this.priority = priority;
         this.value = value;
         this.description = description;
@@ -28,6 +30,14 @@ public class RuleDto {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public Integer getPriority() {

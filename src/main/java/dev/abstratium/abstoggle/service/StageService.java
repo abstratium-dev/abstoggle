@@ -117,6 +117,16 @@ public class StageService {
                 throw new IllegalArgumentException("Cannot delete stage that has child stages: " + 
                     childStages.stream().map(Stage::getName).reduce((a, b) -> a + ", " + b).orElse(""));
             }
+
+            // Check if any toggle-stage-rule assignments reference this stage
+            List<dev.abstratium.abstoggle.entity.ToggleStageRule> assignments = em.createQuery(
+                "SELECT tsr FROM ToggleStageRule tsr WHERE tsr.stage.id = :stageId",
+                dev.abstratium.abstoggle.entity.ToggleStageRule.class)
+                .setParameter("stageId", id)
+                .getResultList();
+            if (!assignments.isEmpty()) {
+                throw new IllegalArgumentException("Cannot delete stage: it is still assigned to " + assignments.size() + " toggle(s). Remove the assignments first, on the toggles page.");
+            }
             
             em.remove(stage);
         }
@@ -153,14 +163,13 @@ public class StageService {
 
     /**
      * Get all stages in the inheritance chain (including the stage itself)
-     * for inheritance lookup purposes.
+     * for inheritance lookup purposes. The list is ordered from the stage itself
+     * to the root parent.
      */
     @Transactional
-    public Set<String> getInheritanceChainNames(String stageName) {
-        Set<String> chainNames = new HashSet<>();
+    public List<String> getInheritanceChainNames(String stageName) {
         List<Stage> chain = getInheritanceChain(stageName);
-        chain.forEach(stage -> chainNames.add(stage.getName()));
-        return chainNames;
+        return chain.stream().map(Stage::getName).toList();
     }
 
     /**

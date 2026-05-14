@@ -1055,6 +1055,41 @@ button {
   font-size: 0.9rem;
 }
 
+/* ===== TOGGLE FILTERS ===== */
+.filter-container {
+  margin-bottom: 1.5rem;
+  background: var(--color-bg-secondary);
+  padding: 1rem 1.5rem;
+  border: 1px solid var(--color-border-primary);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px var(--shadow-sm);
+}
+
+.filter-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 200px;
+  flex: 1;
+
+  label {
+    font-weight: 500;
+    color: var(--color-text-primary);
+    font-size: 0.9rem;
+  }
+}
+
+.clear-filters-btn {
+  margin-bottom: 0.25rem;
+}
+
 /* ===== TILE GRIDS ===== */
 .tile-grid {
   display: grid;
@@ -1710,4 +1745,63 @@ button {
   color: var(--color-badge-primary-text);
   background: var(--color-badge-primary-bg);
   font-weight: 600;
+}
+
+/* ===== RULES CRITERIA MANAGEMENT ===== */
+.criteria-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+
+  input {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid var(--color-border-secondary);
+    border-radius: 4px;
+    font-size: 0.95rem;
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+  }
+
+  .btn-add-small {
+    white-space: nowrap;
+  }
+}
+
+.criteria-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.6rem;
+  background: var(--color-badge-primary-bg);
+  border-radius: 4px;
+  font-size: 0.875rem;
+  margin: 0.25rem;
+
+  .criteria-key {
+    font-weight: 600;
+    color: var(--color-badge-primary-text);
+  }
+
+  .criteria-sep {
+    color: var(--color-text-tertiary);
+  }
+
+  .criteria-value {
+    font-family: monospace;
+    color: var(--color-text-primary);
+  }
+
+  .btn-icon {
+    padding: 0.15rem 0.3rem;
+    font-size: 0.8rem;
+    margin-left: 0.25rem;
+  }
+}
+
+.criteria-summary {
+  color: var(--color-text-tertiary);
+  font-size: 0.875rem;
+  font-style: italic;
 }

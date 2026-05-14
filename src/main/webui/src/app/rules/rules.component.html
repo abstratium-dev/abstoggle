@@ -1,0 +1,159 @@
+<div class="container">
+  <div class="page-header">
+    <h1>Rules <app-info-button tooltipText="Reusable rules define toggle values and criteria that can be assigned to any toggle+stage combination." /></h1>
+    <div class="header-actions">
+      <button class="btn-add" (click)="toggleAddForm()" [disabled]="formSubmitting">
+        {{ showAddForm ? 'Cancel' : '+ Add Rule' }}
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading()" class="loading">
+    <p>Loading rules...</p>
+  </div>
+
+  <div *ngIf="error()" class="error-box">
+    <p>{{ error() }}</p>
+    <button (click)="onRetry()">Retry</button>
+  </div>
+
+  <!-- Add/Edit Form -->
+  <div *ngIf="showAddForm" class="form-container">
+    <h2>{{ editingRule ? 'Edit Rule' : 'Create New Rule' }}</h2>
+
+    <form (ngSubmit)="onSubmit()">
+      <div *ngIf="formError" class="error-box">
+        {{ formError }}
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="ruleName">Rule Name *</label>
+          <input
+            id="ruleName"
+            type="text"
+            [(ngModel)]="ruleName"
+            name="ruleName"
+            placeholder="e.g., beta-testers"
+            required
+            [disabled]="formSubmitting"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="ruleValue">Rule Value *</label>
+          <input
+            id="ruleValue"
+            type="text"
+            [(ngModel)]="ruleValue"
+            name="ruleValue"
+            placeholder="e.g., on, off, variant-b"
+            required
+            [disabled]="formSubmitting"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="ruleDescription">Description</label>
+        <textarea
+          id="ruleDescription"
+          [(ngModel)]="ruleDescription"
+          name="ruleDescription"
+          placeholder="Describe what this rule targets (optional)"
+          rows="2"
+          [disabled]="formSubmitting"
+        ></textarea>
+      </div>
+
+      <!-- Criteria Section -->
+      <div class="form-group">
+        <label>Criteria</label>
+        <div class="criteria-input-row">
+          <input
+            type="text"
+            [(ngModel)]="criteriaKey"
+            name="criteriaKey"
+            placeholder="Key (e.g., userId)"
+            [disabled]="formSubmitting"
+          />
+          <input
+            type="text"
+            [(ngModel)]="criteriaValue"
+            name="criteriaValue"
+            placeholder="Value (e.g., '^(alice|bob)$)' or '/^[5-9][0-9]$/' or '/de/i' for case insensitive"
+            [disabled]="formSubmitting"
+          />
+          <button type="button" class="btn-add-small" (click)="addCriterionEntry()" [disabled]="formSubmitting">
+            Add
+          </button>
+        </div>
+        <span class="form-hint">All criteria in one rule must match (AND). For OR logic, create multiple rules. Leave empty for a catch-all rule.</span>
+
+        <div *ngIf="criteriaError" class="error-box criteria-error">
+          {{ criteriaError }}
+        </div>
+        <div *ngIf="criteriaEntries.length > 0" class="criteria-list">
+          <div *ngFor="let entry of criteriaEntries; let i = index" class="criteria-tag">
+            <span class="criteria-key">{{ entry.key }}</span>
+            <span class="criteria-sep">=</span>
+            <span class="criteria-value">{{ entry.value }}</span>
+            <button type="button" class="btn-icon" (click)="removeCriterionEntry(i)" title="Remove criterion">
+              ✕
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary" [disabled]="formSubmitting">
+          {{ formSubmitting ? 'Saving...' : (editingRule ? 'Update Rule' : 'Create Rule') }}
+        </button>
+        <button type="button" class="btn-secondary" (click)="cancelEdit()" [disabled]="formSubmitting">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div *ngIf="!loading() && !error() && rules().length === 0" class="info-message">
+    <p>No reusable rules found. Click "Add Rule" to create your first rule.</p>
+  </div>
+
+  <div *ngIf="!loading() && !error() && rules().length > 0">
+    <table class="standard-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Value</th>
+          <th>Description</th>
+          <th>Criteria</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let rule of rules()">
+          <td><strong>{{ rule.name || rule.id }}</strong></td>
+          <td><span class="badge badge-primary">{{ rule.value }}</span></td>
+          <td>{{ rule.description || '-' }}</td>
+          <td>
+            <span class="criteria-summary">{{ formatCriteria(rule.criteria) }}</span>
+          </td>
+          <td>
+            <div class="card-actions">
+              <button class="btn-icon" (click)="goToToggles(rule)" title="View toggles using this rule">
+                🔗
+              </button>
+              <button class="btn-icon" (click)="startEdit(rule)" title="Edit rule">
+                ✏️
+              </button>
+              <button class="btn-icon btn-icon-danger" (click)="deleteRule(rule)" title="Delete rule">
+                🗑️
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

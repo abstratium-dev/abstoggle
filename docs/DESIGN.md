@@ -32,7 +32,6 @@ erDiagram
     T_toggle_rule {
         char(36) id PK
         varchar name "unique rule identifier"
-        varchar rule_value "off or custom value"
         varchar description
     }
 
@@ -41,6 +40,7 @@ erDiagram
         char(36) toggle_id FK
         char(36) stage_id FK
         char(36) rule_id FK
+        varchar rule_value "off or custom value"
         int priority "evaluation order"
     }
 
@@ -74,7 +74,8 @@ erDiagram
 | `id` | UUID (PK) | v4 UUID generated in Java code |
 | `toggle` | ManyToOne | Reference to `T_toggle` (cascade delete) |
 | `stage` | ManyToOne | Reference to `T_stage` |
-| `rule` | ManyToOne | Reference to `T_toggle_rule` |
+| `rule` | ManyToOne | Reference to `T_toggle_rule` (criteria template) |
+| `ruleValue` | String | Value when criteria match (default: "off") |
 | `priority` | Integer | Evaluation order within this toggle+stage (lower = first) |
 
 #### Stage
@@ -91,7 +92,6 @@ erDiagram
 |-------|------|-------------|
 | `id` | UUID (PK) | v4 UUID generated in Java code |
 | `name` | String (unique) | Unique identifier so rules can be picked and reused |
-| `ruleValue` | String | Value when criteria match (default: "off") |
 | `description` | String | Human-readable description of this rule |
 
 #### ToggleCriterion
@@ -218,7 +218,7 @@ GET /api/toggles?stage=prod&nameFilter=user-profile-redesign
 | `description` | String | Toggle description |
 | `rules` | Array | List of rules ordered by priority |
 | `rules[].priority` | Integer | Evaluation order (lower = first) |
-| `rules[].value` | String | Toggle value if criteria match ("off" or custom) |
+| `rules[].value` | String | Toggle value from the assignment if criteria match ("off" or custom) |
 | `rules[].description` | String | Rule description explaining the criteria |
 | `rules[].criteria` | Object | Key/value pairs for client-side matching |
 
@@ -273,7 +273,7 @@ return "off"; // Default if no rules match
 
 ## Multiple Criteria Sets (OR Logic)
 
-The `ToggleRule` entity enables the same toggle to be enabled for **different, independent criteria sets**. This supports OR logic: "Enable feature X for EU users OR users aged 50+".
+The `ToggleRule` entity defines a reusable **criteria set** that can be assigned to different toggles with different values. This supports OR logic: "Enable feature X for EU users OR users aged 50+" by assigning the same criteria set with different values, or by combining multiple criteria sets.
 
 ### Example: EU Users OR Age 50+
 
@@ -301,6 +301,8 @@ Multiple criteria within the same rule use AND logic:
 
 This rule only matches EU users AND age 50+.
 
+> **Note:** A criterion key can appear only once per rule. To express OR for the same key (e.g., country is DE **or** AT), use a regex with alternation: `^(DE|AT)$`. To express OR across different keys, create separate rules.
+
 ---
 
 ## API Endpoints
@@ -320,12 +322,12 @@ This rule only matches EU users AND age 50+.
 | `POST` | `/api/toggles` | Create new toggle |
 | `PUT` | `/api/toggles/{name}` | Update toggle metadata |
 | `DELETE` | `/api/toggles/{name}` | Delete toggle |
-| `POST` | `/api/toggles/{name}/stages/{stageName}/rules/{ruleId}` | Assign a rule to a toggle+stage (with priority) |
-| `PUT` | `/api/toggles/{name}/stages/{stageName}/rules/{ruleId}` | Update priority of an assignment |
+| `POST` | `/api/toggles/{name}/stages/{stageName}/rules/{ruleId}` | Assign a rule to a toggle+stage (with priority and value) |
+| `PUT` | `/api/toggles/{name}/stages/{stageName}/rules/{ruleId}` | Update priority and/or value of an assignment |
 | `DELETE` | `/api/toggles/{name}/stages/{stageName}/rules/{ruleId}` | Remove rule assignment from toggle+stage |
 | `GET` | `/api/rules` | List all rules |
-| `POST` | `/api/rules` | Create a new reusable rule |
-| `PUT` | `/api/rules/{ruleId}` | Update rule value/description/criteria |
+| `POST` | `/api/rules` | Create a new reusable rule (criteria only) |
+| `PUT` | `/api/rules/{ruleId}` | Update rule description/criteria |
 | `DELETE` | `/api/rules/{ruleId}` | Delete a rule (only if not assigned) |
 | `GET` | `/api/stages` | List configured stages |
 | `POST` | `/api/stages` | Define new stage |
@@ -376,6 +378,7 @@ The complete SQL DDL schema with all columns, constraints, and indexes is docume
 - **Naming**: Tables use `T_` prefix, FKs use `FK_`, indexes use `I_`
 - **Audit**: All tables audited via Hibernate Envers (creates `_AUD` shadow tables)
 - **Cascade Deletes**: `T_toggle` → `T_toggle_stage_rule` (assignments only; `T_toggle_rule` and `T_toggle_criterion` are preserved)
+- **Value Location**: The toggle value lives on `T_toggle_stage_rule`, not on `T_toggle_rule`
 - **Inheritance**: `T_stage` has self-referencing `parent_stage_id` for stage fallback chains
 
 ---
@@ -565,8 +568,8 @@ Envers automatically creates audit tables with `_AUD` suffix:
 | Table | Audit Table | Description |
 |-------|-------------|-------------|
 | `T_toggle` | `T_toggle_AUD` | Tracks toggle metadata changes |
-| `T_toggle_rule` | `T_toggle_rule_AUD` | Tracks rule definition changes (value, name, description) |
-| `T_toggle_stage_rule` | `T_toggle_stage_rule_AUD` | Tracks rule assignments (toggle+stage+rule+priority) |
+| `T_toggle_rule` | `T_toggle_rule_AUD` | Tracks rule definition changes (name, description) |
+| `T_toggle_stage_rule` | `T_toggle_stage_rule_AUD` | Tracks rule assignments (toggle+stage+rule+priority+value) |
 | `T_toggle_criterion` | `T_toggle_criterion_AUD` | Tracks criteria changes |
 
 ### Audit Table Structure

@@ -52,7 +52,7 @@
       </div>
 
       <div class="form-group">
-        <label for="toggleContext">Context</label>
+        <label for="toggleContext">Context <app-info-button tooltipText="Context is an optional category tag. It groups toggles so client applications can query only the toggles relevant to their domain (e.g. 'frontend' or 'payments')." /></label>
         <input
           id="toggleContext"
           type="text"
@@ -86,187 +86,151 @@
     </form>
   </div>
 
-  <!-- Stage Management Section -->
+  <!-- Toggle Stage Rule Management Section -->
   <div *ngIf="managingToggle" class="form-container">
     <div class="section-header">
-      <h2>Manage Stages for "{{ managingToggle.name }}" <app-info-button tooltipText="Assign a toggle to a stage to make it available in that environment. Stages that inherit from a parent will automatically include toggles configured on the parent." /></h2>
-      <button class="btn-secondary" (click)="cancelManageStages()">Close</button>
+      <h2>Manage Stage &amp; Rule Assignments for "{{ managingToggle.name }}" <app-info-button tooltipText="Assign reusable rules to stages for this toggle. Each assignment defines what value the toggle returns for clients matching that stage and rule criteria." /></h2>
+      <button class="btn-secondary" (click)="cancelManageStageRules()">Close</button>
     </div>
 
-    <!-- Add Stage to Toggle -->
+    <!-- Add ToggleStageRule Form -->
     <div class="stage-assignment">
-      <h3>Add Stages</h3>
-      <div class="form-row">
+      <h3>{{ editingStageRule ? 'Edit Assignment' : 'Add Assignment' }}</h3>
+      <div *ngIf="!showAddStageRuleForm">
+        <button class="btn-add" (click)="toggleAddStageRuleForm()">+ Add Assignment</button>
+      </div>
+      <div *ngIf="showAddStageRuleForm" class="form-row">
+        <div class="form-group" *ngIf="!editingStageRule">
+          <label for="stageName">Stage</label>
+          <abs-autocomplete
+            id="stageName"
+            [fetchOptions]="fetchStageOptions"
+            placeholder="Search stage..."
+            [minSearchLength]="1"
+            [(ngModel)]="selectedStageName"
+            name="stageName"
+          ></abs-autocomplete>
+        </div>
+        <div class="form-group" *ngIf="!editingStageRule">
+          <label for="ruleId">Rule</label>
+          <abs-autocomplete
+            id="ruleId"
+            [fetchOptions]="fetchRuleOptionsForAssignment"
+            placeholder="Search rule..."
+            [minSearchLength]="1"
+            [(ngModel)]="selectedRuleId"
+            name="ruleId"
+          ></abs-autocomplete>
+        </div>
         <div class="form-group">
-          <label for="stageToAdd">Select Stage</label>
-          <select
-            id="stageToAdd"
-            [(ngModel)]="selectedStageToAdd"
-            name="stageToAdd"
-            [disabled]="stageManagementLoading"
-          >
-            <option value="">-- Select a stage --</option>
-            <option *ngFor="let stage of getAvailableStagesForToggle()" [value]="stage.name">
-              {{ stage.name }}
-            </option>
-          </select>
+          <label for="priority">Priority</label>
+          <input
+            id="priority"
+            type="number"
+            [ngModel]="editingStageRule ? editRulePriority : newRulePriority"
+            (ngModelChange)="onPriorityChange($event)"
+            name="priority"
+            placeholder="100"
+            [disabled]="stageRulesLoading"
+          />
         </div>
         <div class="form-group button-group">
           <button
             class="btn-add"
-            (click)="addStageToToggle()"
-            [disabled]="!selectedStageToAdd || stageManagementLoading"
+            (click)="saveStageRule()"
+            [disabled]="stageRulesLoading || (!editingStageRule && (!selectedStageName || !selectedRuleId))"
           >
-            Add Stage
+            {{ editingStageRule ? 'Update' : 'Add Assignment' }}
           </button>
+          <button class="btn-secondary" (click)="cancelEditStageRule()">Cancel</button>
         </div>
       </div>
     </div>
 
-    <!-- Assigned Stages with Rules -->
-    <div class="assigned-stages" *ngIf="toggleStages.size > 0">
-      <h3>Assigned Stages & Rules <app-info-button tooltipText="Rules are evaluated in ascending priority order (lower number = higher priority). The first matching rule wins. A rule with no criteria is a catch-all that always matches." /></h3>
-
-      <div *ngFor="let stageEntry of toggleStages | keyvalue" class="stage-card">
-        <div class="stage-header">
-          <h4>{{ stageEntry.key }}</h4>
-          <div class="stage-actions">
-            <button
-              class="btn-add-small"
-              (click)="toggleAddRuleForm(stageEntry.key)"
-              title="Add rule"
-            >
-              + Add Rule
-            </button>
-            <button
-              class="btn-icon btn-icon-danger"
-              (click)="removeStageFromToggle(stageEntry.key)"
-              title="Remove stage"
-            >
-              🗑️
-            </button>
-          </div>
-        </div>
-
-        <!-- Add/Edit Rule Form -->
-        <div *ngIf="stageEntry.value.showAddRule" class="rule-form">
-          <h5>{{ stageEntry.value.editingRule ? 'Edit Rule' : 'New Rule' }}</h5>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="rulePriority-{{stageEntry.key}}">Priority</label>
-              <input
-                type="number"
-                [id]="'rulePriority-' + stageEntry.key"
-                [(ngModel)]="stageEntry.value.ruleForm.priority"
-                name="rulePriority-{{stageEntry.key}}"
-                placeholder="1"
-              />
-            </div>
-            <div class="form-group">
-              <label for="ruleValue-{{stageEntry.key}}">Value</label>
-              <input
-                type="text"
-                [id]="'ruleValue-' + stageEntry.key"
-                [(ngModel)]="stageEntry.value.ruleForm.value"
-                name="ruleValue-{{stageEntry.key}}"
-                placeholder="on, off, or custom value"
-              />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="ruleDescription-{{stageEntry.key}}">Description</label>
-            <input
-              type="text"
-              [id]="'ruleDescription-' + stageEntry.key"
-              [(ngModel)]="stageEntry.value.ruleForm.description"
-              name="ruleDescription-{{stageEntry.key}}"
-              placeholder="Rule description"
-            />
-          </div>
-
-          <!-- Criteria Management -->
-          <div class="criteria-section">
-            <h6>Criteria <app-info-button tooltipText="Criteria are key→pattern pairs. The pattern is tested against the client's context value. Supports regex: 'de' matches anywhere, '/^DE$/i' matches case-insensitively. If pattern is not valid regex, exact string equality is used." /></h6>
-
-            <!-- Existing Criteria -->
-            <div *ngIf="hasCriteria(stageEntry.value.ruleForm.criteria)" class="criteria-list">
-              <div *ngFor="let criterion of stageEntry.value.ruleForm.criteria | keyvalue" class="criterion-item">
-                <span class="criterion-key">{{ criterion.key }}</span>
-                <span class="criterion-separator">=</span>
-                <span class="criterion-value">{{ criterion.value }}</span>
-                <button class="btn-icon" (click)="removeCriteriaEntry(stageEntry.key, criterion.key)">❌</button>
+    <!-- ToggleStageRule Table -->
+    <div *ngIf="toggleStageRules.length > 0">
+      <h3>Assigned Rules by Stage</h3>
+      <p>The first of any of the rules that match will determine the toggle value.</p>
+      <table class="standard-table">
+        <thead>
+          <tr>
+            <th>Stage</th>
+            <th>Rule</th>
+            <th>Value</th>
+            <th>Priority</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let stageRule of toggleStageRules">
+            <td><strong>{{ stageRule.stageName }}</strong></td>
+            <td>{{ stageRule.ruleName }}</td>
+            <td><code>{{ stageRule.ruleValue }}</code></td>
+            <td>{{ stageRule.priority }}</td>
+            <td>
+              <div class="card-actions">
+                <button class="btn-icon" (click)="startEditStageRule(stageRule)" title="Edit priority">
+                  ✏️
+                </button>
+                <button class="btn-icon btn-icon-danger" (click)="deleteStageRule(stageRule)" title="Delete assignment">
+                  🗑️
+                </button>
               </div>
-            </div>
-
-            <!-- Add New Criterion -->
-            <div class="form-row">
-              <div class="form-group">
-                <input
-                  type="text"
-                  [(ngModel)]="stageEntry.value.ruleForm.criteriaKey"
-                  name="criteriaKey-{{stageEntry.key}}"
-                  placeholder="Key (e.g., country)"
-                />
-              </div>
-              <div class="form-group">
-                <input
-                  type="text"
-                  [(ngModel)]="stageEntry.value.ruleForm.criteriaValue"
-                  name="criteriaValue-{{stageEntry.key}}"
-                  placeholder="Value (e.g., DE or regex)"
-                />
-              </div>
-              <div class="form-group button-group">
-                <button class="btn-add-small" (click)="addCriteriaEntry(stageEntry.key)">+ Add</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="form-actions">
-            <button class="btn-primary" (click)="saveRule(stageEntry.key)">
-              {{ stageEntry.value.editingRule ? 'Update Rule' : 'Create Rule' }}
-            </button>
-            <button class="btn-secondary" (click)="cancelEditRule(stageEntry.key)">Cancel</button>
-          </div>
-        </div>
-
-        <!-- Rules List -->
-        <div *ngIf="stageEntry.value.rules.length > 0" class="rules-list">
-          <div *ngFor="let rule of stageEntry.value.rules" class="rule-item">
-            <div class="rule-summary">
-              <span class="rule-priority">#{{ rule.priority }}</span>
-              <span class="rule-value">{{ rule.value }}</span>
-              <span class="rule-description" *ngIf="rule.description">- {{ rule.description }}</span>
-            </div>
-            <div class="rule-criteria" *ngIf="hasCriteria(rule.criteria)">
-              <small>Criteria: {{ formatCriteria(rule.criteria) }}</small>
-            </div>
-            <div class="rule-actions">
-              <button class="btn-icon" (click)="startEditRule(stageEntry.key, rule)" title="Edit rule">✏️</button>
-              <button class="btn-icon btn-icon-danger" (click)="deleteRule(stageEntry.key, rule)" title="Delete rule">🗑️</button>
-            </div>
-          </div>
-        </div>
-
-        <div *ngIf="stageEntry.value.rules.length === 0 && !stageEntry.value.loadingRules" class="no-rules">
-          <p>No rules defined. Click "+ Add Rule" to create one.</p>
-        </div>
-
-        <div *ngIf="stageEntry.value.loadingRules" class="loading-rules">
-          <p>Loading rules...</p>
-        </div>
-      </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
-    <div *ngIf="toggleStages.size === 0" class="info-message">
-      <p>No stages assigned. Select a stage above and click "Add Stage".</p>
+    <div *ngIf="toggleStageRules.length === 0 && !stageRulesLoading" class="info-message">
+      <p>No stage &amp; rule assignments yet. Click "Add Assignment" to create one.</p>
+    </div>
+
+    <div *ngIf="stageRulesLoading" class="loading">
+      <p>Loading assignments...</p>
+    </div>
+  </div>
+
+  <!-- Toggle Filters -->
+  <div *ngIf="!loading() && !error()" class="filter-container">
+    <div class="filter-row">
+      <div class="filter-group">
+        <label for="filterStage">Assigned to Stage</label>
+        <abs-autocomplete
+          id="filterStage"
+          [fetchOptions]="fetchStageOptions"
+          placeholder="Search stage..."
+          [minSearchLength]="1"
+          [(ngModel)]="filterStageName"
+          (ngModelChange)="onFilterChange()"
+          name="filterStage"
+        ></abs-autocomplete>
+      </div>
+      <div class="filter-group">
+        <label for="filterRule">Assigned to Rule</label>
+        <abs-autocomplete
+          id="filterRule"
+          [fetchOptions]="fetchRuleOptions"
+          placeholder="Search rule..."
+          [minSearchLength]="1"
+          [(ngModel)]="filterRuleName"
+          (ngModelChange)="onFilterChange()"
+          name="filterRule"
+        ></abs-autocomplete>
+      </div>
+      <button
+        *ngIf="filterStageName || filterRuleName"
+        type="button"
+        class="btn-secondary clear-filters-btn"
+        (click)="clearFilters()"
+      >
+        Clear Filters
+      </button>
     </div>
   </div>
 
   <div *ngIf="!loading() && !error() && toggles().length === 0" class="info-message">
-    <p>No toggles found. Click "Add Toggle" to create your first toggle.</p>
+    <p>No toggles found. Click "Add Toggle" to create a toggle.</p>
   </div>
 
   <div *ngIf="!loading() && !error() && toggles().length > 0">
@@ -291,7 +255,7 @@
               <button class="btn-icon" (click)="startEdit(toggle)" title="Edit toggle">
                 ✏️
               </button>
-              <button class="btn-icon" (click)="startManageStages(toggle)" title="Manage">
+              <button class="btn-icon" (click)="startManageStageRules(toggle)" title="Manage">
                 ⚙️
               </button>
               <button class="btn-icon btn-icon-danger" (click)="deleteToggle(toggle)" title="Delete toggle">

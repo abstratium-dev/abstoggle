@@ -14,6 +14,10 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
+/**
+ * Represents an assignment of a {@link ToggleRule} to a {@link Toggle} within
+ * a specific {@link Stage}, along with an evaluation priority.
+ */
 @Entity
 @Table(
     name = "T_toggle_stage_rule",
@@ -25,10 +29,17 @@ import jakarta.persistence.UniqueConstraint;
 @Audited
 public class ToggleStageRule {
 
+    /**
+     * v4 UUID generated in Java code.
+     */
     @Id
     @Column(length = 36)
     private String id;
 
+    /**
+     * Reference to the {@link Toggle} this rule is assigned to.
+     * Deleting the toggle cascades and removes this assignment.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
         name = "toggle_id",
@@ -37,6 +48,9 @@ public class ToggleStageRule {
     )
     private Toggle toggle;
 
+    /**
+     * Reference to the {@link Stage} this rule is assigned within.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
         name = "stage_id",
@@ -45,6 +59,9 @@ public class ToggleStageRule {
     )
     private Stage stage;
 
+    /**
+     * Reference to the reusable {@link ToggleRule} being assigned.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
         name = "rule_id",
@@ -53,6 +70,9 @@ public class ToggleStageRule {
     )
     private ToggleRule rule;
 
+    /**
+     * Evaluation order within this toggle and stage. Lower values are evaluated first.
+     */
     @Column(nullable = false)
     private Integer priority = 100;
 

@@ -115,6 +115,9 @@
           <td>{{ getParentStageName(stage) }}</td>
           <td>
             <div class="card-actions">
+              <button class="btn-icon" (click)="goToToggles(stage)" title="View toggles using this stage">
+                🔗
+              </button>
               <button class="btn-icon" (click)="startEdit(stage)" title="Edit stage">
                 ✏️
               </button>

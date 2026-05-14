@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
 import { InfoButtonComponent } from '../core/info-button/info-button.component';
@@ -18,6 +19,7 @@ export class StagesComponent implements OnInit {
   private controller = inject(Controller);
   private toastService = inject(ToastService);
   private confirmService = inject(ConfirmDialogService);
+  private router = inject(Router);
 
   stages: Signal<Stage[]> = this.modelService.stages$;
   loading: Signal<boolean> = this.modelService.stagesLoading$;
@@ -150,5 +152,9 @@ export class StagesComponent implements OnInit {
       if (currentStage && s.parentStageName === currentStage.name) return false;
       return true;
     });
+  }
+
+  goToToggles(stage: Stage): void {
+    this.router.navigate(['/toggles'], { queryParams: { filterStage: stage.name } });
   }
 }

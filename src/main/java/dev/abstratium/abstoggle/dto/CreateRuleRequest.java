@@ -8,6 +8,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 
 @RegisterForReflection
 public class CreateRuleRequest {
+    private String name;
     private String ruleValue;
     private Integer priority;
     private String description;
@@ -15,11 +16,20 @@ public class CreateRuleRequest {
 
     public CreateRuleRequest() {}
 
-    public CreateRuleRequest(String ruleValue, Integer priority, String description, Map<String, String> criteria) {
+    public CreateRuleRequest(String name, String ruleValue, Integer priority, String description, Map<String, String> criteria) {
+        this.name = name;
         this.ruleValue = ruleValue;
         this.priority = priority;
         this.description = description;
         this.criteria = criteria;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getRuleValue() {

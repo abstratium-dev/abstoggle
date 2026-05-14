@@ -1,6 +1,6 @@
 # User Manual
 
-## Using Abstoggle
+## Using abstoggle
 
 ### Overview
 
@@ -67,7 +67,7 @@ erDiagram
 
 ---
 
-### Evaluation
+### Toggle Evaluation
 
 #### Public endpoint
 
@@ -155,6 +155,36 @@ The keys must match the criterion keys configured in the rules. Any key not pres
 #### Algorithm
 
 Rules are sorted by priority (ascending). For each rule, all criteria are tested against the client context. If all criteria match, that rule's value is returned immediately. If no rule matches, `"off"` is returned.
+
+#### AND vs OR Logic
+
+Rules support two kinds of logical composition:
+
+| Logic | How to configure | Behaviour |
+|-------|------------------|-----------|
+| **AND** | Put multiple key/value pairs in **one rule's criteria** | Every criterion must match for the rule to fire. |
+| **OR** | Create **multiple rules** and assign them to the same toggle+stage | Rules are evaluated in priority order; the first matching rule wins. Each rule is independent. |
+
+**AND example** — DACH premium users only:
+```json
+{
+  "country": "/^(DE|AT|CH)$/i",
+  "plan": "premium"
+}
+```
+Both `country` AND `plan` must match.
+
+**OR example** — DACH users OR users aged 50+:
+
+| Priority | Value | Criteria |
+|----------|-------|----------|
+| 1 | `on` | `{"country": "/^(DE|AT|CH)$/i"}` |
+| 2 | `on` | `{"age": "/^[5-9][0-9]$/"}` |
+| 99 | `off` | `{}` (catch-all) |
+
+A user from the DACH gets `on` via priority 1. A 55-year-old from the US gets `on` via priority 2. Everyone else falls through to the catch-all at priority 99.
+
+> **Note:** You cannot put the same criterion key twice in one rule — the second value would overwrite the first. Use a regular expression with alternation (e.g., `^(alice|bob)$`) for OR on a single key, or create a second rule.
 
 #### Caching Considerations
 
@@ -448,16 +478,108 @@ The built-in **Tester** page (accessible via the navigation bar) lets you simula
 - Use `/pattern/i` syntax in criteria values for case-insensitive matching (e.g. `/^DE$/i` matches `DE`, `de`, `De`).
 - A rule with **no criteria** is a catch-all — it always matches. Place it at the lowest priority (highest number) to act as a default.
 - Rules are evaluated in **ascending priority order** — priority `1` is checked before priority `10`. The first matching rule wins.
+- **AND logic**: all criteria within a single rule must match. **OR logic**: create multiple rules with different criteria — each is evaluated independently and the first match wins.
 - If a toggle is configured on a **parent stage** only, it will still appear when querying a child stage — the `stage` field in the response shows which stage provided the configuration.
 - The **cacheHit** flag in the response metadata indicates whether the result was served from cache. The cache TTL is configurable via the `toggle.cache.ttl-seconds` property.
 
+---
 
+### Practical Toggle Recipes
 
+This section shows how to configure rules for common real-world scenarios.
 
+#### 1. Groups of test users
 
+Create two reusable rules and assign them to the same toggle+stage with different priorities.
 
+**Rule: `new-features-testers`** — value `on`, criteria `{"userId": "^(alice|bob|charlie)$"}`  
+**Rule: `no-new-features-testers`** — value `off`, criteria `{}` (catch-all)
 
-## Installation
+Assign both to toggle `new-feature-x` for stage `test`:
+
+| Priority | Rule | Value | Criteria |
+|----------|------|-------|----------|
+| 1 | `new-features-testers` | `on` | `{"userId": "^(alice|bob|charlie)$"}` |
+| 99 | `no-new-features-testers` | `off` | `{}` |
+
+Alice, Bob, and Charlie get `on`; everyone else falls through to the catch-all and gets `off`.
+
+#### 2. Percentage-based A/B testing via username
+
+You can target a percentage of users by matching on a deterministic substring of their username.
+
+**~25% of users — first letter A–F**  
+Create a rule with value `variant-b` and criteria `{"username": "^[a-fA-F]"}`.
+
+**~50% of users — first letter A–M**  
+Create a rule with value `variant-b` and criteria `{"username": "^[a-mA-M]"}`.
+
+**~10% of users — last digit of userId 0**  
+Create a rule with value `variant-b` and criteria `{"userId": "0$"}`.
+
+**~10% of users — last two digits of userId 00–09**  
+Create a rule with value `variant-b` and criteria `{"userId": "(00|01|02|03|04|05|06|07|08|09)$"}`.
+
+> **Tip:** The match is against the string value supplied in the client context, so `userId` must be sent as a string (e.g. `"10042"`) even if it is a number in your database.
+
+Example assignment for a 50/50 split:
+
+| Priority | Rule | Value | Criteria |
+|----------|------|-------|----------|
+| 1 | `variant-b-users` | `variant-b` | `{"username": "^[a-mA-M]"}` |
+| 2 | `variant-a-users` | `variant-a` | `{}` |
+
+#### 3. Country + plan targeting
+
+Enable a feature only for premium users in the EU.
+
+**Rule: `eu-premium`** — value `on`, criteria:
+```json
+{
+  "country": "/^(DE|AT|CH|NL|BE|LU)$/i",
+  "plan": "premium"
+}
+```
+
+**Rule: `default-off`** — value `off`, criteria `{}`
+
+Both criteria must match (AND logic) because they are in the same rule.
+
+#### 4. Canary rollout by user ID hash prefix
+
+If your client context includes a `userIdHash` field (e.g. the first 4 hex characters of a SHA-256 hash), you can release to a tiny fraction of users.
+
+**~6% of users** — first hex digit `0` or `1`:  
+criteria `{"userIdHash": "^[01]"}`
+
+**~0.4% of users** — first two hex digits `00`–`0f`:  
+criteria `{"userIdHash": "^0[0-9a-fA-F]"}`
+
+#### 5. Time-based or date-based targeting
+
+If your client context includes a `currentDate` or `currentHour` field, you can enable a feature only during specific windows.
+
+**Business hours only** (08:00–17:59):  
+criteria `{"currentHour": "^(08|09|1[0-7])$"}`
+
+**Weekdays only** (Mon–Fri, ISO day of week 1–5):  
+criteria `{"dayOfWeek": "^[1-5]$"}`
+
+#### 6. Device or browser targeting
+
+Enable a feature only for mobile users.
+
+**Mobile browsers only**:  
+criteria `{"userAgent": "/Mobile|Android|iPhone/i"}`
+
+**Chrome only**:  
+criteria `{"userAgent": "/Chrome/i"}`
+
+> **Note:** Always place the most specific rule at the lowest priority number (highest priority) and the catch-all default at the end. The first matching rule wins.
+
+---
+
+### Installation
 
 It is intended that this component be run using docker.
 It supports MySql and will soon also support postgresql and MS SQL Server.

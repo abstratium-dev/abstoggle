@@ -30,7 +30,8 @@ export function evaluateToggle(toggle: ToggleDto, clientContext: { [key: string]
 
   for (const rule of sortedRules) {
     const criteriaCount = Object.keys(rule.criteria).length;
-    log.push({ level: 'info', message: `Rule priority=${rule.priority}, value="${rule.value}", criteria=${criteriaCount === 0 ? 'none (catch-all)' : criteriaCount}` });
+    const ruleNamePart = rule.name ? ` "${rule.name}"` : '';
+    log.push({ level: 'info', message: `Rule${ruleNamePart} priority=${rule.priority}, value="${rule.value}", criteria=${criteriaCount === 0 ? 'none (catch-all)' : criteriaCount}` });
 
     let matchesAll = true;
 
