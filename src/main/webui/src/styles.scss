@@ -297,6 +297,24 @@ h2 {
   min-height: 80px;
 }
 
+/* Checkbox group for inline checkbox + label */
+.form-group.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-group.checkbox-group input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+.form-group.checkbox-group label {
+  display: inline;
+  margin-bottom: 0;
+  cursor: pointer;
+}
+
 .form-hint {
   display: block;
   margin-top: 0.25rem;
@@ -1370,4 +1388,326 @@ button {
   & a {
     color: var(--color-text-secondary);
   }
+}
+
+/* ===== TOGGLE STAGE & RULE MANAGEMENT ===== */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border-primary);
+
+  h2 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+}
+
+.stage-assignment {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: var(--color-bg-tertiary);
+  border-radius: 8px;
+
+  h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+  }
+}
+
+.assigned-stages {
+  h3 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    font-size: 1.25rem;
+  }
+}
+
+.stage-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.stage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+
+  h4 {
+    margin: 0;
+    font-size: 1.125rem;
+    color: var(--color-primary);
+  }
+}
+
+.stage-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.rule-form {
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 6px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+
+  h5 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+  }
+
+  h6 {
+    margin: 1rem 0 0.5rem 0;
+    font-size: 1rem;
+    color: var(--color-text-secondary);
+  }
+}
+
+.criteria-section {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: var(--color-bg-primary);
+  border-radius: 4px;
+}
+
+.criteria-list {
+  margin-bottom: 1rem;
+}
+
+.criterion-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: var(--color-bg-secondary);
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+
+  .criterion-key {
+    font-weight: 600;
+    color: var(--color-primary);
+  }
+
+  .criterion-separator {
+    color: var(--color-text-tertiary);
+  }
+
+  .criterion-value {
+    font-family: monospace;
+    flex: 1;
+  }
+
+  button {
+    padding: 0.25rem;
+    font-size: 0.875rem;
+  }
+}
+
+.rules-list {
+  margin-top: 1rem;
+}
+
+.rule-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--color-bg-secondary);
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+  border-left: 3px solid var(--color-primary);
+}
+
+.rule-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.rule-priority {
+  font-weight: 600;
+  color: var(--color-primary);
+  min-width: 2.5rem;
+}
+
+.rule-value {
+  font-weight: 600;
+  color: var(--color-success-text);
+  background: var(--color-success-bg);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.rule-description {
+  color: var(--color-text-secondary);
+}
+
+.rule-criteria {
+  color: var(--color-text-tertiary);
+  font-size: 0.875rem;
+}
+
+.rule-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.no-rules {
+  padding: 1rem;
+  text-align: center;
+  color: var(--color-text-tertiary);
+  font-style: italic;
+}
+
+.loading-rules {
+  padding: 1rem;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.button-group {
+  display: flex;
+  align-items: flex-end;
+}
+
+/* ===== TOGGLE TESTER ===== */
+.tester-context-table {
+  border: 1px solid var(--color-border-primary);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.tester-context-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2.5rem;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--color-bg-tertiary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border-primary);
+}
+
+.tester-context-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2.5rem;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border-light);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  input {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--color-border-secondary);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    width: 100%;
+    box-sizing: border-box;
+
+    &:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 2px var(--shadow-primary);
+    }
+  }
+}
+
+.tester-context-add {
+  background: var(--color-bg-secondary);
+}
+
+.tester-value-badge {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+
+  &.value-on {
+    background: var(--color-success-bg);
+    color: var(--color-success-text);
+  }
+
+  &.value-off {
+    background: var(--color-error-bg);
+    color: var(--color-error-text);
+  }
+
+  &.value-custom {
+    background: var(--color-badge-primary-bg);
+    color: var(--color-badge-primary-text);
+  }
+}
+
+.tester-matched-rule {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.tester-log-btn {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.tester-log-row td {
+  padding: 0 !important;
+  background: var(--color-bg-tertiary);
+}
+
+.tester-log {
+  padding: 0.75rem 1rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.tester-log-entry {
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  white-space: pre;
+}
+
+.tester-log-info {
+  color: var(--color-text-secondary);
+}
+
+.tester-log-match {
+  color: var(--color-success-text);
+  background: var(--color-success-bg);
+}
+
+.tester-log-skip {
+  color: var(--color-error-text);
+  background: var(--color-error-bg);
+}
+
+.tester-log-result {
+  color: var(--color-badge-primary-text);
+  background: var(--color-badge-primary-bg);
+  font-weight: 600;
 }

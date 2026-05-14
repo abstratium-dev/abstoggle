@@ -5,8 +5,6 @@ CREATE TABLE T_toggle_rule_AUD (
     rule_value VARCHAR(255),
     description VARCHAR(500),
     priority INT,
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP,
     REV BIGINT NOT NULL,
     REVTYPE TINYINT,
     PRIMARY KEY (id, REV),

@@ -13,7 +13,8 @@ erDiagram
     T_stage ||--o{ T_stage : inherits
     T_toggle ||--o{ T_toggle_stage : has
     T_stage ||--o{ T_toggle_stage : defines
-    T_toggle_stage ||--o{ T_toggle_rule : contains
+    T_toggle_stage ||--o{ T_toggle_stage_rule : assigns
+    T_toggle_rule ||--o{ T_toggle_stage_rule : "used by"
     T_toggle_rule ||--o{ T_toggle_criterion : defines
 ```
 
@@ -32,9 +33,6 @@ The `T_toggle` table stores the master toggle definitions. Each toggle represent
 | `id` | VARCHAR(36) | NO | - | Primary key (UUID v4) |
 | `name` | VARCHAR(255) | NO | - | Unique toggle identifier (kebab-case) |
 | `description` | TEXT | YES | NULL | Human-readable description |
-| `created_by` | VARCHAR(255) | NO | - | User who created the toggle (JWT subject) |
-| `created_at` | TIMESTAMP | NO | CURRENT_TIMESTAMP | Record creation time |
-| `updated_at` | TIMESTAMP | NO | CURRENT_TIMESTAMP | Last modification time |
 | `enabled` | BOOLEAN | NO | TRUE | Master switch to enable/disable toggle |
 
 **Key Features:**
@@ -52,15 +50,14 @@ The `T_toggle` table stores the master toggle definitions. Each toggle represent
 **Relationships:**
 - One-to-many with `T_toggle_stage` via `toggle_id`
 
-**Security Features:**
-- `created_by` field tracks who created the toggle
+**Audit Features:**
 - Envers audit tracks all modifications
 
 ---
 
 ### T_toggle_stage
 
-The `T_toggle_stage` table defines which stages (environments) a toggle is configured for. The actual toggle values are stored in `T_toggle_rule`, not here.
+The `T_toggle_stage` table defines which stages (environments) a toggle is configured for. Rules are associated to a toggle-stage combination via the `T_toggle_stage_rule` join table.
 
 #### Columns
 
@@ -69,17 +66,15 @@ The `T_toggle_stage` table defines which stages (environments) a toggle is confi
 | `id` | VARCHAR(36) | NO | - | Primary key (UUID v4) |
 | `toggle_id` | VARCHAR(36) | NO | - | FK to `T_toggle.id` (cascade delete) |
 | `stage_id` | VARCHAR(36) | NO | - | FK to `T_stage.id` |
-| `created_at` | TIMESTAMP | NO | CURRENT_TIMESTAMP | Record creation time |
-| `updated_at` | TIMESTAMP | NO | CURRENT_TIMESTAMP | Last modification time |
 
 **Key Features:**
 - Links toggles to deployment stages via FK to `T_stage`
 - Multiple stages per toggle supported
-- Cascade delete removes stages when toggle is deleted
+- Cascade delete removes stage assignments when toggle is deleted
 - Prevents orphaned stage references via FK constraint
 
 **Constraints:**
-- `UQ_toggle_stage_toggle_stage`: Unique constraint on (toggle_id, stage_id) - one toggle per stage
+- `UQ_toggle_stage_toggle_stage`: Unique constraint on (toggle_id, stage_id) - one entry per toggle/stage combination
 - `FK_toggle_stage_toggle_id`: Foreign key to `T_toggle`
 - `FK_toggle_stage_stage_id`: Foreign key to `T_stage`
 
@@ -89,13 +84,46 @@ The `T_toggle_stage` table defines which stages (environments) a toggle is confi
 **Relationships:**
 - Many-to-one with `T_toggle` via `toggle_id`
 - Many-to-one with `T_stage` via `stage_id`
-- One-to-many with `T_toggle_rule` via `toggle_stage_id`
+- One-to-many with `T_toggle_stage_rule` via `toggle_stage_id`
 
 ---
 
 ### T_toggle_rule
 
-The `T_toggle_rule` table stores the actual toggle values and their evaluation priority. Each rule can have multiple criteria that must all match (AND logic). Multiple rules per stage provide OR logic.
+The `T_toggle_rule` table stores reusable rule definitions — each rule specifies a toggle value and an optional description. Rules are independent of any specific toggle or stage and can be shared across multiple toggle-stage combinations via `T_toggle_stage_rule`.
+
+Each rule can have multiple criteria that must all match (AND logic). Multiple rules assigned to the same toggle-stage combination provide OR logic, evaluated in priority order.
+
+#### Columns
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | VARCHAR(36) | NO | - | Primary key (UUID v4) |
+| `rule_value` | VARCHAR(255) | NO | 'off' | Toggle value returned when all criteria match |
+| `name` | VARCHAR(255) | NO | - | Unique human-readable identifier for this rule |
+| `description` | VARCHAR(500) | YES | NULL | Human-readable description of this rule's intent |
+
+**Key Features:**
+- Rules are standalone and reusable across any number of toggle-stage combinations
+- Each rule has a value ("off" or custom string) and a unique name
+- Empty criteria = catch-all rule that always matches
+- Audit tracking via Hibernate Envers (`T_toggle_rule_AUD` table)
+
+**Constraints:**
+- `UQ_toggle_rule_name`: Unique constraint on name field
+
+**Indices:**
+- `I_toggle_rule_name`: Index on name for lookups
+
+**Relationships:**
+- One-to-many with `T_toggle_criterion` via `toggle_rule_id`
+- Many-to-many with `T_toggle_stage` via `T_toggle_stage_rule`
+
+---
+
+### T_toggle_stage_rule
+
+The `T_toggle_stage_rule` table is a join table that assigns rules to toggle-stage combinations. It also carries the `priority` for that specific assignment, so the same rule can have different priorities in different toggle-stage contexts.
 
 #### Columns
 
@@ -103,27 +131,26 @@ The `T_toggle_rule` table stores the actual toggle values and their evaluation p
 |--------|------|----------|---------|-------------|
 | `id` | VARCHAR(36) | NO | - | Primary key (UUID v4) |
 | `toggle_stage_id` | VARCHAR(36) | NO | - | FK to `T_toggle_stage.id` (cascade delete) |
-| `rule_value` | VARCHAR(255) | NO | 'off' | Toggle value when criteria match |
-| `description` | VARCHAR(500) | YES | NULL | Human-readable description of this rule |
-| `priority` | INT | NO | 100 | Evaluation order (lower = first) |
-| `created_at` | TIMESTAMP | NO | CURRENT_TIMESTAMP | Record creation time |
-| `updated_at` | TIMESTAMP | NO | CURRENT_TIMESTAMP | Last modification time |
+| `rule_id` | VARCHAR(36) | NO | - | FK to `T_toggle_rule.id` |
+| `priority` | INT | NO | 100 | Evaluation order within this toggle-stage (lower = first) |
 
 **Key Features:**
-- Priority-based rule evaluation (lower = evaluated first)
-- Each rule has a value ("off" or custom string) and description
-- Empty criteria = catch-all rule that always matches
-- Audit tracking via Hibernate Envers (`T_toggle_rule_AUD` table)
+- Decouples rule definitions from their assignment context
+- The same rule can be assigned to multiple toggle-stage combinations
+- Priority is per-assignment, not per-rule, so priority can differ across contexts
+- Cascade delete removes assignments when the toggle-stage row is deleted; the rule itself is preserved
 
 **Constraints:**
-- `FK_toggle_rule_stage_id`: Foreign key to `T_toggle_stage`
+- `UQ_toggle_stage_rule_stage_rule`: Unique constraint on (toggle_stage_id, rule_id) — a rule can only be assigned once per toggle-stage combination
+- `FK_toggle_stage_rule_toggle_stage_id`: Foreign key to `T_toggle_stage`
+- `FK_toggle_stage_rule_rule_id`: Foreign key to `T_toggle_rule`
 
 **Indices:**
-- `I_toggle_rule_stage_priority`: Composite index on (toggle_stage_id, priority) for efficient rule ordering
+- `I_toggle_stage_rule_stage_priority`: Composite index on (toggle_stage_id, priority) for efficient rule ordering during evaluation
 
 **Relationships:**
 - Many-to-one with `T_toggle_stage` via `toggle_stage_id`
-- One-to-many with `T_toggle_criterion` via `toggle_rule_id`
+- Many-to-one with `T_toggle_rule` via `rule_id`
 
 ---
 
@@ -139,7 +166,6 @@ The `T_toggle_criterion` table stores the individual criteria (key/value pairs) 
 | `toggle_rule_id` | VARCHAR(36) | NO | - | FK to `T_toggle_rule.id` (cascade delete) |
 | `criterion_key` | VARCHAR(100) | NO | - | Key for matching (e.g., "country", "age") |
 | `criterion_value` | VARCHAR(500) | NO | - | Value or regex pattern to match |
-| `created_at` | TIMESTAMP | NO | CURRENT_TIMESTAMP | Record creation time |
 
 **Key Features:**
 - Criteria within a rule use AND logic (all must match)
@@ -175,7 +201,6 @@ The `T_stage` table stores the configurable stages (environments) that can be us
 | `description` | VARCHAR(500) | YES | NULL | Human-readable description |
 | `display_order` | INT | NO | 0 | UI presentation order (lower = first) |
 | `parent_stage_id` | VARCHAR(36) | YES | NULL | Self-referencing FK for inheritance chain |
-| `created_at` | TIMESTAMP | NO | CURRENT_TIMESTAMP | Record creation time |
 
 **Key Features:**
 - Predefined list of valid stage names (dev, test, prod, etc.)
@@ -216,7 +241,8 @@ Hibernate Envers automatically creates audit tables with `_AUD` suffix for all `
 |-------|-------------|-------------|
 | `T_toggle` | `T_toggle_AUD` | Tracks toggle metadata changes |
 | `T_toggle_stage` | `T_toggle_stage_AUD` | Tracks stage additions/removals |
-| `T_toggle_rule` | `T_toggle_rule_AUD` | Tracks rule changes (value, priority, description) |
+| `T_toggle_rule` | `T_toggle_rule_AUD` | Tracks rule definition changes (value, name, description) |
+| `T_toggle_stage_rule` | `T_toggle_stage_rule_AUD` | Tracks rule assignments and priority changes |
 | `T_toggle_criterion` | `T_toggle_criterion_AUD` | Tracks criteria changes |
 | `T_stage` | `T_stage_AUD` | Tracks stage definition and inheritance changes |
 
@@ -236,9 +262,6 @@ CREATE TABLE T_toggle (
     id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     description TEXT,
-    created_by VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     enabled BOOLEAN DEFAULT TRUE,
     CONSTRAINT UQ_toggle_name UNIQUE (name)
 );
@@ -253,7 +276,6 @@ CREATE TABLE T_stage (
     description VARCHAR(500),
     display_order INT DEFAULT 0,
     parent_stage_id VARCHAR(36),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT UQ_stage_name UNIQUE (name),
     CONSTRAINT FK_stage_parent_stage_id FOREIGN KEY (parent_stage_id) REFERENCES T_stage(id)
 );
@@ -266,8 +288,6 @@ CREATE TABLE T_toggle_stage (
     id VARCHAR(36) PRIMARY KEY,
     toggle_id VARCHAR(36) NOT NULL,
     stage_id VARCHAR(36) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT FK_toggle_stage_toggle_id FOREIGN KEY (toggle_id) REFERENCES T_toggle(id) ON DELETE CASCADE,
     CONSTRAINT FK_toggle_stage_stage_id FOREIGN KEY (stage_id) REFERENCES T_stage(id),
     CONSTRAINT UQ_toggle_stage_toggle_stage UNIQUE (toggle_id, stage_id)
@@ -275,19 +295,29 @@ CREATE TABLE T_toggle_stage (
 
 CREATE INDEX I_toggle_stage_stage ON T_toggle_stage(stage_id);
 
--- Rules per stage
+-- Reusable rule definitions (independent of toggle or stage)
 CREATE TABLE T_toggle_rule (
     id VARCHAR(36) PRIMARY KEY,
-    toggle_stage_id VARCHAR(36) NOT NULL,
+    name VARCHAR(255) NOT NULL,
     rule_value VARCHAR(255) DEFAULT 'off',
     description VARCHAR(500),
-    priority INT DEFAULT 100,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT FK_toggle_rule_stage_id FOREIGN KEY (toggle_stage_id) REFERENCES T_toggle_stage(id) ON DELETE CASCADE
+    CONSTRAINT UQ_toggle_rule_name UNIQUE (name)
 );
 
-CREATE INDEX I_toggle_rule_stage_priority ON T_toggle_rule(toggle_stage_id, priority);
+CREATE INDEX I_toggle_rule_name ON T_toggle_rule(name);
+
+-- Join table: assigns rules to toggle-stage combinations with per-assignment priority
+CREATE TABLE T_toggle_stage_rule (
+    id VARCHAR(36) PRIMARY KEY,
+    toggle_stage_id VARCHAR(36) NOT NULL,
+    rule_id VARCHAR(36) NOT NULL,
+    priority INT DEFAULT 100,
+    CONSTRAINT FK_toggle_stage_rule_toggle_stage_id FOREIGN KEY (toggle_stage_id) REFERENCES T_toggle_stage(id) ON DELETE CASCADE,
+    CONSTRAINT FK_toggle_stage_rule_rule_id FOREIGN KEY (rule_id) REFERENCES T_toggle_rule(id),
+    CONSTRAINT UQ_toggle_stage_rule_stage_rule UNIQUE (toggle_stage_id, rule_id)
+);
+
+CREATE INDEX I_toggle_stage_rule_stage_priority ON T_toggle_stage_rule(toggle_stage_id, priority);
 
 -- Matching criteria per rule
 CREATE TABLE T_toggle_criterion (
@@ -295,7 +325,6 @@ CREATE TABLE T_toggle_criterion (
     toggle_rule_id VARCHAR(36) NOT NULL,
     criterion_key VARCHAR(100) NOT NULL,
     criterion_value VARCHAR(500) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT FK_toggle_criterion_rule_id FOREIGN KEY (toggle_rule_id) REFERENCES T_toggle_rule(id) ON DELETE CASCADE
 );
 
@@ -316,7 +345,6 @@ The database follows strict naming conventions for consistency and clarity:
 - **Foreign Keys**: Format `FK_<tableName>_<columnName>` (e.g., `FK_credentials_account_id`)
 - **Indices**: Format `I_<tableName>_<columnName(s)>` (e.g., `I_accounts_email`)
 - **Primary Keys**: Always named `id` using VARCHAR(36) for UUID storage
-- **Timestamps**: Use `created_at` and `expires_at` naming pattern
 
 ## Data Flow
 
@@ -325,7 +353,7 @@ The database follows strict naming conventions for consistency and clarity:
 1. Client requests toggles for a specific stage with optional name filter
 2. Service checks Guava cache first (key = stage + nameFilter + includeDisabled)
 3. On cache miss: Query database for matching toggles
-4. Load toggle with all its stages, rules (sorted by priority), and criteria
+4. Load toggle with all its stages, assigned rules (ordered by priority via `T_toggle_stage_rule`), and criteria
 5. Build response with nested structure: toggle -> stage -> rules -> criteria
 6. Store result in cache with configurable TTL
 7. Client receives toggles and evaluates rules against local context
@@ -334,9 +362,10 @@ The database follows strict naming conventions for consistency and clarity:
 
 1. Admin creates toggle: Insert into `T_toggle`
 2. Add stage: Insert into `T_toggle_stage`
-3. Add rules: Insert into `T_toggle_rule` with priority and value
-4. Add criteria: Insert into `T_toggle_criterion` for each rule
-5. All operations automatically audited via Envers
+3. Create or pick an existing rule: Insert into `T_toggle_rule` (or reuse an existing rule id)
+4. Assign rule to toggle-stage: Insert into `T_toggle_stage_rule` with desired priority
+5. Add criteria: Insert into `T_toggle_criterion` for each rule (if newly created)
+6. All operations automatically audited via Envers
 
 ### Data Modification Flow
 
@@ -368,7 +397,7 @@ Strategic indexes are placed for common query patterns:
 ## Security Considerations
 
 - **Audit Trail**: All changes tracked via Hibernate Envers with username attribution
-- **Cascade Deletes**: Automatic cleanup of related records (rules deleted when stage deleted, stages deleted when toggle deleted)
+- **Cascade Deletes**: Automatic cleanup of assignments when a toggle-stage is deleted; rule definitions and their criteria are preserved for reuse unless explicitly deleted
 - **No Sensitive Data**: Toggle values are strings (not passwords); criteria may contain patterns but not user data
 - **Read-Only Audit Tables**: Envers audit tables should not be manually modified
 
@@ -393,18 +422,20 @@ WHERE REV < (SELECT MIN(REV) FROM REVINFO WHERE REVTSTMP < UNIX_TIMESTAMP(DATE_S
 
 ```sql
 -- Count active toggles per stage
-SELECT ts.stage_name, COUNT(*) as toggle_count
+SELECT s.name AS stage_name, COUNT(*) AS toggle_count
 FROM T_toggle t
 JOIN T_toggle_stage ts ON t.id = ts.toggle_id
+JOIN T_stage s ON ts.stage_id = s.id
 WHERE t.enabled = TRUE
-GROUP BY ts.stage_name;
+GROUP BY s.name;
 
--- Find toggles with no rules (potential configuration issues)
-SELECT t.name, ts.stage_name
+-- Find toggle-stage combinations with no rules assigned (potential configuration issues)
+SELECT t.name AS toggle_name, s.name AS stage_name
 FROM T_toggle t
 JOIN T_toggle_stage ts ON t.id = ts.toggle_id
-LEFT JOIN T_toggle_rule tr ON ts.id = tr.toggle_stage_id
-WHERE tr.id IS NULL;
+JOIN T_stage s ON ts.stage_id = s.id
+LEFT JOIN T_toggle_stage_rule tsr ON ts.id = tsr.toggle_stage_id
+WHERE tsr.id IS NULL;
 
 -- Recent audit activity
 SELECT r.REV, r.REVTSTMP, r.username, COUNT(*) as changes
@@ -414,12 +445,22 @@ WHERE r.REVTSTMP > UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 24 HOUR)) * 1000
 GROUP BY r.REV, r.REVTSTMP, r.username
 ORDER BY r.REV DESC;
 
--- Rules with high priority (evaluated first)
-SELECT t.name, ts.stage_name, tr.priority, tr.rule_value, tr.description
-FROM T_toggle_rule tr
-JOIN T_toggle_stage ts ON tr.toggle_stage_id = ts.id
+-- Rules with high priority (evaluated first) across all toggle-stage contexts
+SELECT t.name AS toggle_name, s.name AS stage_name, tsr.priority, tr.rule_value, tr.name AS rule_name, tr.description
+FROM T_toggle_stage_rule tsr
+JOIN T_toggle_rule tr ON tsr.rule_id = tr.id
+JOIN T_toggle_stage ts ON tsr.toggle_stage_id = ts.id
+JOIN T_stage s ON ts.stage_id = s.id
 JOIN T_toggle t ON ts.toggle_id = t.id
-WHERE tr.priority < 10
-ORDER BY tr.priority;
+WHERE tsr.priority < 10
+ORDER BY tsr.priority;
+
+-- Rules shared across multiple toggle-stage combinations
+SELECT tr.name AS rule_name, tr.rule_value, COUNT(tsr.id) AS assignment_count
+FROM T_toggle_rule tr
+JOIN T_toggle_stage_rule tsr ON tr.id = tsr.rule_id
+GROUP BY tr.id, tr.name, tr.rule_value
+HAVING COUNT(tsr.id) > 1
+ORDER BY assignment_count DESC;
 ```
 

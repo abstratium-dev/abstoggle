@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { Controller } from './controller';
-import { Demo, ModelService } from './model.service';
+import { ModelService, Stage } from './model.service';
 
 describe('Controller', () => {
   let controller: Controller;
@@ -29,195 +29,223 @@ describe('Controller', () => {
     expect(controller).toBeTruthy();
   });
 
-  describe('loadDemos', () => {
-    it('should load demos and update model service', () => {
-      const mockDemos: Demo[] = [{ id: '1' }, { id: '2' }];
+  describe('loadStages', () => {
+    it('should load stages and update model service', () => {
+      const mockStages: Stage[] = [
+        { id: '1', name: 'Development', displayOrder: 1 },
+        { id: '2', name: 'Production', displayOrder: 2 }
+      ];
 
-      controller.loadDemos();
+      controller.loadStages();
 
-      const req = httpMock.expectOne('/api/demo');
+      const req = httpMock.expectOne('/api/stages');
       expect(req.request.method).toBe('GET');
-      req.flush(mockDemos);
+      req.flush(mockStages);
 
-      expect(modelService.demos$()).toEqual(mockDemos);
-      expect(modelService.demosLoading$()).toBe(false);
-      expect(modelService.demosError$()).toBeNull();
+      expect(modelService.stages$()).toEqual(mockStages);
+      expect(modelService.stagesLoading$()).toBe(false);
+      expect(modelService.stagesError$()).toBeNull();
     });
 
     it('should set loading state before request', () => {
-      controller.loadDemos();
+      controller.loadStages();
 
-      expect(modelService.demosLoading$()).toBe(true);
-      expect(modelService.demosError$()).toBeNull();
+      expect(modelService.stagesLoading$()).toBe(true);
+      expect(modelService.stagesError$()).toBeNull();
 
-      const req = httpMock.expectOne('/api/demo');
+      const req = httpMock.expectOne('/api/stages');
       req.flush([]);
     });
 
-    it('should handle empty demos list', () => {
-      controller.loadDemos();
+    it('should handle empty stages list', () => {
+      controller.loadStages();
 
-      const req = httpMock.expectOne('/api/demo');
+      const req = httpMock.expectOne('/api/stages');
       req.flush([]);
 
-      expect(modelService.demos$()).toEqual([]);
-      expect(modelService.demosLoading$()).toBe(false);
+      expect(modelService.stages$()).toEqual([]);
+      expect(modelService.stagesLoading$()).toBe(false);
     });
 
     it('should handle error response', () => {
-      controller.loadDemos();
+      controller.loadStages();
 
-      const req = httpMock.expectOne('/api/demo');
+      const req = httpMock.expectOne('/api/stages');
       req.error(new ProgressEvent('error'), { status: 500, statusText: 'Server Error' });
 
-      expect(modelService.demos$()).toEqual([]);
-      expect(modelService.demosLoading$()).toBe(false);
-      expect(modelService.demosError$()).toBe('Failed to load demos');
+      expect(modelService.stages$()).toEqual([]);
+      expect(modelService.stagesLoading$()).toBe(false);
+      expect(modelService.stagesError$()).toBe('Failed to load stages');
     });
 
     it('should handle network error', () => {
-      controller.loadDemos();
+      controller.loadStages();
 
-      const req = httpMock.expectOne('/api/demo');
+      const req = httpMock.expectOne('/api/stages');
       req.error(new ProgressEvent('error'));
 
-      expect(modelService.demosError$()).toBe('Failed to load demos');
+      expect(modelService.stagesError$()).toBe('Failed to load stages');
     });
   });
 
-  describe('createDemo', () => {
-    it('should create demo and reload list', async () => {
-      const newDemo: Demo = { id: '123' };
-      const allDemos: Demo[] = [newDemo];
+  describe('createStage', () => {
+    it('should create stage and reload list', async () => {
+      const newStage: Stage = { id: '123', name: 'Staging', displayOrder: 1 };
+      const allStages: Stage[] = [newStage];
 
-      const createPromise = controller.createDemo();
+      const createPromise = controller.createStage('Staging', 'Staging environment', 1, undefined);
 
-      const createReq = httpMock.expectOne('/api/demo');
+      const createReq = httpMock.expectOne('/api/stages');
       expect(createReq.request.method).toBe('POST');
-      expect(createReq.request.body).toEqual({});
-      createReq.flush(newDemo);
+      expect(createReq.request.body).toEqual({
+        name: 'Staging',
+        description: 'Staging environment',
+        displayOrder: 1,
+        parentStageName: undefined
+      });
+      createReq.flush(newStage);
 
       const result = await createPromise;
-      expect(result).toEqual(newDemo);
+      expect(result).toEqual(newStage);
 
       // Verify reload was triggered
-      const loadReq = httpMock.expectOne('/api/demo');
+      const loadReq = httpMock.expectOne('/api/stages');
       expect(loadReq.request.method).toBe('GET');
-      loadReq.flush(allDemos);
+      loadReq.flush(allStages);
 
-      expect(modelService.demos$()).toEqual(allDemos);
+      expect(modelService.stages$()).toEqual(allStages);
+    });
+
+    it('should create stage with parent', async () => {
+      const newStage: Stage = { id: '456', name: 'QA', displayOrder: 2, parentStageName: 'Staging' };
+
+      const createPromise = controller.createStage('QA', 'QA environment', 2, 'Staging');
+
+      const createReq = httpMock.expectOne('/api/stages');
+      expect(createReq.request.body).toEqual({
+        name: 'QA',
+        description: 'QA environment',
+        displayOrder: 2,
+        parentStageName: 'Staging'
+      });
+      createReq.flush(newStage);
+
+      const result = await createPromise;
+      expect(result).toEqual(newStage);
     });
 
     it('should throw error on failed creation', async () => {
-      const createPromise = controller.createDemo();
+      const createPromise = controller.createStage('Staging', '', 1, undefined);
 
-      const req = httpMock.expectOne('/api/demo');
+      const req = httpMock.expectOne('/api/stages');
       req.error(new ProgressEvent('error'), { status: 400, statusText: 'Bad Request' });
 
       await expectAsync(createPromise).toBeRejected();
     });
 
     it('should handle server error during creation', async () => {
-      const createPromise = controller.createDemo();
+      const createPromise = controller.createStage('Staging', '', 1, undefined);
 
-      const req = httpMock.expectOne('/api/demo');
+      const req = httpMock.expectOne('/api/stages');
       req.error(new ProgressEvent('error'), { status: 500, statusText: 'Server Error' });
 
       await expectAsync(createPromise).toBeRejected();
     });
   });
 
-  describe('updateDemo', () => {
-    it('should update demo and reload list', async () => {
-      const demoToUpdate: Demo = { id: '123' };
-      const updatedDemo: Demo = { id: '123' };
-      const allDemos: Demo[] = [updatedDemo];
+  describe('updateStage', () => {
+    it('should update stage and reload list', async () => {
+      const updatedStage: Stage = { id: '123', name: 'Updated', displayOrder: 3 };
+      const allStages: Stage[] = [updatedStage];
 
-      const updatePromise = controller.updateDemo(demoToUpdate);
+      const updatePromise = controller.updateStage('Staging', 'Updated', 'Updated description', 3, undefined);
 
-      const updateReq = httpMock.expectOne('/api/demo');
+      const updateReq = httpMock.expectOne('/api/stages/Staging');
       expect(updateReq.request.method).toBe('PUT');
-      expect(updateReq.request.body).toEqual(demoToUpdate);
-      updateReq.flush(updatedDemo);
+      expect(updateReq.request.body).toEqual({
+        name: 'Updated',
+        description: 'Updated description',
+        displayOrder: 3,
+        parentStageName: undefined
+      });
+      updateReq.flush(updatedStage);
 
       const result = await updatePromise;
-      expect(result).toEqual(updatedDemo);
+      expect(result).toEqual(updatedStage);
 
       // Verify reload was triggered
-      const loadReq = httpMock.expectOne('/api/demo');
+      const loadReq = httpMock.expectOne('/api/stages');
       expect(loadReq.request.method).toBe('GET');
-      loadReq.flush(allDemos);
+      loadReq.flush(allStages);
 
-      expect(modelService.demos$()).toEqual(allDemos);
+      expect(modelService.stages$()).toEqual(allStages);
     });
 
     it('should throw error on failed update', async () => {
-      const demoToUpdate: Demo = { id: '123' };
-      const updatePromise = controller.updateDemo(demoToUpdate);
+      const updatePromise = controller.updateStage('Staging', 'Updated', '', 1, undefined);
 
-      const req = httpMock.expectOne('/api/demo');
+      const req = httpMock.expectOne('/api/stages/Staging');
       req.error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
 
       await expectAsync(updatePromise).toBeRejected();
     });
 
     it('should handle validation error during update', async () => {
-      const demoToUpdate: Demo = { id: '123' };
-      const updatePromise = controller.updateDemo(demoToUpdate);
+      const updatePromise = controller.updateStage('Staging', 'Updated', '', 1, undefined);
 
-      const req = httpMock.expectOne('/api/demo');
+      const req = httpMock.expectOne('/api/stages/Staging');
       req.error(new ProgressEvent('error'), { status: 400, statusText: 'Bad Request' });
 
       await expectAsync(updatePromise).toBeRejected();
     });
   });
 
-  describe('deleteDemo', () => {
-    it('should delete demo and reload list', async () => {
-      const demoId = '123';
-      const remainingDemos: Demo[] = [{ id: '456' }];
+  describe('deleteStage', () => {
+    it('should delete stage and reload list', async () => {
+      const stageName = 'Staging';
+      const remainingStages: Stage[] = [{ id: '456', name: 'Production', displayOrder: 2 }];
 
-      const deletePromise = controller.deleteDemo(demoId);
+      const deletePromise = controller.deleteStage(stageName);
 
-      const deleteReq = httpMock.expectOne(`/api/demo/${demoId}`);
+      const deleteReq = httpMock.expectOne(`/api/stages/${stageName}`);
       expect(deleteReq.request.method).toBe('DELETE');
       deleteReq.flush(null);
 
       await deletePromise;
 
       // Verify reload was triggered
-      const loadReq = httpMock.expectOne('/api/demo');
+      const loadReq = httpMock.expectOne('/api/stages');
       expect(loadReq.request.method).toBe('GET');
-      loadReq.flush(remainingDemos);
+      loadReq.flush(remainingStages);
 
-      expect(modelService.demos$()).toEqual(remainingDemos);
+      expect(modelService.stages$()).toEqual(remainingStages);
     });
 
     it('should throw error on failed deletion', async () => {
-      const demoId = '123';
-      const deletePromise = controller.deleteDemo(demoId);
+      const stageName = 'Staging';
+      const deletePromise = controller.deleteStage(stageName);
 
-      const req = httpMock.expectOne(`/api/demo/${demoId}`);
+      const req = httpMock.expectOne(`/api/stages/${stageName}`);
       req.error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
 
       await expectAsync(deletePromise).toBeRejected();
     });
 
     it('should handle permission error during deletion', async () => {
-      const demoId = '123';
-      const deletePromise = controller.deleteDemo(demoId);
+      const stageName = 'Staging';
+      const deletePromise = controller.deleteStage(stageName);
 
-      const req = httpMock.expectOne(`/api/demo/${demoId}`);
+      const req = httpMock.expectOne(`/api/stages/${stageName}`);
       req.error(new ProgressEvent('error'), { status: 403, statusText: 'Forbidden' });
 
       await expectAsync(deletePromise).toBeRejected();
     });
 
     it('should handle server error during deletion', async () => {
-      const demoId = '123';
-      const deletePromise = controller.deleteDemo(demoId);
+      const stageName = 'Staging';
+      const deletePromise = controller.deleteStage(stageName);
 
-      const req = httpMock.expectOne(`/api/demo/${demoId}`);
+      const req = httpMock.expectOne(`/api/stages/${stageName}`);
       req.error(new ProgressEvent('error'), { status: 500, statusText: 'Server Error' });
 
       await expectAsync(deletePromise).toBeRejected();
@@ -228,20 +256,20 @@ describe('Controller', () => {
     it('should log errors to console', () => {
       spyOn(console, 'error');
 
-      controller.loadDemos();
+      controller.loadStages();
 
-      const req = httpMock.expectOne('/api/demo');
+      const req = httpMock.expectOne('/api/stages');
       req.error(new ProgressEvent('error'));
 
-      expect(console.error).toHaveBeenCalledWith('Error loading demos:', jasmine.any(Object));
+      expect(console.error).toHaveBeenCalledWith('Error loading stages:', jasmine.any(Object));
     });
 
     it('should log creation errors to console', async () => {
       spyOn(console, 'error');
 
-      const createPromise = controller.createDemo();
+      const createPromise = controller.createStage('Staging', '', 1, undefined);
 
-      const req = httpMock.expectOne('/api/demo');
+      const req = httpMock.expectOne('/api/stages');
       req.error(new ProgressEvent('error'));
 
       try {
@@ -250,34 +278,37 @@ describe('Controller', () => {
         // Expected
       }
 
-      expect(console.error).toHaveBeenCalledWith('Error creating demo:', jasmine.any(Object));
+      expect(console.error).toHaveBeenCalledWith('Error creating stage:', jasmine.any(Object));
     });
   });
 
   describe('Integration', () => {
     it('should handle multiple operations in sequence', async () => {
-      // Load demos
-      controller.loadDemos();
-      const loadReq1 = httpMock.expectOne('/api/demo');
-      loadReq1.flush([{ id: '1' }]);
+      // Load stages
+      controller.loadStages();
+      const loadReq1 = httpMock.expectOne('/api/stages');
+      loadReq1.flush([{ id: '1', name: 'Dev', displayOrder: 1}]);
 
-      // Create demo
-      const createPromise = controller.createDemo();
-      const createReq = httpMock.expectOne('/api/demo');
-      createReq.flush({ id: '2' });
+      // Create stage
+      const createPromise = controller.createStage('Staging', '', 2, undefined);
+      const createReq = httpMock.expectOne('/api/stages');
+      createReq.flush({ id: '2', name: 'Staging', displayOrder: 2 });
       await createPromise;
-      const loadReq2 = httpMock.expectOne('/api/demo');
-      loadReq2.flush([{ id: '1' }, { id: '2' }]);
+      const loadReq2 = httpMock.expectOne('/api/stages');
+      loadReq2.flush([
+        { id: '1', name: 'Dev', displayOrder: 1 },
+        { id: '2', name: 'Staging', displayOrder: 2 }
+      ]);
 
-      // Delete demo
-      const deletePromise = controller.deleteDemo('1');
-      const deleteReq = httpMock.expectOne('/api/demo/1');
+      // Delete stage
+      const deletePromise = controller.deleteStage('Dev');
+      const deleteReq = httpMock.expectOne('/api/stages/Dev');
       deleteReq.flush(null);
       await deletePromise;
-      const loadReq3 = httpMock.expectOne('/api/demo');
-      loadReq3.flush([{ id: '2' }]);
+      const loadReq3 = httpMock.expectOne('/api/stages');
+      loadReq3.flush([{ id: '2', name: 'Staging', displayOrder: 2 }]);
 
-      expect(modelService.demos$()).toEqual([{ id: '2' }]);
+      expect(modelService.stages$()).toEqual([{ id: '2', name: 'Staging', displayOrder: 2 }]);
     });
   });
 });

@@ -1,9 +1,7 @@
 package dev.abstratium.abstoggle.entity;
 
-import java.time.Instant;
 import java.util.UUID;
 
-import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.envers.Audited;
 
 import jakarta.persistence.Column;
@@ -36,10 +34,6 @@ public class Stage {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_stage_id", foreignKey = @jakarta.persistence.ForeignKey(name = "FK_stage_parent_stage_id"))
     private Stage parentStage;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
 
     @PrePersist
     public void prePersist() {
@@ -87,13 +81,5 @@ public class Stage {
 
     public void setParentStage(Stage parentStage) {
         this.parentStage = parentStage;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
     }
 }

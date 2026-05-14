@@ -1,5 +1,13 @@
 package dev.abstratium.abstoggle.config;
 
+import java.time.Instant;
+
+import org.hibernate.envers.RevisionEntity;
+import org.hibernate.envers.RevisionListener;
+import org.hibernate.envers.RevisionNumber;
+import org.hibernate.envers.RevisionTimestamp;
+
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.enterprise.inject.spi.CDI;
 import jakarta.persistence.Entity;
@@ -7,14 +15,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import org.hibernate.envers.RevisionEntity;
-import org.hibernate.envers.RevisionListener;
-import org.hibernate.envers.RevisionNumber;
-import org.hibernate.envers.RevisionTimestamp;
-
-import io.quarkus.security.identity.SecurityIdentity;
-
-import java.time.Instant;
 
 /**
  * Custom Envers revision entity that captures the username of the user making changes.

@@ -20,9 +20,9 @@ describe('StagesComponent', () => {
   let errorSignal: ReturnType<typeof signal<string | null>>;
 
   const mockStages: Stage[] = [
-    { id: '1', name: 'Development', description: 'Dev environment', displayOrder: 1, createdAt: '2024-01-01T00:00:00Z' },
-    { id: '2', name: 'Staging', description: 'Staging environment', displayOrder: 2, parentStageName: 'Development', createdAt: '2024-01-02T00:00:00Z' },
-    { id: '3', name: 'Production', description: 'Production environment', displayOrder: 3, createdAt: '2024-01-03T00:00:00Z' }
+    { id: '1', name: 'Development', description: 'Dev environment', displayOrder: 1,  },
+    { id: '2', name: 'Staging', description: 'Staging environment', displayOrder: 2, parentStageName: 'Development' },
+    { id: '3', name: 'Production', description: 'Production environment', displayOrder: 3 }
   ];
 
   beforeEach(async () => {
@@ -106,7 +106,7 @@ describe('StagesComponent', () => {
       expect(component.editingStage).toBe(stage);
       expect(component.showAddForm).toBe(true);
       expect(component.stageName).toBe(stage.name);
-      expect(component.stageDescription).toBe(stage.description);
+      expect(component.stageDescription).toBe(stage.description || '');
       expect(component.stageDisplayOrder).toBe(stage.displayOrder);
     });
 
@@ -154,8 +154,7 @@ describe('StagesComponent', () => {
         id: '4',
         name: 'New Stage',
         description: 'New Description',
-        displayOrder: 4,
-        createdAt: '2024-01-04T00:00:00Z'
+        displayOrder: 4
       };
       controller.createStage.and.returnValue(Promise.resolve(newStage));
 
@@ -182,8 +181,7 @@ describe('StagesComponent', () => {
         name: 'Child Stage',
         description: '',
         displayOrder: 2,
-        parentStageName: 'Development',
-        createdAt: '2024-01-04T00:00:00Z'
+        parentStageName: 'Development'
       };
       controller.createStage.and.returnValue(Promise.resolve(newStage));
 

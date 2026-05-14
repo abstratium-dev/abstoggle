@@ -18,9 +18,6 @@ erDiagram
         char(36) id PK
         varchar name
         text description
-        varchar created_by
-        timestamp created_at
-        timestamp updated_at
         boolean enabled
     }
 
@@ -30,15 +27,12 @@ erDiagram
         varchar description
         int display_order
         char(36) parent_stage_id FK "inherits from"
-        timestamp created_at
     }
 
     T_toggle_stage {
         char(36) id PK
         char(36) toggle_id FK
         char(36) stage_id FK
-        timestamp created_at
-        timestamp updated_at
     }
 
     T_toggle_rule {
@@ -47,8 +41,6 @@ erDiagram
         varchar rule_value "off or custom value"
         int priority "evaluation order"
         varchar description
-        timestamp created_at
-        timestamp updated_at
     }
 
     T_toggle_criterion {
@@ -56,7 +48,6 @@ erDiagram
         char(36) toggle_rule_id FK
         varchar criterion_key
         varchar criterion_value "supports regex patterns"
-        timestamp created_at
     }
 
     T_stage ||--o{ T_stage : inherits
@@ -74,9 +65,6 @@ erDiagram
 | `id` | UUID (PK) | v4 UUID generated in Java code |
 | `name` | String (unique) | Toggle identifier (e.g., "new-feature-x") |
 | `description` | String | Human-readable description |
-| `createdBy` | String | User who created the toggle |
-| `createdAt` | Timestamp | Creation time |
-| `updatedAt` | Timestamp | Last update time |
 | `enabled` | Boolean | Master switch to enable/disable toggle |
 
 #### ToggleStage
@@ -85,8 +73,6 @@ erDiagram
 | `id` | UUID (PK) | v4 UUID generated in Java code |
 | `toggle` | ManyToOne | Reference to parent Toggle |
 | `stage` | ManyToOne | Reference to T_stage (defines valid stage) |
-| `createdAt` | Timestamp | Creation time |
-| `updatedAt` | Timestamp | Last update time |
 
 #### Stage
 | Field | Type | Description |
@@ -96,7 +82,6 @@ erDiagram
 | `description` | String | Human-readable description |
 | `displayOrder` | Integer | UI presentation order |
 | `parentStage` | ManyToOne | Optional parent stage for inheritance chain |
-| `createdAt` | Timestamp | Creation time |
 
 #### ToggleRule
 | Field | Type | Description |
@@ -106,8 +91,6 @@ erDiagram
 | `ruleValue` | String | Value when criteria match (default: "off") |
 | `priority` | Integer | Evaluation order (lower = evaluated first) |
 | `description` | String | Human-readable description of this rule |
-| `createdAt` | Timestamp | Creation time |
-| `updatedAt` | Timestamp | Last update time |
 
 #### ToggleCriterion
 | Field | Type | Description |
@@ -116,7 +99,6 @@ erDiagram
 | `toggleRule` | ManyToOne | Reference to parent ToggleRule |
 | `criterionKey` | String | Key for matching (e.g., "userId", "country") |
 | `criterionValue` | String | Regex pattern for matching (e.g., "/10.*/", "DE") |
-| `createdAt` | Timestamp | Creation time |
 
 ---
 
@@ -341,9 +323,9 @@ This rule only matches EU users AND age 50+.
 | `POST` | `/api/toggles/{name}/stages/{stageName}/rules` | Add rule to stage |
 | `PUT` | `/api/toggles/{name}/stages/{stageName}/rules/{ruleId}` | Update rule value/criteria/priority |
 | `DELETE` | `/api/toggles/{name}/stages/{stageName}/rules/{ruleId}` | Remove rule |
-| `GET` | `/api/admin/stages` | List configured stages |
-| `POST` | `/api/admin/stages` | Define new stage |
-| `DELETE` | `/api/admin/stages/{name}` | Remove stage |
+| `GET` | `/api/stages` | List configured stages |
+| `POST` | `/api/stages` | Define new stage |
+| `DELETE` | `/api/ stages/{name}` | Remove stage |
 
 ---
 

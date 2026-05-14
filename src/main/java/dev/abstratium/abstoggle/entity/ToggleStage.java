@@ -1,10 +1,7 @@
 package dev.abstratium.abstoggle.entity;
 
-import java.time.Instant;
 import java.util.UUID;
 
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.envers.Audited;
 
 import jakarta.persistence.Column;
@@ -48,14 +45,6 @@ public class ToggleStage {
     )
     private Stage stage;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
-
     @PrePersist
     public void prePersist() {
         if (id == null) {
@@ -86,21 +75,5 @@ public class ToggleStage {
 
     public void setStage(Stage stage) {
         this.stage = stage;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
     }
 }

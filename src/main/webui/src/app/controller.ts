@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { Config, Demo, ModelService, Stage } from './model.service';
+import { Config, ModelService, Rule, Stage, Toggle, ToggleDto, ToggleQueryResponse, ToggleStage } from './model.service';
 
 @Injectable({
   providedIn: 'root',
@@ -10,76 +10,6 @@ export class Controller {
 
   private modelService = inject(ModelService);
   private http = inject(HttpClient);
-
-  loadDemos() {
-    this.modelService.setDemosLoading(true);
-    this.modelService.setDemosError(null);
-    
-    this.http.get<Demo[]>('/api/demo').subscribe({
-      next: (demos) => {
-        this.modelService.setDemos(demos);
-        this.modelService.setDemosLoading(false);
-      },
-      error: (err) => {
-        console.error('Error loading demos:', err);
-        this.modelService.setDemos([]);
-        this.modelService.setDemosError('Failed to load demos');
-        this.modelService.setDemosLoading(false);
-      }
-    });
-  }
-
-  async createDemo(): Promise<Demo> {
-    try {
-      const response = await firstValueFrom(
-        this.http.post<Demo>('/api/demo', {})
-      );
-      // Reload demos list after successful creation
-      this.loadDemos();
-      return response;
-    } catch (error) {
-      console.error('Error creating demo:', error);
-      throw error;
-    }
-  }
-
-  async updateDemo(demo: Demo): Promise<Demo> {
-    try {
-      const response = await firstValueFrom(
-        this.http.put<Demo>('/api/demo', demo)
-      );
-      // Reload demos list after successful update
-      this.loadDemos();
-      return response;
-    } catch (error) {
-      console.error('Error updating demo:', error);
-      throw error;
-    }
-  }
-
-  async deleteDemo(id: string): Promise<void> {
-    try {
-      await firstValueFrom(
-        this.http.delete<void>(`/api/demo/${id}`)
-      );
-      // Reload demos list after successful deletion
-      this.loadDemos();
-    } catch (error) {
-      console.error('Error deleting demo:', error);
-      throw error;
-    }
-  }
-
-  async triggerError(): Promise<void> {
-    try {
-      await firstValueFrom(
-        this.http.get<void>('/api/demo/error')
-      );
-    } catch (error) {
-      console.error('Error response:', error);
-      throw error;
-    }
-  }
 
   async loadConfig(): Promise<Config> {
     try {
@@ -98,7 +28,7 @@ export class Controller {
     this.modelService.setStagesLoading(true);
     this.modelService.setStagesError(null);
 
-    this.http.get<Stage[]>('/api/admin/stages').subscribe({
+    this.http.get<Stage[]>('/api/stages').subscribe({
       next: (stages) => {
         this.modelService.setStages(stages);
         this.modelService.setStagesLoading(false);
@@ -115,7 +45,7 @@ export class Controller {
   async createStage(name: string, description: string, displayOrder: number, parentStageName?: string): Promise<Stage> {
     try {
       const response = await firstValueFrom(
-        this.http.post<Stage>('/api/admin/stages', {
+        this.http.post<Stage>('/api/stages', {
           name,
           description,
           displayOrder,
@@ -133,7 +63,7 @@ export class Controller {
   async updateStage(name: string, newName: string, description: string, displayOrder: number, parentStageName?: string): Promise<Stage> {
     try {
       const response = await firstValueFrom(
-        this.http.put<Stage>(`/api/admin/stages/${name}`, {
+        this.http.put<Stage>(`/api/stages/${name}`, {
           name: newName,
           description,
           displayOrder,
@@ -151,11 +81,197 @@ export class Controller {
   async deleteStage(name: string): Promise<void> {
     try {
       await firstValueFrom(
-        this.http.delete<void>(`/api/admin/stages/${name}`)
+        this.http.delete<void>(`/api/stages/${name}`)
       );
       this.loadStages();
     } catch (error) {
       console.error('Error deleting stage:', error);
+      throw error;
+    }
+  }
+
+  loadToggles() {
+    this.modelService.setTogglesLoading(true);
+    this.modelService.setTogglesError(null);
+
+    this.http.get<Toggle[]>('/api/toggles/all').subscribe({
+      next: (toggles) => {
+        this.modelService.setToggles(toggles);
+        this.modelService.setTogglesLoading(false);
+      },
+      error: (err) => {
+        console.error('Error loading toggles:', err);
+        this.modelService.setToggles([]);
+        this.modelService.setTogglesError('Failed to load toggles');
+        this.modelService.setTogglesLoading(false);
+      }
+    });
+  }
+
+  async createToggle(name: string, description: string, enabled: boolean): Promise<Toggle> {
+    try {
+      const response = await firstValueFrom(
+        this.http.post<Toggle>('/api/toggles', {
+          name,
+          description,
+          enabled
+        })
+      );
+      this.loadToggles();
+      return response;
+    } catch (error) {
+      console.error('Error creating toggle:', error);
+      throw error;
+    }
+  }
+
+  async updateToggle(name: string, description: string, enabled: boolean): Promise<Toggle> {
+    try {
+      const response = await firstValueFrom(
+        this.http.put<Toggle>(`/api/toggles/${name}`, {
+          description,
+          enabled
+        })
+      );
+      this.loadToggles();
+      return response;
+    } catch (error) {
+      console.error('Error updating toggle:', error);
+      throw error;
+    }
+  }
+
+  async deleteToggle(name: string): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.http.delete<void>(`/api/toggles/${name}`)
+      );
+      this.loadToggles();
+    } catch (error) {
+      console.error('Error deleting toggle:', error);
+      throw error;
+    }
+  }
+
+  // Public toggle query (no auth required)
+  async queryToggles(stage: string, nameFilter?: string): Promise<ToggleQueryResponse> {
+    try {
+      let url = `/public/toggles?stage=${encodeURIComponent(stage)}`;
+      if (nameFilter) {
+        url += `&nameFilter=${encodeURIComponent(nameFilter)}`;
+      }
+      return await firstValueFrom(this.http.get<ToggleQueryResponse>(url));
+    } catch (error) {
+      console.error('Error querying toggles:', error);
+      throw error;
+    }
+  }
+
+  // Toggle Stage Management
+  async getStagesForToggle(toggleName: string): Promise<string[]> {
+    try {
+      const response = await firstValueFrom(
+        this.http.get<string[]>(`/api/toggles/${toggleName}/stages`)
+      );
+      return response;
+    } catch (error) {
+      console.error('Error loading stages for toggle:', error);
+      throw error;
+    }
+  }
+
+  async addStageToToggle(toggleName: string, stageName: string): Promise<ToggleStage> {
+    try {
+      const response = await firstValueFrom(
+        this.http.post<ToggleStage>(`/api/toggles/${toggleName}/stages/${stageName}`, {})
+      );
+      return response;
+    } catch (error) {
+      console.error('Error adding stage to toggle:', error);
+      throw error;
+    }
+  }
+
+  async removeStageFromToggle(toggleName: string, stageName: string): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.http.delete<void>(`/api/toggles/${toggleName}/stages/${stageName}`)
+      );
+    } catch (error) {
+      console.error('Error removing stage from toggle:', error);
+      throw error;
+    }
+  }
+
+  // Toggle Rule Management
+  async getRulesForToggle(toggleName: string, stageName: string): Promise<Rule[]> {
+    try {
+      const response = await firstValueFrom(
+        this.http.get<Rule[]>(`/api/toggles/${toggleName}/stages/${stageName}/rules`)
+      );
+      return response;
+    } catch (error) {
+      console.error('Error loading rules:', error);
+      throw error;
+    }
+  }
+
+  async createRule(
+    toggleName: string,
+    stageName: string,
+    ruleValue: string,
+    priority: number,
+    description: string,
+    criteria: { [key: string]: string }
+  ): Promise<Rule> {
+    try {
+      const response = await firstValueFrom(
+        this.http.post<Rule>(`/api/toggles/${toggleName}/stages/${stageName}/rules`, {
+          ruleValue,
+          priority,
+          description,
+          criteria
+        })
+      );
+      return response;
+    } catch (error) {
+      console.error('Error creating rule:', error);
+      throw error;
+    }
+  }
+
+  async updateRule(
+    toggleName: string,
+    stageName: string,
+    ruleId: string,
+    ruleValue: string,
+    priority: number,
+    description: string,
+    criteria: { [key: string]: string }
+  ): Promise<Rule> {
+    try {
+      const response = await firstValueFrom(
+        this.http.put<Rule>(`/api/toggles/${toggleName}/stages/${stageName}/rules/${ruleId}`, {
+          ruleValue,
+          priority,
+          description,
+          criteria
+        })
+      );
+      return response;
+    } catch (error) {
+      console.error('Error updating rule:', error);
+      throw error;
+    }
+  }
+
+  async deleteRule(toggleName: string, stageName: string, ruleId: string): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.http.delete<void>(`/api/toggles/${toggleName}/stages/${stageName}/rules/${ruleId}`)
+      );
+    } catch (error) {
+      console.error('Error deleting rule:', error);
       throw error;
     }
   }

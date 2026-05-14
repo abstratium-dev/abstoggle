@@ -5,9 +5,12 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import dev.abstratium.abstoggle.Roles;
 import dev.abstratium.abstoggle.entity.ToggleStage;
 import dev.abstratium.abstoggle.service.ToggleStageService;
+import java.util.List;
+
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -21,6 +24,16 @@ public class ToggleStageResource {
 
     @Inject
     ToggleStageService toggleStageService;
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @RolesAllowed({Roles.USER})
+    public List<String> getStagesForToggle(@PathParam("name") String toggleName) {
+        if (toggleName == null || toggleName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Toggle name is required");
+        }
+        return toggleStageService.getStagesForToggle(toggleName);
+    }
 
     @POST
     @Path("/{stageName}")

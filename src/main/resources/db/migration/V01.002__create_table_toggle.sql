@@ -3,9 +3,6 @@ CREATE TABLE T_toggle (
     id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     description TEXT,
-    created_by VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     enabled BOOLEAN DEFAULT TRUE,
     CONSTRAINT UQ_toggle_name UNIQUE (name)
 );

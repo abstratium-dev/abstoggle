@@ -1,0 +1,143 @@
+<div class="container">
+  <div class="page-header">
+    <h1>Toggle Tester</h1>
+  </div>
+
+  <p class="description">
+    Simulate a client context and see which toggle values would be resolved for a given stage.
+    Rules are evaluated in priority order (ascending); the first match wins.
+  </p>
+
+  <!-- Query Form -->
+  <div class="form-container">
+    <h2>Query Parameters</h2>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="stageSelect">Stage *</label>
+        <select id="stageSelect" [(ngModel)]="selectedStage" name="stageSelect">
+          <option value="">-- Select a stage --</option>
+          <option *ngFor="let stage of stages()" [value]="stage.name">{{ stage.name }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="nameFilter">Toggle Name Filter</label>
+        <input
+          id="nameFilter"
+          type="text"
+          [(ngModel)]="nameFilter"
+          name="nameFilter"
+          placeholder="Leave empty to fetch all toggles"
+        />
+        <span class="form-hint">Optional — filters to a specific toggle name</span>
+      </div>
+    </div>
+
+    <!-- Client Context -->
+    <h3>Client Context</h3>
+    <p class="description">These key-value pairs represent the client attributes used to evaluate rules.</p>
+
+    <div class="tester-context-table">
+      <div class="tester-context-header">
+        <span>Key</span>
+        <span>Value</span>
+        <span></span>
+      </div>
+      <div *ngFor="let entry of contextEntries; let i = index" class="tester-context-row">
+        <input
+          type="text"
+          [(ngModel)]="entry.key"
+          [name]="'ctx-key-' + i"
+          placeholder="Key"
+        />
+        <input
+          type="text"
+          [(ngModel)]="entry.value"
+          [name]="'ctx-val-' + i"
+          placeholder="Value"
+        />
+        <button class="btn-icon btn-icon-danger" (click)="removeContextEntry(i)" title="Remove">🗑️</button>
+      </div>
+      <div class="tester-context-row tester-context-add">
+        <input
+          type="text"
+          [(ngModel)]="newContextKey"
+          name="newCtxKey"
+          placeholder="New key"
+        />
+        <input
+          type="text"
+          [(ngModel)]="newContextValue"
+          name="newCtxVal"
+          placeholder="New value"
+        />
+        <button class="btn-add-small" (click)="addContextEntry()" [disabled]="!newContextKey.trim()">+ Add</button>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-primary" (click)="runQuery()" [disabled]="querying || !selectedStage">
+        {{ querying ? 'Querying...' : 'Run Query' }}
+      </button>
+      <button class="btn-secondary" (click)="resetContext()">Reset Context</button>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="queryError" class="error-box">{{ queryError }}</div>
+
+  <!-- Results -->
+  <div *ngIf="results !== null">
+    <div class="section-header">
+      <h2>Results for stage "{{ queriedStage }}"</h2>
+    </div>
+
+    <div *ngIf="results.length === 0" class="info-message">
+      <p>No toggles found for this stage{{ nameFilter ? ' matching "' + nameFilter + '"' : '' }}.</p>
+    </div>
+
+    <table *ngIf="results.length > 0" class="standard-table">
+      <thead>
+        <tr>
+          <th>Toggle</th>
+          <th>Description</th>
+          <th>Resolved Value</th>
+          <th>Matched Rule</th>
+          <th></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <ng-container *ngFor="let result of results">
+          <tr>
+            <td><strong>{{ result.name }}</strong></td>
+            <td>{{ result.description || '-' }}</td>
+            <td>
+              <span class="tester-value-badge" [ngClass]="getValueClass(result.resolvedValue)">
+                {{ result.resolvedValue }}
+              </span>
+            </td>
+            <td class="tester-matched-rule">{{ result.matchedRule }}</td>
+            <td>
+              <button class="btn-secondary tester-log-btn" (click)="toggleLog(result)" title="Show evaluation log">
+                {{ result.showLog ? '▼ Log' : '▶ Log' }}
+              </button>
+            </td>
+            <td>
+              <a [routerLink]="['/toggles', result.name]" class="btn-add-small">⚙️ Configure</a>
+            </td>
+          </tr>
+          <tr *ngIf="result.showLog" class="tester-log-row">
+            <td colspan="6">
+              <div class="tester-log">
+                <div *ngFor="let entry of result.evalLog" class="tester-log-entry" [ngClass]="'tester-log-' + entry.level">
+                  {{ entry.message }}
+                </div>
+              </div>
+            </td>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
+  </div>
+</div>

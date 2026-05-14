@@ -36,13 +36,12 @@ public class ToggleService {
     }
 
     @Transactional
-    public Toggle create(String name, String description, String createdBy) {
+    public Toggle create(String name, String description, Boolean enabled) {
         Toggle toggle = new Toggle();
         toggle.setName(name);
         toggle.setDescription(description);
-        toggle.setCreatedBy(createdBy);
-        toggle.setEnabled(true);
-        
+        toggle.setEnabled(enabled != null ? enabled : true);
+
         em.persist(toggle);
         return toggle;
     }

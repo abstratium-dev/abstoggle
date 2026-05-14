@@ -1,10 +1,7 @@
 package dev.abstratium.abstoggle.entity;
 
-import java.time.Instant;
 import java.util.UUID;
 
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.envers.Audited;
 
 import jakarta.persistence.Column;
@@ -41,14 +38,6 @@ public class ToggleRule {
 
     @Column(nullable = false)
     private Integer priority = 100;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
 
     @PrePersist
     public void prePersist() {
@@ -96,21 +85,5 @@ public class ToggleRule {
 
     public void setPriority(Integer priority) {
         this.priority = priority;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
     }
 }

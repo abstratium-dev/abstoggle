@@ -70,14 +70,11 @@ public class ToggleResource {
         if (request.getName() == null || request.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("Toggle name is required");
         }
-        if (request.getCreatedBy() == null || request.getCreatedBy().trim().isEmpty()) {
-            throw new IllegalArgumentException("Created by is required");
-        }
-        
+
         Toggle toggle = toggleService.create(
             request.getName(),
             request.getDescription(),
-            request.getCreatedBy()
+            request.getEnabled()
         );
         
         return convertToDto(toggle);
@@ -116,6 +113,6 @@ public class ToggleResource {
 
     private ToggleDto convertToDto(Toggle toggle) {
         // Simple DTO without rules for basic toggle operations
-        return new ToggleDto(toggle.getName(), null, toggle.getDescription(), null);
+        return new ToggleDto(toggle.getName(), null, toggle.getDescription(), toggle.getEnabled(), null);
     }
 }

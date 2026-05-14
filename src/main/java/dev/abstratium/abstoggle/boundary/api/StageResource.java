@@ -10,6 +10,7 @@ import dev.abstratium.abstoggle.dto.CreateStageRequest;
 import dev.abstratium.abstoggle.dto.UpdateStageRequest;
 import dev.abstratium.abstoggle.entity.Stage;
 import dev.abstratium.abstoggle.service.StageService;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.DELETE;
@@ -22,9 +23,9 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-@Path("/api/admin/stages")
-@Tag(name = "Stage Administration", description = "Stage management endpoints")
-public class AdminStageResource {
+@Path("/api/stages")
+@Tag(name = "Stage Management", description = "Stage management endpoints")
+public class StageResource {
 
     @Inject
     StageService stageService;
@@ -46,14 +47,14 @@ public class AdminStageResource {
         if (request.getName() == null || request.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("Stage name is required");
         }
-        
+
         Stage stage = stageService.create(
             request.getName(),
             request.getDescription(),
             request.getDisplayOrder(),
             request.getParentStageName()
         );
-        
+
         return convertToDto(stage);
     }
 
@@ -100,24 +101,23 @@ public class AdminStageResource {
         dto.setName(stage.getName());
         dto.setDescription(stage.getDescription());
         dto.setDisplayOrder(stage.getDisplayOrder());
-        dto.setCreatedAt(stage.getCreatedAt());
-        
+
         // Set parent stage info if exists
         if (stage.getParentStage() != null) {
             dto.setParentStageName(stage.getParentStage().getName());
         }
-        
+
         return dto;
     }
 
     // DTO for stage responses
+    @RegisterForReflection
     public static class StageDto {
         private String id;
         private String name;
         private String description;
         private Integer displayOrder;
         private String parentStageName;
-        private java.time.Instant createdAt;
 
         public StageDto() {}
 
@@ -160,14 +160,6 @@ public class AdminStageResource {
 
         public void setParentStageName(String parentStageName) {
             this.parentStageName = parentStageName;
-        }
-
-        public java.time.Instant getCreatedAt() {
-            return createdAt;
-        }
-
-        public void setCreatedAt(java.time.Instant createdAt) {
-            this.createdAt = createdAt;
         }
     }
 }

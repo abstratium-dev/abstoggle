@@ -5,7 +5,6 @@ CREATE TABLE T_stage_AUD (
     description VARCHAR(500),
     display_order INT,
     parent_stage_id VARCHAR(36),
-    created_at TIMESTAMP,
     REV BIGINT NOT NULL,
     REVTYPE TINYINT,
     PRIMARY KEY (id, REV),

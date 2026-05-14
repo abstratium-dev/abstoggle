@@ -134,6 +134,7 @@ public class ToggleRuleResource {
         }
         
         return new RuleDto(
+            rule.getId(),
             rule.getPriority(),
             rule.getRuleValue(),
             rule.getDescription(),

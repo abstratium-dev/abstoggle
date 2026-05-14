@@ -1,10 +1,7 @@
 package dev.abstratium.abstoggle.entity;
 
-import java.time.Instant;
 import java.util.UUID;
 
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.envers.Audited;
 
 import jakarta.persistence.Column;
@@ -27,17 +24,6 @@ public class Toggle {
 
     @Column(columnDefinition = "TEXT")
     private String description;
-
-    @Column(name = "created_by", length = 255, nullable = false)
-    private String createdBy;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
 
     @Column(nullable = false)
     private Boolean enabled = true;
@@ -72,30 +58,6 @@ public class Toggle {
 
     public void setDescription(String description) {
         this.description = description;
-    }
-
-    public String getCreatedBy() {
-        return createdBy;
-    }
-
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
     }
 
     public Boolean getEnabled() {

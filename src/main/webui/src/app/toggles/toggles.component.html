@@ -1,0 +1,291 @@
+<div class="container">
+  <div class="page-header">
+    <h1>Toggles</h1>
+    <div class="header-actions">
+      <button class="btn-add" (click)="toggleAddForm()" [disabled]="formSubmitting">
+        {{ showAddForm ? 'Cancel' : '+ Add Toggle' }}
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading()" class="loading">
+    <p>Loading toggles...</p>
+  </div>
+
+  <div *ngIf="error()" class="error-box">
+    <p>{{ error() }}</p>
+    <button (click)="onRetry()">Retry</button>
+  </div>
+
+  <!-- Add/Edit Form -->
+  <div *ngIf="showAddForm" class="form-container">
+    <h2>{{ editingToggle ? 'Edit Toggle' : 'Create New Toggle' }}</h2>
+
+    <form (ngSubmit)="onSubmit()">
+      <div *ngIf="formError" class="error-box">
+        {{ formError }}
+      </div>
+
+      <div class="form-group">
+        <label for="toggleName">Toggle Name *</label>
+        <input
+          id="toggleName"
+          type="text"
+          [(ngModel)]="toggleName"
+          name="toggleName"
+          placeholder="Enter toggle name"
+          required
+          [disabled]="formSubmitting || !!editingToggle"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="toggleDescription">Description</label>
+        <textarea
+          id="toggleDescription"
+          [(ngModel)]="toggleDescription"
+          name="toggleDescription"
+          placeholder="Enter toggle description (optional)"
+          rows="3"
+          [disabled]="formSubmitting"
+        ></textarea>
+      </div>
+
+      <div class="form-group checkbox-group">
+        <input
+          id="toggleEnabled"
+          type="checkbox"
+          [(ngModel)]="toggleEnabled"
+          name="toggleEnabled"
+          [disabled]="formSubmitting"
+        />
+        <label for="toggleEnabled">Enabled</label>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary" [disabled]="formSubmitting">
+          {{ formSubmitting ? 'Saving...' : (editingToggle ? 'Update Toggle' : 'Create Toggle') }}
+        </button>
+        <button type="button" class="btn-secondary" (click)="cancelEdit()" [disabled]="formSubmitting">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Stage Management Section -->
+  <div *ngIf="managingToggle" class="form-container">
+    <div class="section-header">
+      <h2>Manage Stages for "{{ managingToggle.name }}"</h2>
+      <button class="btn-secondary" (click)="cancelManageStages()">Close</button>
+    </div>
+
+    <!-- Add Stage to Toggle -->
+    <div class="stage-assignment">
+      <h3>Add Stages</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="stageToAdd">Select Stage</label>
+          <select
+            id="stageToAdd"
+            [(ngModel)]="selectedStageToAdd"
+            name="stageToAdd"
+            [disabled]="stageManagementLoading"
+          >
+            <option value="">-- Select a stage --</option>
+            <option *ngFor="let stage of getAvailableStagesForToggle()" [value]="stage.name">
+              {{ stage.name }}
+            </option>
+          </select>
+        </div>
+        <div class="form-group button-group">
+          <button
+            class="btn-add"
+            (click)="addStageToToggle()"
+            [disabled]="!selectedStageToAdd || stageManagementLoading"
+          >
+            Add Stage
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assigned Stages with Rules -->
+    <div class="assigned-stages" *ngIf="toggleStages.size > 0">
+      <h3>Assigned Stages & Rules</h3>
+
+      <div *ngFor="let stageEntry of toggleStages | keyvalue" class="stage-card">
+        <div class="stage-header">
+          <h4>{{ stageEntry.key }}</h4>
+          <div class="stage-actions">
+            <button
+              class="btn-add-small"
+              (click)="toggleAddRuleForm(stageEntry.key)"
+              title="Add rule"
+            >
+              + Add Rule
+            </button>
+            <button
+              class="btn-icon btn-icon-danger"
+              (click)="removeStageFromToggle(stageEntry.key)"
+              title="Remove stage"
+            >
+              🗑️
+            </button>
+          </div>
+        </div>
+
+        <!-- Add/Edit Rule Form -->
+        <div *ngIf="stageEntry.value.showAddRule" class="rule-form">
+          <h5>{{ stageEntry.value.editingRule ? 'Edit Rule' : 'New Rule' }}</h5>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="rulePriority-{{stageEntry.key}}">Priority</label>
+              <input
+                type="number"
+                [id]="'rulePriority-' + stageEntry.key"
+                [(ngModel)]="stageEntry.value.ruleForm.priority"
+                name="rulePriority-{{stageEntry.key}}"
+                placeholder="1"
+              />
+            </div>
+            <div class="form-group">
+              <label for="ruleValue-{{stageEntry.key}}">Value</label>
+              <input
+                type="text"
+                [id]="'ruleValue-' + stageEntry.key"
+                [(ngModel)]="stageEntry.value.ruleForm.value"
+                name="ruleValue-{{stageEntry.key}}"
+                placeholder="on, off, or custom value"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="ruleDescription-{{stageEntry.key}}">Description</label>
+            <input
+              type="text"
+              [id]="'ruleDescription-' + stageEntry.key"
+              [(ngModel)]="stageEntry.value.ruleForm.description"
+              name="ruleDescription-{{stageEntry.key}}"
+              placeholder="Rule description"
+            />
+          </div>
+
+          <!-- Criteria Management -->
+          <div class="criteria-section">
+            <h6>Criteria</h6>
+
+            <!-- Existing Criteria -->
+            <div *ngIf="hasCriteria(stageEntry.value.ruleForm.criteria)" class="criteria-list">
+              <div *ngFor="let criterion of stageEntry.value.ruleForm.criteria | keyvalue" class="criterion-item">
+                <span class="criterion-key">{{ criterion.key }}</span>
+                <span class="criterion-separator">=</span>
+                <span class="criterion-value">{{ criterion.value }}</span>
+                <button class="btn-icon" (click)="removeCriteriaEntry(stageEntry.key, criterion.key)">❌</button>
+              </div>
+            </div>
+
+            <!-- Add New Criterion -->
+            <div class="form-row">
+              <div class="form-group">
+                <input
+                  type="text"
+                  [(ngModel)]="stageEntry.value.ruleForm.criteriaKey"
+                  name="criteriaKey-{{stageEntry.key}}"
+                  placeholder="Key (e.g., country)"
+                />
+              </div>
+              <div class="form-group">
+                <input
+                  type="text"
+                  [(ngModel)]="stageEntry.value.ruleForm.criteriaValue"
+                  name="criteriaValue-{{stageEntry.key}}"
+                  placeholder="Value (e.g., DE or regex)"
+                />
+              </div>
+              <div class="form-group button-group">
+                <button class="btn-add-small" (click)="addCriteriaEntry(stageEntry.key)">+ Add</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-primary" (click)="saveRule(stageEntry.key)">
+              {{ stageEntry.value.editingRule ? 'Update Rule' : 'Create Rule' }}
+            </button>
+            <button class="btn-secondary" (click)="cancelEditRule(stageEntry.key)">Cancel</button>
+          </div>
+        </div>
+
+        <!-- Rules List -->
+        <div *ngIf="stageEntry.value.rules.length > 0" class="rules-list">
+          <div *ngFor="let rule of stageEntry.value.rules" class="rule-item">
+            <div class="rule-summary">
+              <span class="rule-priority">#{{ rule.priority }}</span>
+              <span class="rule-value">{{ rule.value }}</span>
+              <span class="rule-description" *ngIf="rule.description">- {{ rule.description }}</span>
+            </div>
+            <div class="rule-criteria" *ngIf="hasCriteria(rule.criteria)">
+              <small>Criteria: {{ formatCriteria(rule.criteria) }}</small>
+            </div>
+            <div class="rule-actions">
+              <button class="btn-icon" (click)="startEditRule(stageEntry.key, rule)" title="Edit rule">✏️</button>
+              <button class="btn-icon btn-icon-danger" (click)="deleteRule(stageEntry.key, rule)" title="Delete rule">🗑️</button>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="stageEntry.value.rules.length === 0 && !stageEntry.value.loadingRules" class="no-rules">
+          <p>No rules defined. Click "+ Add Rule" to create one.</p>
+        </div>
+
+        <div *ngIf="stageEntry.value.loadingRules" class="loading-rules">
+          <p>Loading rules...</p>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="toggleStages.size === 0" class="info-message">
+      <p>No stages assigned. Select a stage above and click "Add Stage".</p>
+    </div>
+  </div>
+
+  <div *ngIf="!loading() && !error() && toggles().length === 0" class="info-message">
+    <p>No toggles found. Click "Add Toggle" to create your first toggle.</p>
+  </div>
+
+  <div *ngIf="!loading() && !error() && toggles().length > 0">
+    <table class="standard-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Enabled</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let toggle of toggles()">
+          <td><strong>{{ toggle.name }}</strong></td>
+          <td>{{ toggle.description || '-' }}</td>
+          <td>{{ getEnabledStatus(toggle) }}</td>
+          <td>
+            <div class="card-actions">
+              <button class="btn-icon" (click)="startEdit(toggle)" title="Edit toggle">
+                ✏️
+              </button>
+              <button class="btn-icon" (click)="startManageStages(toggle)" title="Manage">
+                ⚙️
+              </button>
+              <button class="btn-icon btn-icon-danger" (click)="deleteToggle(toggle)" title="Delete toggle">
+                🗑️
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

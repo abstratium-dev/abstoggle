@@ -1,16 +1,11 @@
 import { Injectable, signal, Signal } from '@angular/core';
 
-export interface Demo {
-  id: string;
-}
-
 export interface Stage {
   id: string;
   name: string;
   description?: string;
   displayOrder: number;
   parentStageName?: string;
-  createdAt: string;
 }
 
 export interface Config {
@@ -18,40 +13,61 @@ export interface Config {
   warningMessage: string;
 }
 
+export interface Toggle {
+  name: string;
+  description?: string;
+  enabled?: boolean;
+}
+
+export interface ToggleDto {
+  name: string;
+  stage: string;
+  description?: string;
+  enabled?: boolean;
+  rules: Rule[];
+}
+
+export interface ToggleQueryResponse {
+  toggles: ToggleDto[];
+  queryMetadata?: { [key: string]: any };
+}
+
+export interface ToggleStage {
+  id: string;
+  toggleName: string;
+  stageName: string;
+}
+
+export interface Rule {
+  id: string;
+  priority: number;
+  value: string;
+  description?: string;
+  criteria: { [key: string]: string };
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class ModelService {
 
-  private demos = signal<Demo[]>([]);
-  private demosLoading = signal<boolean>(false);
-  private demosError = signal<string | null>(null);
   private config = signal<Config | null>(null);
   private warningMessage = signal<string>('');
   private stages = signal<Stage[]>([]);
   private stagesLoading = signal<boolean>(false);
   private stagesError = signal<string | null>(null);
+  private toggles = signal<Toggle[]>([]);
+  private togglesLoading = signal<boolean>(false);
+  private togglesError = signal<string | null>(null);
 
-  demos$: Signal<Demo[]> = this.demos.asReadonly();
-  demosLoading$: Signal<boolean> = this.demosLoading.asReadonly();
-  demosError$: Signal<string | null> = this.demosError.asReadonly();
   config$: Signal<Config | null> = this.config.asReadonly();
   warningMessage$: Signal<string> = this.warningMessage.asReadonly();
   stages$: Signal<Stage[]> = this.stages.asReadonly();
   stagesLoading$: Signal<boolean> = this.stagesLoading.asReadonly();
   stagesError$: Signal<string | null> = this.stagesError.asReadonly();
-
-  setDemos(demos: Demo[]) {
-    this.demos.set(demos);
-  }
-
-  setDemosLoading(loading: boolean) {
-    this.demosLoading.set(loading);
-  }
-
-  setDemosError(error: string | null) {
-    this.demosError.set(error);
-  }
+  toggles$: Signal<Toggle[]> = this.toggles.asReadonly();
+  togglesLoading$: Signal<boolean> = this.togglesLoading.asReadonly();
+  togglesError$: Signal<string | null> = this.togglesError.asReadonly();
 
   setConfig(config: Config) {
     this.config.set(config);
@@ -72,5 +88,17 @@ export class ModelService {
 
   setStagesError(error: string | null) {
     this.stagesError.set(error);
+  }
+
+  setToggles(toggles: Toggle[]) {
+    this.toggles.set(toggles);
+  }
+
+  setTogglesLoading(loading: boolean) {
+    this.togglesLoading.set(loading);
+  }
+
+  setTogglesError(error: string | null) {
+    this.togglesError.set(error);
   }
 }

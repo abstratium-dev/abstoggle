@@ -1,9 +1,7 @@
 package dev.abstratium.abstoggle.entity;
 
-import java.time.Instant;
 import java.util.UUID;
 
-import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.envers.Audited;
 
 import jakarta.persistence.Column;
@@ -37,10 +35,6 @@ public class ToggleCriterion {
 
     @Column(name = "criterion_value", length = 500, nullable = false)
     private String criterionValue;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
 
     @PrePersist
     public void prePersist() {
@@ -80,13 +74,5 @@ public class ToggleCriterion {
 
     public void setCriterionValue(String criterionValue) {
         this.criterionValue = criterionValue;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
     }
 }

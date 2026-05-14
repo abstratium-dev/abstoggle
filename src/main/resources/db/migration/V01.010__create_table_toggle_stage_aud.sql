@@ -3,8 +3,6 @@ CREATE TABLE T_toggle_stage_AUD (
     id VARCHAR(36),
     toggle_id VARCHAR(36),
     stage_id VARCHAR(36),
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP,
     REV BIGINT NOT NULL,
     REVTYPE TINYINT,
     PRIMARY KEY (id, REV),

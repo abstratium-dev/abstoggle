@@ -9,6 +9,7 @@ import dev.abstratium.abstoggle.entity.Toggle;
 import dev.abstratium.abstoggle.entity.ToggleCriterion;
 import dev.abstratium.abstoggle.entity.ToggleRule;
 import dev.abstratium.abstoggle.entity.ToggleStage;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -235,6 +236,7 @@ public class ToggleRuleService {
     }
 
     // Data transfer class for criteria
+    @RegisterForReflection
     public static class CriterionData {
         private String key;
         private String value;

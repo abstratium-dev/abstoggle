@@ -186,7 +186,7 @@ public class ToggleQueryService {
         // Determine which stage actually provided the configuration
         String actualStage = toggleStage.getStage().getName();
         
-        return new ToggleDto(toggle.getName(), actualStage, toggle.getDescription(), ruleDtos);
+        return new ToggleDto(toggle.getName(), actualStage, toggle.getDescription(), toggle.getEnabled(), ruleDtos);
     }
 
     private ToggleStage findToggleStageInChain(String toggleName, Set<String> stageChain) {
@@ -216,6 +216,7 @@ public class ToggleQueryService {
         }
         
         return new RuleDto(
+            rule.getId(),
             rule.getPriority(),
             rule.getRuleValue(),
             rule.getDescription(),

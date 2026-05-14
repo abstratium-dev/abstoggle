@@ -6,14 +6,14 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 public class CreateToggleRequest {
     private String name;
     private String description;
-    private String createdBy;
+    private Boolean enabled;
 
     public CreateToggleRequest() {}
 
-    public CreateToggleRequest(String name, String description, String createdBy) {
+    public CreateToggleRequest(String name, String description, Boolean enabled) {
         this.name = name;
         this.description = description;
-        this.createdBy = createdBy;
+        this.enabled = enabled;
     }
 
     public String getName() {
@@ -32,11 +32,11 @@ public class CreateToggleRequest {
         this.description = description;
     }
 
-    public String getCreatedBy() {
-        return createdBy;
+    public Boolean getEnabled() {
+        return enabled;
     }
 
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
+    public void setEnabled(Boolean enabled) {
+        this.enabled = enabled;
     }
 }

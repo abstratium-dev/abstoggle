@@ -44,7 +44,7 @@ public class StageService {
         stage.setName(name);
         stage.setDescription(description);
         stage.setDisplayOrder(displayOrder != null ? displayOrder : 0);
-        
+
         if (parentStageName != null && !parentStageName.trim().isEmpty()) {
             Optional<Stage> parentStage = findByName(parentStageName);
             if (parentStage.isEmpty()) {
@@ -52,7 +52,7 @@ public class StageService {
             }
             stage.setParentStage(parentStage.get());
         }
-        
+
         em.persist(stage);
         return stage;
     }
@@ -134,8 +134,7 @@ public class StageService {
      * Get the inheritance chain for a stage, starting from the stage itself
      * and walking up through parent stages.
      */
-    @Transactional
-    public List<Stage> getInheritanceChain(String stageName) {
+    private List<Stage> getInheritanceChain(String stageName) {
         List<Stage> chain = new ArrayList<>();
         Set<String> visited = new HashSet<>();
         
