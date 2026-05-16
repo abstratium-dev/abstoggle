@@ -2,6 +2,9 @@ package dev.abstratium.abstoggle.dto;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
+/**
+ * DTO for Toggle-Stage-Rule assignments using UUID IDs.
+ */
 @RegisterForReflection
 public class ToggleStageRuleDto {
     private String id;

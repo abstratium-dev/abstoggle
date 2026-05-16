@@ -6,8 +6,6 @@ import java.util.Optional;
 import dev.abstratium.abstoggle.dto.CriterionDto;
 import dev.abstratium.abstoggle.entity.Criterion;
 import dev.abstratium.abstoggle.entity.Rule;
-import dev.abstratium.abstoggle.entity.Stage;
-import dev.abstratium.abstoggle.entity.Toggle;
 import dev.abstratium.abstoggle.entity.ToggleStageRule;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -25,6 +23,12 @@ public class RuleService {
 
     @Inject
     ToggleService toggleService;
+
+    @Transactional
+    public Optional<Rule> findById(String id) {
+        Rule rule = em.find(Rule.class, id);
+        return Optional.ofNullable(rule);
+    }
 
     @Transactional
     public Optional<Rule> findByName(String name) {

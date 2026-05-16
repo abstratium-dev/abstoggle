@@ -27,143 +27,6 @@ public class ToggleStageRuleServiceTest {
 
     @Test
     @TestTransaction
-    void testCreate_persistsAssignmentWithAllFields() {
-        Toggle toggle = new Toggle();
-        toggle.setName("svc-tsr-toggle");
-        toggle.setEnabled(true);
-        em.persist(toggle);
-
-        Stage stage = new Stage();
-        stage.setName("svc-tsr-stage");
-        stage.setDisplayOrder(1);
-        em.persist(stage);
-
-        Rule rule = new Rule();
-        rule.setName("svc-tsr-rule");
-        em.persist(rule);
-        em.flush();
-
-        ToggleStageRule tsr = toggleStageRuleService.create(
-            "svc-tsr-toggle", "svc-tsr-stage", "svc-tsr-rule", "enabled", 10);
-
-        assertNotNull(tsr.getId());
-        assertEquals("svc-tsr-toggle", tsr.getToggle().getName());
-        assertEquals("svc-tsr-stage", tsr.getStage().getName());
-        assertEquals("svc-tsr-rule", tsr.getRule().getName());
-        assertEquals("enabled", tsr.getRuleValue());
-        assertEquals(10, tsr.getPriority());
-    }
-
-    @Test
-    @TestTransaction
-    void testCreate_withNullRuleValueAndPriority_usesDefaults() {
-        Toggle toggle = new Toggle();
-        toggle.setName("svc-tsr-default-toggle");
-        toggle.setEnabled(true);
-        em.persist(toggle);
-
-        Stage stage = new Stage();
-        stage.setName("svc-tsr-default-stage");
-        stage.setDisplayOrder(1);
-        em.persist(stage);
-
-        Rule rule = new Rule();
-        rule.setName("svc-tsr-default-rule");
-        em.persist(rule);
-        em.flush();
-
-        ToggleStageRule tsr = toggleStageRuleService.create(
-            "svc-tsr-default-toggle", "svc-tsr-default-stage", "svc-tsr-default-rule", null, null);
-
-        assertEquals("off", tsr.getRuleValue());
-        assertEquals(100, tsr.getPriority());
-    }
-
-    @Test
-    @TestTransaction
-    void testCreate_toggleNotFound_throwsException() {
-        Stage stage = new Stage();
-        stage.setName("svc-tsr-missing-toggle-stage");
-        stage.setDisplayOrder(1);
-        em.persist(stage);
-
-        Rule rule = new Rule();
-        rule.setName("svc-tsr-missing-toggle-rule");
-        em.persist(rule);
-        em.flush();
-
-        assertThrows(IllegalArgumentException.class, () ->
-            toggleStageRuleService.create("nonexistent-toggle", "svc-tsr-missing-toggle-stage",
-                "svc-tsr-missing-toggle-rule", "on", 1)
-        );
-    }
-
-    @Test
-    @TestTransaction
-    void testCreate_stageNotFound_throwsException() {
-        Toggle toggle = new Toggle();
-        toggle.setName("svc-tsr-missing-stage-toggle");
-        toggle.setEnabled(true);
-        em.persist(toggle);
-
-        Rule rule = new Rule();
-        rule.setName("svc-tsr-missing-stage-rule");
-        em.persist(rule);
-        em.flush();
-
-        assertThrows(IllegalArgumentException.class, () ->
-            toggleStageRuleService.create("svc-tsr-missing-stage-toggle", "nonexistent-stage",
-                "svc-tsr-missing-stage-rule", "on", 1)
-        );
-    }
-
-    @Test
-    @TestTransaction
-    void testCreate_ruleNotFound_throwsException() {
-        Toggle toggle = new Toggle();
-        toggle.setName("svc-tsr-missing-rule-toggle");
-        toggle.setEnabled(true);
-        em.persist(toggle);
-
-        Stage stage = new Stage();
-        stage.setName("svc-tsr-missing-rule-stage");
-        stage.setDisplayOrder(1);
-        em.persist(stage);
-        em.flush();
-
-        assertThrows(IllegalArgumentException.class, () ->
-            toggleStageRuleService.create("svc-tsr-missing-rule-toggle", "svc-tsr-missing-rule-stage",
-                "nonexistent-rule", "on", 1)
-        );
-    }
-
-    @Test
-    @TestTransaction
-    void testCreate_duplicateAssignment_throwsException() {
-        Toggle toggle = new Toggle();
-        toggle.setName("svc-tsr-dup-toggle");
-        toggle.setEnabled(true);
-        em.persist(toggle);
-
-        Stage stage = new Stage();
-        stage.setName("svc-tsr-dup-stage");
-        stage.setDisplayOrder(1);
-        em.persist(stage);
-
-        Rule rule = new Rule();
-        rule.setName("svc-tsr-dup-rule");
-        em.persist(rule);
-        em.flush();
-
-        toggleStageRuleService.create("svc-tsr-dup-toggle", "svc-tsr-dup-stage", "svc-tsr-dup-rule", "on", 1);
-
-        assertThrows(IllegalArgumentException.class, () ->
-            toggleStageRuleService.create("svc-tsr-dup-toggle", "svc-tsr-dup-stage", "svc-tsr-dup-rule", "off", 2)
-        );
-    }
-
-    @Test
-    @TestTransaction
     void testFindById_returnsAssignment_whenExists() {
         Toggle toggle = new Toggle();
         toggle.setName("svc-tsr-findbyid-toggle");
@@ -181,7 +44,7 @@ public class ToggleStageRuleServiceTest {
         em.flush();
 
         ToggleStageRule created = toggleStageRuleService.create(
-            "svc-tsr-findbyid-toggle", "svc-tsr-findbyid-stage", "svc-tsr-findbyid-rule", "on", 1);
+            toggle.getId(), stage.getId(), rule.getId(), "on", 1);
 
         Optional<ToggleStageRule> found = toggleStageRuleService.findById(created.getId());
 
@@ -220,10 +83,8 @@ public class ToggleStageRuleServiceTest {
         em.persist(rule);
         em.flush();
 
-        toggleStageRuleService.create("svc-tsr-findbytoggle-toggle", "svc-tsr-findbytoggle-stage-a",
-            "svc-tsr-findbytoggle-rule", "on", 1);
-        toggleStageRuleService.create("svc-tsr-findbytoggle-toggle", "svc-tsr-findbytoggle-stage-b",
-            "svc-tsr-findbytoggle-rule", "off", 2);
+        toggleStageRuleService.create(toggle.getId(), stage1.getId(), rule.getId(), "on", 1);
+        toggleStageRuleService.create(toggle.getId(), stage2.getId(), rule.getId(), "off", 2);
 
         List<ToggleStageRule> results = toggleStageRuleService.findByToggleName("svc-tsr-findbytoggle-toggle");
 
@@ -253,10 +114,8 @@ public class ToggleStageRuleServiceTest {
         em.persist(rule);
         em.flush();
 
-        toggleStageRuleService.create("svc-tsr-findbystage-toggle-a", "svc-tsr-findbystage-stage",
-            "svc-tsr-findbystage-rule", "on", 1);
-        toggleStageRuleService.create("svc-tsr-findbystage-toggle-b", "svc-tsr-findbystage-stage",
-            "svc-tsr-findbystage-rule", "off", 2);
+        toggleStageRuleService.create(toggle1.getId(), stage.getId(), rule.getId(), "on", 1);
+        toggleStageRuleService.create(toggle2.getId(), stage.getId(), rule.getId(), "off", 2);
 
         List<ToggleStageRule> results = toggleStageRuleService.findByStageName("svc-tsr-findbystage-stage");
 
@@ -281,10 +140,10 @@ public class ToggleStageRuleServiceTest {
         em.persist(rule);
         em.flush();
 
-        toggleStageRuleService.create("svc-tsr-findtsr-toggle", "svc-tsr-findtsr-stage", "svc-tsr-findtsr-rule", "on", 1);
+        toggleStageRuleService.create(toggle.getId(), stage.getId(), rule.getId(), "on", 1);
 
         Optional<ToggleStageRule> found = toggleStageRuleService.findByToggleStageAndRule(
-            "svc-tsr-findtsr-toggle", "svc-tsr-findtsr-stage", "svc-tsr-findtsr-rule");
+            toggle.getName(), stage.getName(), rule.getName());
 
         assertTrue(found.isPresent());
     }
@@ -316,11 +175,11 @@ public class ToggleStageRuleServiceTest {
         em.persist(rule);
         em.flush();
 
-        toggleStageRuleService.create("svc-tsr-findall-toggle", "svc-tsr-findall-stage", "svc-tsr-findall-rule", "on", 1);
+        toggleStageRuleService.create(toggle.getId(), stage.getId(), rule.getId(), "on", 1);
 
         List<ToggleStageRule> all = toggleStageRuleService.findAll();
 
-        assertTrue(all.stream().anyMatch(tsr -> "svc-tsr-findall-toggle".equals(tsr.getToggle().getName())));
+        assertTrue(all.stream().anyMatch(tsr -> toggle.getName().equals(tsr.getToggle().getName())));
     }
 
     @Test
@@ -342,7 +201,7 @@ public class ToggleStageRuleServiceTest {
         em.flush();
 
         ToggleStageRule created = toggleStageRuleService.create(
-            "svc-tsr-update-toggle", "svc-tsr-update-stage", "svc-tsr-update-rule", "original", 50);
+            toggle.getId(), stage.getId(), rule.getId(), "original", 50);
 
         ToggleStageRule updated = toggleStageRuleService.update(created.getId(), "updated", 99);
 
@@ -377,7 +236,7 @@ public class ToggleStageRuleServiceTest {
         em.flush();
 
         ToggleStageRule created = toggleStageRuleService.create(
-            "svc-tsr-delete-toggle", "svc-tsr-delete-stage", "svc-tsr-delete-rule", "on", 1);
+            toggle.getId(), stage.getId(), rule.getId(), "on", 1);
         String id = created.getId();
 
         toggleStageRuleService.delete(id);
@@ -413,10 +272,10 @@ public class ToggleStageRuleServiceTest {
         em.persist(rule2);
         em.flush();
 
-        toggleStageRuleService.create("svc-tsr-remove-toggle", "svc-tsr-remove-stage", "svc-tsr-remove-rule-1", "on", 1);
-        toggleStageRuleService.create("svc-tsr-remove-toggle", "svc-tsr-remove-stage", "svc-tsr-remove-rule-2", "off", 2);
+        toggleStageRuleService.create(toggle.getId(), stage.getId(), rule1.getId(), "on", 1);
+        toggleStageRuleService.create(toggle.getId(), stage.getId(), rule2.getId(), "off", 2);
 
-        toggleStageRuleService.removeTSRFromToggle("svc-tsr-remove-toggle", "svc-tsr-remove-stage");
+        toggleStageRuleService.removeTSRFromToggle(toggle.getName(), stage.getName());
 
         List<ToggleStageRule> remaining = toggleStageRuleService.findByToggleName("svc-tsr-remove-toggle");
         assertTrue(remaining.isEmpty());
@@ -440,11 +299,10 @@ public class ToggleStageRuleServiceTest {
         em.persist(rule);
         em.flush();
 
-        toggleStageRuleService.create("svc-tsr-configured-toggle", "svc-tsr-configured-stage",
-            "svc-tsr-configured-rule", "on", 1);
+        toggleStageRuleService.create(toggle.getId(), stage.getId(), rule.getId(), "on", 1);
 
         assertTrue(toggleStageRuleService.isToggleConfiguredForStage(
-            "svc-tsr-configured-toggle", "svc-tsr-configured-stage"));
+            toggle.getName(), stage.getName()));
     }
 
     @Test
@@ -477,15 +335,149 @@ public class ToggleStageRuleServiceTest {
         em.persist(rule);
         em.flush();
 
-        toggleStageRuleService.create("svc-tsr-stages-toggle", "svc-tsr-stages-stage-a",
-            "svc-tsr-stages-rule", "on", 1);
-        toggleStageRuleService.create("svc-tsr-stages-toggle", "svc-tsr-stages-stage-b",
-            "svc-tsr-stages-rule", "off", 2);
+        toggleStageRuleService.create(toggle.getId(), stage1.getId(), rule.getId(), "on", 1);
+        toggleStageRuleService.create(toggle.getId(), stage2.getId(), rule.getId(), "off", 2);
 
-        List<String> stages = toggleStageRuleService.getStagesForToggle("svc-tsr-stages-toggle");
+        List<String> stages = toggleStageRuleService.getStagesForToggle(toggle.getName());
 
         assertEquals(2, stages.size());
         assertTrue(stages.contains("svc-tsr-stages-stage-a"));
         assertTrue(stages.contains("svc-tsr-stages-stage-b"));
+    }
+
+    // ==================== create Tests ====================
+
+    @Test
+    @TestTransaction
+    void testCreate_persistsAssignmentWithAllFields() {
+        Toggle toggle = new Toggle();
+        toggle.setName("svc-tsr-ids-toggle");
+        toggle.setEnabled(true);
+        em.persist(toggle);
+
+        Stage stage = new Stage();
+        stage.setName("svc-tsr-ids-stage");
+        stage.setDisplayOrder(1);
+        em.persist(stage);
+
+        Rule rule = new Rule();
+        rule.setName("svc-tsr-ids-rule");
+        em.persist(rule);
+        em.flush();
+
+        ToggleStageRule tsr = toggleStageRuleService.create(
+            toggle.getId(), stage.getId(), rule.getId(), "enabled", 10);
+
+        assertNotNull(tsr.getId());
+        assertEquals(toggle.getId(), tsr.getToggle().getId());
+        assertEquals(stage.getId(), tsr.getStage().getId());
+        assertEquals(rule.getId(), tsr.getRule().getId());
+        assertEquals("enabled", tsr.getRuleValue());
+        assertEquals(10, tsr.getPriority());
+    }
+
+    @Test
+    @TestTransaction
+    void testCreate_withNullRuleValueAndPriority_usesDefaults() {
+        Toggle toggle = new Toggle();
+        toggle.setName("svc-tsr-ids-default-toggle");
+        toggle.setEnabled(true);
+        em.persist(toggle);
+
+        Stage stage = new Stage();
+        stage.setName("svc-tsr-ids-default-stage");
+        stage.setDisplayOrder(1);
+        em.persist(stage);
+
+        Rule rule = new Rule();
+        rule.setName("svc-tsr-ids-default-rule");
+        em.persist(rule);
+        em.flush();
+
+        ToggleStageRule tsr = toggleStageRuleService.create(
+            toggle.getId(), stage.getId(), rule.getId(), null, null);
+
+        assertEquals("off", tsr.getRuleValue());
+        assertEquals(100, tsr.getPriority());
+    }
+
+    @Test
+    @TestTransaction
+    void testCreate_toggleNotFound_throwsException() {
+        Stage stage = new Stage();
+        stage.setName("svc-tsr-ids-missing-toggle-stage");
+        stage.setDisplayOrder(1);
+        em.persist(stage);
+
+        Rule rule = new Rule();
+        rule.setName("svc-tsr-ids-missing-toggle-rule");
+        em.persist(rule);
+        em.flush();
+
+        assertThrows(IllegalArgumentException.class, () ->
+            toggleStageRuleService.create("nonexistent-toggle-id", stage.getId(), rule.getId(), "on", 1)
+        );
+    }
+
+    @Test
+    @TestTransaction
+    void testCreate_stageNotFound_throwsException() {
+        Toggle toggle = new Toggle();
+        toggle.setName("svc-tsr-ids-missing-stage-toggle");
+        toggle.setEnabled(true);
+        em.persist(toggle);
+
+        Rule rule = new Rule();
+        rule.setName("svc-tsr-ids-missing-stage-rule");
+        em.persist(rule);
+        em.flush();
+
+        assertThrows(IllegalArgumentException.class, () ->
+            toggleStageRuleService.create(toggle.getId(), "nonexistent-stage-id", rule.getId(), "on", 1)
+        );
+    }
+
+    @Test
+    @TestTransaction
+    void testCreate_ruleNotFound_throwsException() {
+        Toggle toggle = new Toggle();
+        toggle.setName("svc-tsr-ids-missing-rule-toggle");
+        toggle.setEnabled(true);
+        em.persist(toggle);
+
+        Stage stage = new Stage();
+        stage.setName("svc-tsr-ids-missing-rule-stage");
+        stage.setDisplayOrder(1);
+        em.persist(stage);
+        em.flush();
+
+        assertThrows(IllegalArgumentException.class, () ->
+            toggleStageRuleService.create(toggle.getId(), stage.getId(), "nonexistent-rule-id", "on", 1)
+        );
+    }
+
+    @Test
+    @TestTransaction
+    void testCreate_duplicateAssignment_throwsException() {
+        Toggle toggle = new Toggle();
+        toggle.setName("svc-tsr-ids-dup-toggle");
+        toggle.setEnabled(true);
+        em.persist(toggle);
+
+        Stage stage = new Stage();
+        stage.setName("svc-tsr-ids-dup-stage");
+        stage.setDisplayOrder(1);
+        em.persist(stage);
+
+        Rule rule = new Rule();
+        rule.setName("svc-tsr-ids-dup-rule");
+        em.persist(rule);
+        em.flush();
+
+        toggleStageRuleService.create(toggle.getId(), stage.getId(), rule.getId(), "on", 1);
+
+        assertThrows(IllegalArgumentException.class, () ->
+            toggleStageRuleService.create(toggle.getId(), stage.getId(), rule.getId(), "off", 2)
+        );
     }
 }

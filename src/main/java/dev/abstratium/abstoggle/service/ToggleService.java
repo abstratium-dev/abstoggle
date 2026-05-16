@@ -21,6 +21,12 @@ public class ToggleService {
     }
 
     @Transactional
+    public Optional<Toggle> findById(String id) {
+        Toggle toggle = em.find(Toggle.class, id);
+        return Optional.ofNullable(toggle);
+    }
+
+    @Transactional
     public Optional<Toggle> findByName(String name) {
         List<Toggle> results = em.createQuery(
             "SELECT t FROM Toggle t WHERE t.name = :name", Toggle.class)

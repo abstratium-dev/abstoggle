@@ -18,15 +18,6 @@ public class ToggleStageRuleService {
     @Inject
     EntityManager em;
 
-    @Inject
-    ToggleService toggleService;
-
-    @Inject
-    StageService stageService;
-
-    @Inject
-    RuleService ruleService;
-
     @Transactional
     public List<ToggleStageRule> findAll() {
         return em.createQuery(
@@ -72,34 +63,38 @@ public class ToggleStageRuleService {
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
+    /**
+     * Creates a ToggleStageRule using entity IDs. Uses em.find() which benefits from
+     * EntityManager cache - no additional SQL if entities are already loaded.
+     */
     @Transactional
-    public ToggleStageRule create(String toggleName, String stageName, String ruleName, String ruleValue, Integer priority) {
-        Optional<Toggle> toggleOpt = toggleService.findByName(toggleName);
-        if (toggleOpt.isEmpty()) {
-            throw new IllegalArgumentException("Toggle not found: " + toggleName);
+    public ToggleStageRule create(String toggleId, String stageId, String ruleId, String ruleValue, Integer priority) {
+        Toggle toggle = em.find(Toggle.class, toggleId);
+        if (toggle == null) {
+            throw new IllegalArgumentException("Toggle not found: " + toggleId);
         }
 
-        Optional<Stage> stageOpt = stageService.findByName(stageName);
-        if (stageOpt.isEmpty()) {
-            throw new IllegalArgumentException("Stage not found: " + stageName);
+        Stage stage = em.find(Stage.class, stageId);
+        if (stage == null) {
+            throw new IllegalArgumentException("Stage not found: " + stageId);
         }
 
-        Optional<Rule> ruleOpt = ruleService.findByName(ruleName);
-        if (ruleOpt.isEmpty()) {
-            throw new IllegalArgumentException("Rule not found: " + ruleName);
+        Rule rule = em.find(Rule.class, ruleId);
+        if (rule == null) {
+            throw new IllegalArgumentException("Rule not found: " + ruleId);
         }
 
-        // Check for duplicate assignment
-        Optional<ToggleStageRule> existing = findByToggleStageAndRule(toggleName, stageName, ruleName);
+        // Check for duplicate assignment using names (unique constraint is on names)
+        Optional<ToggleStageRule> existing = findByToggleStageAndRule(toggle.getName(), stage.getName(), rule.getName());
         if (existing.isPresent()) {
-            throw new IllegalArgumentException("Assignment already exists for toggle '" + toggleName +
-                "', stage '" + stageName + "', and rule '" + ruleName + "'");
+            throw new IllegalArgumentException("Assignment already exists for toggle '" + toggle.getName() +
+                "', stage '" + stage.getName() + "', and rule '" + rule.getName() + "'");
         }
 
         ToggleStageRule tsr = new ToggleStageRule();
-        tsr.setToggle(toggleOpt.get());
-        tsr.setStage(stageOpt.get());
-        tsr.setRule(ruleOpt.get());
+        tsr.setToggle(toggle);
+        tsr.setStage(stage);
+        tsr.setRule(rule);
         tsr.setRuleValue(ruleValue != null ? ruleValue : "off");
         tsr.setPriority(priority != null ? priority : 100);
 
