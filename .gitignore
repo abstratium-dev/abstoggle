@@ -54,3 +54,8 @@ e2e-tests/playwright/.auth/
 .quinoa
 
 **/node_modules/
+
+**/__pycache__
+
+# project tmp folder for LLM stuff that isn't needed for very long
+tmp/**
