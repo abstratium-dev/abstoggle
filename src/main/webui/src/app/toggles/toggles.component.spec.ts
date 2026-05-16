@@ -432,10 +432,11 @@ describe('TogglesComponent', () => {
       component.managingToggle = mockToggles[0];
       component.editingStageRule = mockStageRules[0];
       component.editRulePriority = 10;
+      component.editRuleValue = 'off';
 
       await component.saveStageRule();
 
-      expect(controller.updateToggleStageRule).toHaveBeenCalledWith('feature-a', 'sr-1', 10);
+      expect(controller.updateToggleStageRule).toHaveBeenCalledWith('feature-a', 'sr-1', 10, 'off');
       expect(toastService.success).toHaveBeenCalledWith('Assignment updated successfully');
     });
 

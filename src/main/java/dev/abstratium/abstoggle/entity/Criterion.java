@@ -14,13 +14,13 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 /**
- * Represents a single criterion within a {@link ToggleRule}, consisting of a
+ * Represents a single criterion within a {@link Rule}, consisting of a
  * key and a regex pattern value used for client-side matching.
  */
 @Entity
-@Table(name = "T_toggle_criterion")
+@Table(name = "T_criterion")
 @Audited
-public class ToggleCriterion {
+public class Criterion {
 
     /**
      * v4 UUID generated in Java code.
@@ -30,15 +30,15 @@ public class ToggleCriterion {
     private String id;
 
     /**
-     * Reference to the parent {@link ToggleRule} this criterion belongs to.
+     * Reference to the parent {@link Rule} this criterion belongs to.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-        name = "toggle_rule_id",
+        name = "rule_id",
         nullable = false,
-        foreignKey = @jakarta.persistence.ForeignKey(name = "FK_toggle_criterion_rule_id")
+        foreignKey = @jakarta.persistence.ForeignKey(name = "FK_criterion_rule_id")
     )
-    private ToggleRule toggleRule;
+    private Rule rule;
 
     /**
      * Key for matching (e.g., "userId", "country").
@@ -68,12 +68,12 @@ public class ToggleCriterion {
         this.id = id;
     }
 
-    public ToggleRule getToggleRule() {
-        return toggleRule;
+    public Rule getRule() {
+        return rule;
     }
 
-    public void setToggleRule(ToggleRule toggleRule) {
-        this.toggleRule = toggleRule;
+    public void setRule(Rule rule) {
+        this.rule = rule;
     }
 
     public String getCriterionKey() {

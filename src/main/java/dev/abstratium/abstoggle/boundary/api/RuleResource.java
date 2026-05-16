@@ -1,16 +1,16 @@
 package dev.abstratium.abstoggle.boundary.api;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import dev.abstratium.abstoggle.Roles;
+import dev.abstratium.abstoggle.dto.CriterionDto;
 import dev.abstratium.abstoggle.dto.RuleDto;
-import dev.abstratium.abstoggle.entity.ToggleCriterion;
-import dev.abstratium.abstoggle.entity.ToggleRule;
-import dev.abstratium.abstoggle.service.ToggleRuleService;
+import dev.abstratium.abstoggle.entity.Criterion;
+import dev.abstratium.abstoggle.entity.Rule;
+import dev.abstratium.abstoggle.service.RuleService;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.DELETE;
@@ -28,13 +28,13 @@ import jakarta.ws.rs.core.Response;
 public class RuleResource {
 
     @Inject
-    ToggleRuleService toggleRuleService;
+    RuleService ruleService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
     public List<RuleDto> getAllRules() {
-        List<ToggleRule> rules = toggleRuleService.findAll();
+        List<Rule> rules = ruleService.findAll();
         return rules.stream()
             .map(this::convertToDto)
             .collect(Collectors.toList());
@@ -43,15 +43,14 @@ public class RuleResource {
     @POST
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
-    public RuleDto createRule(dev.abstratium.abstoggle.dto.CreateRuleRequest request) {
+    public RuleDto createRule(RuleDto request) {
         if (request == null) {
             throw new IllegalArgumentException("Request body is required");
         }
-        ToggleRule rule = toggleRuleService.createStandaloneRule(
+        Rule rule = ruleService.createRule(
             request.getName(),
-            request.getRuleValue(),
             request.getDescription(),
-            request.getCriteriaData()
+            request.getCriteria()
         );
         return convertToDto(rule);
     }
@@ -60,19 +59,18 @@ public class RuleResource {
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
-    public RuleDto updateRule(@PathParam("id") String id, dev.abstratium.abstoggle.dto.UpdateRuleRequest request) {
+    public RuleDto updateRule(@PathParam("id") String id, RuleDto request) {
         if (id == null || id.trim().isEmpty()) {
             throw new IllegalArgumentException("Rule ID is required");
         }
         if (request == null) {
             throw new IllegalArgumentException("Request body is required");
         }
-        ToggleRule rule = toggleRuleService.updateStandaloneRule(
+        Rule rule = ruleService.updateRule(
             id,
             request.getName(),
-            request.getRuleValue(),
             request.getDescription(),
-            request.getCriteriaData()
+            request.getCriteria()
         );
         return convertToDto(rule);
     }
@@ -85,22 +83,19 @@ public class RuleResource {
         if (id == null || id.trim().isEmpty()) {
             throw new IllegalArgumentException("Rule ID is required");
         }
-        toggleRuleService.deleteRule(id);
+        ruleService.deleteRule(id);
         return Response.ok().build();
     }
 
-    private RuleDto convertToDto(ToggleRule rule) {
-        List<ToggleCriterion> criteria = toggleRuleService.getCriteriaForRule(rule.getId());
-        Map<String, String> criteriaMap = new java.util.HashMap<>();
-        for (ToggleCriterion criterion : criteria) {
-            criteriaMap.put(criterion.getCriterionKey(), criterion.getCriterionValue());
-        }
+    private RuleDto convertToDto(Rule rule) {
+        List<Criterion> criteria = ruleService.getCriteriaForRule(rule.getId());
+        List<CriterionDto> criteriaMap = criteria.stream()
+            .map(criterion -> new CriterionDto(criterion.getId(), criterion.getCriterionKey(), criterion.getCriterionValue(), criterion.getId()))
+            .collect(Collectors.toList());
 
         return new RuleDto(
             rule.getId(),
             rule.getName(),
-            null, // priority is assignment-specific
-            rule.getRuleValue(),
             rule.getDescription(),
             criteriaMap
         );

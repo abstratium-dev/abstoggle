@@ -3,7 +3,7 @@ package dev.abstratium.abstoggle.boundary.api;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import dev.abstratium.abstoggle.Roles;
-import dev.abstratium.abstoggle.dto.ToggleQueryResponse;
+import dev.abstratium.abstoggle.dto.QueryResponse;
 import dev.abstratium.abstoggle.service.ToggleQueryService;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -23,7 +23,7 @@ public class QueryToggleResource {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.QUERY, Roles.USER})
-    public ToggleQueryResponse queryToggles(
+    public QueryResponse queryToggles(
             @QueryParam("stage") String stage,
             @QueryParam("context") String context,
             @QueryParam("nameFilter") String nameFilter,

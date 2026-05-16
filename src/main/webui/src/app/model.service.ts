@@ -56,7 +56,7 @@ export interface ToggleDto {
   /** Context string for this toggle. */
   context?: string;
   /** List of rules ordered by evaluation priority. */
-  rules: Rule[];
+  rules: ToggleQueryRule[];
 }
 
 /**
@@ -94,8 +94,8 @@ export interface ToggleStageRule {
 }
 
 /**
- * Represents a rule with criteria for client-side matching.
- * Rules are evaluated in ascending priority order; the first matching rule wins.
+ * Represents a reusable rule definition (criteria template).
+ * Returned by /api/rules; has no value because the value is set per-assignment.
  */
 export interface Rule {
   /** v4 UUID of the rule. */
@@ -104,12 +104,19 @@ export interface Rule {
   name?: string;
   /** Evaluation order (lower = first). */
   priority: number;
-  /** Toggle value if criteria match ("off" or custom). */
-  value: string;
   /** Human-readable description explaining the criteria. */
   description?: string;
   /** Key/value pairs for client-side matching. Empty object means catch-all. */
   criteria: { [key: string]: string };
+}
+
+/**
+ * Represents a rule as it appears inside a toggle query response.
+ * The value comes from the ToggleStageRule assignment, not the reusable rule definition.
+ */
+export interface ToggleQueryRule extends Rule {
+  /** Toggle value if criteria match ("off" or custom). */
+  value: string;
 }
 
 @Injectable({

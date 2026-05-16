@@ -134,6 +134,17 @@
             [disabled]="stageRulesLoading"
           />
         </div>
+        <div class="form-group">
+          <label for="ruleValue">Value</label>
+          <input
+            id="ruleValue"
+            type="text"
+            [(ngModel)]="editingStageRule ? editRuleValue : newRuleValue"
+            name="ruleValue"
+            placeholder="off"
+            [disabled]="stageRulesLoading"
+          />
+        </div>
         <div class="form-group button-group">
           <button
             class="btn-add"

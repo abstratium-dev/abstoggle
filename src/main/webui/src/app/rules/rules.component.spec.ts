@@ -20,7 +20,6 @@ describe('RulesComponent', () => {
       id: 'rule-1',
       name: 'beta-testers',
       priority: 0,
-      value: 'on',
       description: 'Beta testers rule',
       criteria: { userId: '^(alice|bob)$' }
     },
@@ -28,7 +27,6 @@ describe('RulesComponent', () => {
       id: 'rule-2',
       name: 'catch-all',
       priority: 0,
-      value: 'off',
       description: 'Default off rule',
       criteria: {}
     }
@@ -110,7 +108,6 @@ describe('RulesComponent', () => {
     component.startEdit(mockRules[0]);
     expect(component.editingRule).toBe(mockRules[0]);
     expect(component.ruleName).toBe('beta-testers');
-    expect(component.ruleValue).toBe('on');
     expect(component.criteriaEntries.length).toBe(1);
   });
 
@@ -136,11 +133,10 @@ describe('RulesComponent', () => {
     expect(component.criteriaEntries[0]).toEqual({ key: 'c', value: 'd' });
   });
 
-  it('should require name and value on submit', async () => {
+  it('should require name on submit', async () => {
     fixture.detectChanges();
     component.showAddForm = true;
     component.ruleName = '';
-    component.ruleValue = '';
     await component.onSubmit();
     expect(component.formError).toBe('Rule name is required');
     expect(controller.createStandaloneRule).not.toHaveBeenCalled();
@@ -151,11 +147,10 @@ describe('RulesComponent', () => {
     controller.createStandaloneRule.and.resolveTo(mockRules[0]);
     component.showAddForm = true;
     component.ruleName = 'new-rule';
-    component.ruleValue = 'on';
     component.ruleDescription = 'A new rule';
     await component.onSubmit();
     expect(controller.createStandaloneRule).toHaveBeenCalledWith(
-      'new-rule', 'on', 'A new rule', {}
+      'new-rule', 'A new rule', {}
     );
     expect(toastService.success).toHaveBeenCalledWith('Rule created successfully');
   });
@@ -167,7 +162,7 @@ describe('RulesComponent', () => {
     component.ruleName = 'updated-name';
     await component.onSubmit();
     expect(controller.updateStandaloneRule).toHaveBeenCalledWith(
-      'rule-1', 'updated-name', 'on', 'Beta testers rule', { userId: '^(alice|bob)$' }
+      'rule-1', 'updated-name', 'Beta testers rule', { userId: '^(alice|bob)$' }
     );
     expect(toastService.success).toHaveBeenCalledWith('Rule updated successfully');
   });

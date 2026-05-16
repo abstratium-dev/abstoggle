@@ -1,9 +1,9 @@
-package dev.abstratium.abstoggle.boundary.api;
+package dev.abstratium.abstoggle.boundary.publik;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
-import dev.abstratium.abstoggle.dto.ToggleQueryResponse;
+import dev.abstratium.abstoggle.dto.QueryResponse;
 import dev.abstratium.abstoggle.service.ToggleQueryService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
@@ -25,7 +25,7 @@ public class PublicToggleResource {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public ToggleQueryResponse queryToggles(
+    public QueryResponse queryToggles(
             @QueryParam("stage") String stage,
             @QueryParam("context") String context,
             @QueryParam("nameFilter") String nameFilter,

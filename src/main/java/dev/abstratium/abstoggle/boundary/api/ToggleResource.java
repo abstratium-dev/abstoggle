@@ -6,10 +6,8 @@ import java.util.stream.Collectors;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import dev.abstratium.abstoggle.Roles;
-import dev.abstratium.abstoggle.dto.CreateToggleRequest;
+import dev.abstratium.abstoggle.dto.QueryResponse;
 import dev.abstratium.abstoggle.dto.ToggleDto;
-import dev.abstratium.abstoggle.dto.ToggleQueryResponse;
-import dev.abstratium.abstoggle.dto.UpdateToggleRequest;
 import dev.abstratium.abstoggle.entity.Toggle;
 import dev.abstratium.abstoggle.service.ToggleQueryService;
 import dev.abstratium.abstoggle.service.ToggleService;
@@ -39,7 +37,7 @@ public class ToggleResource {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
-    public ToggleQueryResponse queryToggles(
+    public QueryResponse queryToggles(
             @QueryParam("stage") String stage,
             @QueryParam("nameFilter") String nameFilter,
             @QueryParam("includeDisabled") Boolean includeDisabled) {
@@ -69,7 +67,7 @@ public class ToggleResource {
     @POST
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
-    public ToggleDto createToggle(CreateToggleRequest request) {
+    public ToggleDto createToggle(ToggleDto request) {
         if (request.getName() == null || request.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("Toggle name is required");
         }
@@ -85,16 +83,16 @@ public class ToggleResource {
     }
 
     @PUT
-    @Path("/{name}")
+    @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
-    public ToggleDto updateToggle(@PathParam("name") String name, UpdateToggleRequest request) {
-        if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Toggle name is required");
+    public ToggleDto updateToggle(@PathParam("id") String id, ToggleDto request) {
+        if (id == null || id.trim().isEmpty()) {
+            throw new IllegalArgumentException("Toggle id is required");
         }
         
-        Toggle toggle = toggleService.updateByName(
-            name,
+        Toggle toggle = toggleService.update(id,
+            request.getName(),
             request.getDescription(),
             request.getEnabled(),
             request.getContext()
@@ -104,20 +102,19 @@ public class ToggleResource {
     }
 
     @DELETE
-    @Path("/{name}")
+    @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
-    public Response deleteToggle(@PathParam("name") String name) {
-        if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Toggle name is required");
+    public Response deleteToggle(@PathParam("id") String id) {
+        if (id == null || id.trim().isEmpty()) {
+            throw new IllegalArgumentException("Toggle id is required");
         }
         
-        toggleService.deleteByName(name);
+        toggleService.delete(id);
         return Response.ok().build();
     }
 
     private ToggleDto convertToDto(Toggle toggle) {
-        // Simple DTO without rules for basic toggle operations
-        return new ToggleDto(toggle.getName(), null, toggle.getDescription(), toggle.getEnabled(), toggle.getContext(), null);
+        return new ToggleDto(toggle.getId(), toggle.getName(), toggle.getDescription(), toggle.getEnabled(), toggle.getContext());
     }
 }

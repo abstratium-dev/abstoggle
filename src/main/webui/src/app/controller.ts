@@ -365,12 +365,11 @@ export class Controller {
   /**
    * Creates a new reusable rule and refreshes the rule list.
    */
-  async createStandaloneRule(name: string, value: string, description: string, criteria: { [key: string]: string }): Promise<Rule> {
+  async createStandaloneRule(name: string, description: string, criteria: { [key: string]: string }): Promise<Rule> {
     try {
       const response = await firstValueFrom(
         this.http.post<Rule>('/api/rules', {
           name,
-          ruleValue: value,
           description,
           criteria
         })
@@ -386,12 +385,11 @@ export class Controller {
   /**
    * Updates an existing reusable rule and refreshes the rule list.
    */
-  async updateStandaloneRule(id: string, name: string, value: string, description: string, criteria: { [key: string]: string }): Promise<Rule> {
+  async updateStandaloneRule(id: string, name: string, description: string, criteria: { [key: string]: string }): Promise<Rule> {
     try {
       const response = await firstValueFrom(
         this.http.put<Rule>(`/api/rules/${id}`, {
           name,
-          ruleValue: value,
           description,
           criteria
         })
@@ -443,14 +441,16 @@ export class Controller {
     toggleName: string,
     stageName: string,
     ruleId: string,
-    priority: number
+    priority: number,
+    ruleValue: string
   ): Promise<void> {
     try {
       await firstValueFrom(
         this.http.post<void>(`/api/toggles/${toggleName}/stage-rules`, {
           stageName,
           ruleId,
-          priority
+          priority,
+          ruleValue
         })
       );
     } catch (error) {
@@ -465,12 +465,14 @@ export class Controller {
   async updateToggleStageRule(
     toggleName: string,
     id: string,
-    priority: number
+    priority: number,
+    ruleValue: string
   ): Promise<ToggleStageRule> {
     try {
       const response = await firstValueFrom(
         this.http.put<ToggleStageRule>(`/api/toggles/${toggleName}/stage-rules/${id}`, {
-          priority
+          priority,
+          ruleValue
         })
       );
       return response;

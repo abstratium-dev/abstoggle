@@ -9,8 +9,11 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 ## Today
 
+- criteria is now a list not a map
 - move the value from the rule to the assignment
-- search for APIs that are never used and delete them
+  - fix the UIs use of those endpoints
+  - check remaining classes do not start with Toggle if not necessary
+- compile the backend and check for errors that need fixing. remember: rules have no value, toggle-stage-rules have a value. if you find something where you need to implement something else, stop and ask for help.
 - add tests!
 - is @Transactional implemented properly? there seem to be a lot and is it right on the level of service or better on boundary? or does that start a default tx anyway?
 

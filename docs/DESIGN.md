@@ -29,7 +29,7 @@ erDiagram
         char(36) parent_stage_id FK "inherits from"
     }
 
-    T_toggle_rule {
+    T_rule {
         char(36) id PK
         varchar name "unique rule identifier"
         varchar description
@@ -44,18 +44,18 @@ erDiagram
         int priority "evaluation order"
     }
 
-    T_toggle_criterion {
+    T_criterion {
         char(36) id PK
-        char(36) toggle_rule_id FK
+        char(36) rule_id FK
         varchar criterion_key
         varchar criterion_value "supports regex patterns"
     }
 
     T_stage ||--o{ T_stage : inherits
-    T_toggle ||--o{ T_toggle_stage_rule : "assigned via"
+    T_toggle ||--o{ T_stage_rule : "assigned via"
     T_stage ||--o{ T_toggle_stage_rule : "used in"
-    T_toggle_rule ||--o{ T_toggle_stage_rule : "assigned via"
-    T_toggle_rule ||--o{ T_toggle_criterion : defines
+    T_rule ||--o{ T_toggle_stage_rule : "assigned via"
+    T_rule ||--o{ T_criterion : defines
 ```
 
 ### Entity Descriptions
@@ -74,7 +74,7 @@ erDiagram
 | `id` | UUID (PK) | v4 UUID generated in Java code |
 | `toggle` | ManyToOne | Reference to `T_toggle` (cascade delete) |
 | `stage` | ManyToOne | Reference to `T_stage` |
-| `rule` | ManyToOne | Reference to `T_toggle_rule` (criteria template) |
+| `rule` | ManyToOne | Reference to `T_rule` (criteria template) |
 | `ruleValue` | String | Value when criteria match (default: "off") |
 | `priority` | Integer | Evaluation order within this toggle+stage (lower = first) |
 
@@ -87,18 +87,18 @@ erDiagram
 | `displayOrder` | Integer | UI presentation order |
 | `parentStage` | ManyToOne | Optional parent stage for inheritance chain |
 
-#### ToggleRule
+#### Rule
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | UUID (PK) | v4 UUID generated in Java code |
 | `name` | String (unique) | Unique identifier so rules can be picked and reused |
 | `description` | String | Human-readable description of this rule |
 
-#### ToggleCriterion
+#### Criterion
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | UUID (PK) | v4 UUID generated in Java code |
-| `toggleRule` | ManyToOne | Reference to parent ToggleRule |
+| `rule` | ManyToOne | Reference to parent Rule |
 | `criterionKey` | String | Key for matching (e.g., "userId", "country") |
 | `criterionValue` | String | Regex pattern for matching (e.g., "/10.*/", "DE") |
 
@@ -273,7 +273,7 @@ return "off"; // Default if no rules match
 
 ## Multiple Criteria Sets (OR Logic)
 
-The `ToggleRule` entity defines a reusable **criteria set** that can be assigned to different toggles with different values. This supports OR logic: "Enable feature X for EU users OR users aged 50+" by assigning the same criteria set with different values, or by combining multiple criteria sets.
+The `Rule` entity defines a reusable **criteria set** that can be assigned to different toggles with different values. This supports OR logic: "Enable feature X for EU users OR users aged 50+" by assigning the same criteria set with different values, or by combining multiple criteria sets.
 
 ### Example: EU Users OR Age 50+
 
@@ -377,8 +377,8 @@ The complete SQL DDL schema with all columns, constraints, and indexes is docume
 - **UUIDs**: All primary keys are `VARCHAR(36)` storing v4 UUIDs generated in Java
 - **Naming**: Tables use `T_` prefix, FKs use `FK_`, indexes use `I_`
 - **Audit**: All tables audited via Hibernate Envers (creates `_AUD` shadow tables)
-- **Cascade Deletes**: `T_toggle` → `T_toggle_stage_rule` (assignments only; `T_toggle_rule` and `T_toggle_criterion` are preserved)
-- **Value Location**: The toggle value lives on `T_toggle_stage_rule`, not on `T_toggle_rule`
+- **Cascade Deletes**: `T_toggle` → `T_toggle_stage_rule` (assignments only; `T_rule` and `T_criterion` are preserved)
+- **Value Location**: The toggle value lives on `T_toggle_stage_rule`, not on `T_rule`
 - **Inheritance**: `T_stage` has self-referencing `parent_stage_id` for stage fallback chains
 
 ---
@@ -544,7 +544,7 @@ public class Toggle {
 
 @Entity
 @Audited
-public class ToggleRule {
+public class Rule {
     // ... fields
 }
 
@@ -556,7 +556,7 @@ public class ToggleStageRule {
 
 @Entity
 @Audited
-public class ToggleCriterion {
+public class Criterion {
     // ... fields
 }
 ```
@@ -568,9 +568,9 @@ Envers automatically creates audit tables with `_AUD` suffix:
 | Table | Audit Table | Description |
 |-------|-------------|-------------|
 | `T_toggle` | `T_toggle_AUD` | Tracks toggle metadata changes |
-| `T_toggle_rule` | `T_toggle_rule_AUD` | Tracks rule definition changes (name, description) |
+| `T_rule` | `T_rule_AUD` | Tracks rule definition changes (name, description) |
 | `T_toggle_stage_rule` | `T_toggle_stage_rule_AUD` | Tracks rule assignments (toggle+stage+rule+priority+value) |
-| `T_toggle_criterion` | `T_toggle_criterion_AUD` | Tracks criteria changes |
+| `T_criterion` | `T_criterion_AUD` | Tracks criteria changes |
 
 ### Audit Table Structure
 

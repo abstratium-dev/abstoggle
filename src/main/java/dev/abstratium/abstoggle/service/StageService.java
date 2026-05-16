@@ -132,14 +132,6 @@ public class StageService {
         }
     }
 
-    @Transactional
-    public void deleteByName(String name) {
-        Optional<Stage> stageOpt = findByName(name);
-        if (stageOpt.isPresent()) {
-            delete(stageOpt.get().getId());
-        }
-    }
-
     /**
      * Get the inheritance chain for a stage, starting from the stage itself
      * and walking up through parent stages.
@@ -200,37 +192,5 @@ public class StageService {
         }
         
         return false;
-    }
-
-    /**
-     * Get stages ordered by display order, then by name.
-     */
-    @Transactional
-    public List<Stage> findByDisplayOrder() {
-        return em.createQuery(
-            "SELECT s FROM Stage s ORDER BY s.displayOrder ASC, s.name ASC", 
-            Stage.class).getResultList();
-    }
-
-    /**
-     * Get root stages (stages without parents).
-     */
-    @Transactional
-    public List<Stage> findRootStages() {
-        return em.createQuery(
-            "SELECT s FROM Stage s WHERE s.parentStage IS NULL ORDER BY s.displayOrder ASC, s.name ASC", 
-            Stage.class).getResultList();
-    }
-
-    /**
-     * Get child stages of a given parent stage.
-     */
-    @Transactional
-    public List<Stage> findChildStages(String parentStageId) {
-        return em.createQuery(
-            "SELECT s FROM Stage s WHERE s.parentStage.id = :parentId ORDER BY s.displayOrder ASC, s.name ASC", 
-            Stage.class)
-            .setParameter("parentId", parentStageId)
-            .getResultList();
     }
 }

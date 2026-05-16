@@ -3,19 +3,29 @@ package dev.abstratium.abstoggle.dto;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 @RegisterForReflection
-public class UpdateStageRequest {
+public class StageDto {
+    private String id;
     private String name;
     private String description;
     private Integer displayOrder;
     private String parentStageName;
 
-    public UpdateStageRequest() {}
+    public StageDto() {}
 
-    public UpdateStageRequest(String name, String description, Integer displayOrder, String parentStageName) {
+    public StageDto(String id, String name, String description, Integer displayOrder, String parentStageName) {
+        this.id = id;
         this.name = name;
         this.description = description;
         this.displayOrder = displayOrder;
         this.parentStageName = parentStageName;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getName() {

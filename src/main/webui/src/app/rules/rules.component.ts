@@ -34,7 +34,6 @@ export class RulesComponent implements OnInit {
 
   // Form fields
   ruleName = '';
-  ruleValue = 'on';
   ruleDescription = '';
   criteriaKey = '';
   criteriaValue = '';
@@ -54,7 +53,6 @@ export class RulesComponent implements OnInit {
   startEdit(rule: Rule): void {
     this.editingRule = rule;
     this.ruleName = rule.name || '';
-    this.ruleValue = rule.value || 'on';
     this.ruleDescription = rule.description || '';
     this.criteriaEntries = Object.entries(rule.criteria || {}).map(([key, value]) => ({ key, value }));
     this.showAddForm = true;
@@ -70,7 +68,6 @@ export class RulesComponent implements OnInit {
 
   resetForm(): void {
     this.ruleName = '';
-    this.ruleValue = 'on';
     this.ruleDescription = '';
     this.criteriaKey = '';
     this.criteriaValue = '';
@@ -117,10 +114,6 @@ export class RulesComponent implements OnInit {
       this.formError = 'Rule name is required';
       return;
     }
-    if (!this.ruleValue.trim()) {
-      this.formError = 'Rule value is required';
-      return;
-    }
 
     this.formSubmitting = true;
     this.formError = null;
@@ -132,7 +125,6 @@ export class RulesComponent implements OnInit {
         await this.controller.updateStandaloneRule(
           this.editingRule.id,
           this.ruleName.trim(),
-          this.ruleValue.trim(),
           this.ruleDescription.trim(),
           criteria
         );
@@ -140,7 +132,6 @@ export class RulesComponent implements OnInit {
       } else {
         await this.controller.createStandaloneRule(
           this.ruleName.trim(),
-          this.ruleValue.trim(),
           this.ruleDescription.trim(),
           criteria
         );

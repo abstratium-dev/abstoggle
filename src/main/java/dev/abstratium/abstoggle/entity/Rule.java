@@ -12,20 +12,21 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
 /**
- * Represents a reusable rule that defines a value and a set of criteria for
- * matching against client context. Enables OR logic by allowing multiple rules
- * for the same toggle.
+ * Represents a reusable rule that defines a set of criteria for matching
+ * against client context. Enables OR logic by allowing multiple rules
+ * for the same toggle. The actual value is set on the assignment
+ * ({@link ToggleStageRule}), not on the rule itself.
  */
 @Entity
 @Table(
-    name = "T_toggle_rule",
+    name = "T_rule",
     uniqueConstraints = @UniqueConstraint(
-        name = "UQ_toggle_rule_name",
+        name = "UQ_rule_name",
         columnNames = {"name"}
     )
 )
 @Audited
-public class ToggleRule {
+public class Rule {
 
     /**
      * v4 UUID generated in Java code.
@@ -39,12 +40,6 @@ public class ToggleRule {
      */
     @Column(length = 255, nullable = false)
     private String name;
-
-    /**
-     * Value when criteria match (default: "off").
-     */
-    @Column(name = "rule_value", length = 255, nullable = false)
-    private String ruleValue = "off";
 
     /**
      * Human-readable description of this rule.
@@ -74,14 +69,6 @@ public class ToggleRule {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public String getRuleValue() {
-        return ruleValue;
-    }
-
-    public void setRuleValue(String ruleValue) {
-        this.ruleValue = ruleValue;
     }
 
     public String getDescription() {

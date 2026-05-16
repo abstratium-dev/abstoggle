@@ -136,7 +136,7 @@ public class ConstraintViolationExceptionMapper implements ExceptionMapper<Const
             if (raw.contains("T_toggle")) {
                 return "toggle";
             }
-            if (raw.contains("T_toggle_rule")) {
+            if (raw.contains("T_rule")) {
                 return "rule";
             }
         }

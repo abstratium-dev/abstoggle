@@ -1,6 +1,6 @@
 package dev.abstratium.abstoggle.dto;
 
-import java.util.Map;
+import java.util.List;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
@@ -8,18 +8,14 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 public class RuleDto {
     private String id;
     private String name;
-    private Integer priority;
-    private String value;
     private String description;
-    private Map<String, String> criteria;
+    private List<CriterionDto> criteria;
 
     public RuleDto() {}
 
-    public RuleDto(String id, String name, Integer priority, String value, String description, Map<String, String> criteria) {
+    public RuleDto(String id, String name, String description, List<CriterionDto> criteria) {
         this.id = id;
         this.name = name;
-        this.priority = priority;
-        this.value = value;
         this.description = description;
         this.criteria = criteria;
     }
@@ -40,22 +36,6 @@ public class RuleDto {
         this.name = name;
     }
 
-    public Integer getPriority() {
-        return priority;
-    }
-
-    public void setPriority(Integer priority) {
-        this.priority = priority;
-    }
-
-    public String getValue() {
-        return value;
-    }
-
-    public void setValue(String value) {
-        this.value = value;
-    }
-
     public String getDescription() {
         return description;
     }
@@ -64,11 +44,11 @@ public class RuleDto {
         this.description = description;
     }
 
-    public Map<String, String> getCriteria() {
+    public List<CriterionDto> getCriteria() {
         return criteria;
     }
 
-    public void setCriteria(Map<String, String> criteria) {
+    public void setCriteria(List<CriterionDto> criteria) {
         this.criteria = criteria;
     }
 }

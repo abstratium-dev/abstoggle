@@ -6,11 +6,9 @@ import java.util.stream.Collectors;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import dev.abstratium.abstoggle.Roles;
-import dev.abstratium.abstoggle.dto.CreateStageRequest;
-import dev.abstratium.abstoggle.dto.UpdateStageRequest;
+import dev.abstratium.abstoggle.dto.StageDto;
 import dev.abstratium.abstoggle.entity.Stage;
 import dev.abstratium.abstoggle.service.StageService;
-import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.DELETE;
@@ -43,7 +41,7 @@ public class StageResource {
     @POST
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
-    public StageDto createStage(CreateStageRequest request) {
+    public StageDto createStage(StageDto request) {
         if (request.getName() == null || request.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("Stage name is required");
         }
@@ -59,17 +57,16 @@ public class StageResource {
     }
 
     @PUT
-    @Path("/{name}")
+    @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
-    public StageDto updateStage(@PathParam("name") String name, UpdateStageRequest request) {
-        if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Stage name is required");
+    public StageDto updateStage(@PathParam("id") String id, StageDto request) {
+        if (id == null || id.trim().isEmpty()) {
+            throw new IllegalArgumentException("Stage ID is required");
         }
         
-        // Find existing stage to get its ID
-        Stage existingStage = stageService.findByName(name)
-            .orElseThrow(() -> new IllegalArgumentException("Stage not found: " + name));
+        Stage existingStage = stageService.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Stage not found: " + id));
         
         Stage stage = stageService.update(
             existingStage.getId(),
@@ -83,15 +80,15 @@ public class StageResource {
     }
 
     @DELETE
-    @Path("/{name}")
+    @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
-    public Response deleteStage(@PathParam("name") String name) {
-        if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Stage name is required");
+    public Response deleteStage(@PathParam("id") String id) {
+        if (id == null || id.trim().isEmpty()) {
+            throw new IllegalArgumentException("Stage ID is required");
         }
         
-        stageService.deleteByName(name);
+        stageService.delete(id);
         return Response.ok().build();
     }
 
@@ -102,64 +99,10 @@ public class StageResource {
         dto.setDescription(stage.getDescription());
         dto.setDisplayOrder(stage.getDisplayOrder());
 
-        // Set parent stage info if exists
         if (stage.getParentStage() != null) {
             dto.setParentStageName(stage.getParentStage().getName());
         }
 
         return dto;
-    }
-
-    // DTO for stage responses
-    @RegisterForReflection
-    public static class StageDto {
-        private String id;
-        private String name;
-        private String description;
-        private Integer displayOrder;
-        private String parentStageName;
-
-        public StageDto() {}
-
-        // Getters and setters
-        public String getId() {
-            return id;
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public String getDescription() {
-            return description;
-        }
-
-        public void setDescription(String description) {
-            this.description = description;
-        }
-
-        public Integer getDisplayOrder() {
-            return displayOrder;
-        }
-
-        public void setDisplayOrder(Integer displayOrder) {
-            this.displayOrder = displayOrder;
-        }
-
-        public String getParentStageName() {
-            return parentStageName;
-        }
-
-        public void setParentStageName(String parentStageName) {
-            this.parentStageName = parentStageName;
-        }
     }
 }

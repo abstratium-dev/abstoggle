@@ -15,8 +15,8 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
 /**
- * Represents an assignment of a {@link ToggleRule} to a {@link Toggle} within
- * a specific {@link Stage}, along with an evaluation priority.
+ * Represents an assignment of a {@link Rule} to a {@link Toggle} within
+ * a specific {@link Stage}, along with a value and an evaluation priority.
  */
 @Entity
 @Table(
@@ -60,7 +60,7 @@ public class ToggleStageRule {
     private Stage stage;
 
     /**
-     * Reference to the reusable {@link ToggleRule} being assigned.
+     * Reference to the reusable {@link Rule} being assigned.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
@@ -68,7 +68,13 @@ public class ToggleStageRule {
         nullable = false,
         foreignKey = @jakarta.persistence.ForeignKey(name = "FK_toggle_stage_rule_rule_id")
     )
-    private ToggleRule rule;
+    private Rule rule;
+
+    /**
+     * Value returned when this rule's criteria match (default: "off").
+     */
+    @Column(name = "rule_value", length = 255, nullable = false)
+    private String ruleValue = "off";
 
     /**
      * Evaluation order within this toggle and stage. Lower values are evaluated first.
@@ -108,12 +114,20 @@ public class ToggleStageRule {
         this.stage = stage;
     }
 
-    public ToggleRule getRule() {
+    public Rule getRule() {
         return rule;
     }
 
-    public void setRule(ToggleRule rule) {
+    public void setRule(Rule rule) {
         this.rule = rule;
+    }
+
+    public String getRuleValue() {
+        return ruleValue;
+    }
+
+    public void setRuleValue(String ruleValue) {
+        this.ruleValue = ruleValue;
     }
 
     public Integer getPriority() {

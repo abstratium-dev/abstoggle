@@ -2,11 +2,12 @@ package dev.abstratium.abstoggle.boundary.api;
 
 import static io.restassured.RestAssured.given;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import dev.abstratium.abstoggle.entity.Stage;
 import dev.abstratium.abstoggle.entity.Toggle;
-import dev.abstratium.abstoggle.entity.ToggleRule;
+import dev.abstratium.abstoggle.entity.Rule;
 import dev.abstratium.abstoggle.entity.ToggleStageRule;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
@@ -22,6 +23,21 @@ class StageResourceTest {
 
     @Inject
     UserTransaction userTransaction;
+
+    @AfterEach
+    void cleanup() throws Exception {
+        userTransaction.begin();
+        try {
+            em.createQuery("DELETE FROM Criterion").executeUpdate();
+            em.createQuery("DELETE FROM ToggleStageRule").executeUpdate();
+            em.createQuery("DELETE FROM Rule").executeUpdate();
+            em.createQuery("DELETE FROM Toggle").executeUpdate();
+            userTransaction.commit();
+        } catch (Exception e) {
+            userTransaction.rollback();
+            throw e;
+        }
+    }
 
     private void commitData(Runnable setup) throws Exception {
         userTransaction.begin();
@@ -49,9 +65,8 @@ class StageResourceTest {
             toggle.setContext("global");
             em.persist(toggle);
 
-            ToggleRule rule = new ToggleRule();
+            Rule rule = new Rule();
             rule.setName("api-delete-rule");
-            rule.setRuleValue("on");
             em.persist(rule);
 
             ToggleStageRule tsr = new ToggleStageRule();
@@ -67,7 +82,7 @@ class StageResourceTest {
             .delete("/api/stages/api-delete-stage-with-rules")
             .then()
             .statusCode(400)
-            .body("detail", org.hamcrest.CoreMatchers.containsString("Remove the rules first"));
+            .body("detail", org.hamcrest.CoreMatchers.containsString("Remove the assignments first"));
     }
 
     @Test

@@ -53,7 +53,9 @@ export class TogglesComponent implements OnInit {
   selectedStageName = '';
   selectedRuleId = '';
   newRulePriority = 100;
+  newRuleValue = 'off';
   editRulePriority = 100;
+  editRuleValue = 'off';
 
   // Filter fields
   filterStageName: string | null = null;
@@ -68,9 +70,9 @@ export class TogglesComponent implements OnInit {
 
   fetchRuleOptions = async (searchTerm: string): Promise<AutocompleteOption[]> => {
     const term = searchTerm.toLowerCase();
-    return this.rules()
-      .filter(rule => (rule.name || '').toLowerCase().includes(term))
-      .map(rule => ({ value: rule.name || '', label: rule.name || rule.value }));
+    return this.stages()
+      .filter(stage => stage.name.toLowerCase().includes(term))
+      .map(stage => ({ value: stage.name, label: stage.name }));
   };
 
   fetchRuleOptionsForAssignment = async (searchTerm: string): Promise<AutocompleteOption[]> => {
@@ -83,7 +85,7 @@ export class TogglesComponent implements OnInit {
       })
       .map(rule => ({
         value: rule.id,
-        label: `${rule.name || rule.description || rule.value} (${rule.value})`
+        label: `${rule.name || rule.description || rule.id}`
       }));
   };
 
@@ -285,12 +287,14 @@ export class TogglesComponent implements OnInit {
       this.selectedStageName = '';
       this.selectedRuleId = '';
       this.newRulePriority = 100;
+      this.newRuleValue = 'off';
     }
   }
 
   startEditStageRule(stageRule: ToggleStageRule): void {
     this.editingStageRule = stageRule;
     this.editRulePriority = stageRule.priority;
+    this.editRuleValue = stageRule.ruleValue;
     this.showAddStageRuleForm = true;
   }
 
@@ -317,7 +321,8 @@ export class TogglesComponent implements OnInit {
         await this.controller.updateToggleStageRule(
           this.managingToggle.name,
           this.editingStageRule.id,
-          this.editRulePriority
+          this.editRulePriority,
+          this.editRuleValue
         );
         this.toastService.success('Assignment updated successfully');
       } else {
@@ -329,7 +334,8 @@ export class TogglesComponent implements OnInit {
           this.managingToggle.name,
           this.selectedStageName,
           this.selectedRuleId,
-          this.newRulePriority
+          this.newRulePriority,
+          this.newRuleValue
         );
         this.toastService.success('Assignment created successfully');
       }

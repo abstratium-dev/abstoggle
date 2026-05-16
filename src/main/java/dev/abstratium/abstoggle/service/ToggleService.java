@@ -21,12 +21,6 @@ public class ToggleService {
     }
 
     @Transactional
-    public Optional<Toggle> findById(String id) {
-        Toggle toggle = em.find(Toggle.class, id);
-        return Optional.ofNullable(toggle);
-    }
-
-    @Transactional
     public Optional<Toggle> findByName(String name) {
         List<Toggle> results = em.createQuery(
             "SELECT t FROM Toggle t WHERE t.name = :name", Toggle.class)
@@ -48,7 +42,7 @@ public class ToggleService {
     }
 
     @Transactional
-    public Toggle update(String id, String name, String description, Boolean enabled) {
+    public Toggle update(String id, String name, String description, Boolean enabled, String context) {
         Toggle toggle = em.find(Toggle.class, id);
         if (toggle == null) {
             throw new IllegalArgumentException("Toggle not found with id: " + id);
@@ -63,26 +57,6 @@ public class ToggleService {
             toggle.setName(name);
         }
         
-        if (description != null) {
-            toggle.setDescription(description);
-        }
-        
-        if (enabled != null) {
-            toggle.setEnabled(enabled);
-        }
-        
-        em.merge(toggle);
-        return toggle;
-    }
-
-    @Transactional
-    public Toggle updateByName(String name, String description, Boolean enabled, String context) {
-        Optional<Toggle> toggleOpt = findByName(name);
-        if (toggleOpt.isEmpty()) {
-            throw new IllegalArgumentException("Toggle not found with name: " + name);
-        }
-        
-        Toggle toggle = toggleOpt.get();
         if (description != null) {
             toggle.setDescription(description);
         }
@@ -112,14 +86,6 @@ public class ToggleService {
                 throw new IllegalArgumentException("Cannot delete toggle: it is still used by " + assignments.size() + " rule assignment(s). Remove the rules first.");
             }
             em.remove(toggle);
-        }
-    }
-
-    @Transactional
-    public void deleteByName(String name) {
-        Optional<Toggle> toggleOpt = findByName(name);
-        if (toggleOpt.isPresent()) {
-            delete(toggleOpt.get().getId());
         }
     }
 
@@ -161,27 +127,5 @@ public class ToggleService {
             query.setParameter("ruleName", assignedToRule);
         }
         return query.getResultList();
-    }
-
-    @Transactional
-    public List<Toggle> findByNameFilter(String nameFilter) {
-        if (nameFilter == null || nameFilter.trim().isEmpty()) {
-            return findAll();
-        }
-        
-        return em.createQuery(
-            "SELECT t FROM Toggle t WHERE t.name LIKE :namePattern ORDER BY t.name", 
-            Toggle.class)
-            .setParameter("namePattern", nameFilter)
-            .getResultList();
-    }
-
-    @Transactional
-    public List<Toggle> findByEnabled(Boolean enabled) {
-        return em.createQuery(
-            "SELECT t FROM Toggle t WHERE t.enabled = :enabled ORDER BY t.name", 
-            Toggle.class)
-            .setParameter("enabled", enabled)
-            .getResultList();
     }
 }

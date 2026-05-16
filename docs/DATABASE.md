@@ -11,10 +11,10 @@ The schema is compatible with both MySQL and H2 databases and follows a naming c
 ```mermaid
 erDiagram
     T_stage ||--o{ T_stage : inherits
-    T_toggle ||--o{ T_toggle_stage_rule : "assigned via"
+    T_toggle ||--o{ T_stage_rule : "assigned via"
     T_stage ||--o{ T_toggle_stage_rule : "used in"
-    T_toggle_rule ||--o{ T_toggle_stage_rule : "assigned via"
-    T_toggle_rule ||--o{ T_toggle_criterion : defines
+    T_rule ||--o{ T_toggle_stage_rule : "assigned via"
+    T_rule ||--o{ T_criterion : defines
 ```
 
 ## Table Descriptions
@@ -54,9 +54,9 @@ The `T_toggle` table stores the master toggle definitions. Each toggle represent
 
 ---
 
-### T_toggle_rule
+### T_rule
 
-The `T_toggle_rule` table stores reusable rule definitions — each rule specifies a set of criteria under an optional description and a unique name. Rules are independent of any specific toggle or stage and can be shared across multiple toggle+stage combinations via `T_toggle_stage_rule`. The actual toggle value is set on the assignment (`T_toggle_stage_rule`), not on the rule itself.
+The `T_rule` table stores reusable rule definitions — each rule specifies a set of criteria under an optional description and a unique name. Rules are independent of any specific toggle or stage and can be shared across multiple toggle+stage combinations via `T_toggle_stage_rule`. The actual toggle value is set on the assignment (`T_toggle_stage_rule`), not on the rule itself.
 
 Each rule can have multiple criteria that must all match (AND logic). Multiple rules assigned to the same toggle+stage combination provide OR logic, evaluated in priority order.
 
@@ -72,23 +72,23 @@ Each rule can have multiple criteria that must all match (AND logic). Multiple r
 - Rules are standalone and reusable across any number of toggle-stage combinations
 - Each rule defines a set of criteria and a unique name; the value is set per-assignment
 - Empty criteria = catch-all rule that always matches
-- Audit tracking via Hibernate Envers (`T_toggle_rule_AUD` table)
+- Audit tracking via Hibernate Envers (`T_rule_AUD` table)
 
 **Constraints:**
-- `UQ_toggle_rule_name`: Unique constraint on name field
+- `UQ_rule_name`: Unique constraint on name field
 
 **Indices:**
-- `I_toggle_rule_name`: Index on name for lookups
+- `I_rule_name`: Index on name for lookups
 
 **Relationships:**
-- One-to-many with `T_toggle_criterion` via `toggle_rule_id`
+- One-to-many with `T_criterion` via `toggle_rule_id`
 - Many-to-many with `T_toggle` and `T_stage` via `T_toggle_stage_rule`
 
 ---
 
 ### T_toggle_stage_rule
 
-The `T_toggle_stage_rule` table directly links a toggle, a stage, and a rule in a single row. It replaces the former `T_toggle_stage` intermediate table — a toggle can only appear on a stage if at least one rule is assigned. The `priority` column controls evaluation order within a toggle+stage combination.
+The `T_toggle_stage_rule` table directly links a toggle, a stage, and a rule in a single row. A toggle can only appear on a stage if at least one rule is assigned. The `priority` column controls evaluation order within a toggle+stage combination.
 
 #### Columns
 
@@ -97,7 +97,7 @@ The `T_toggle_stage_rule` table directly links a toggle, a stage, and a rule in 
 | `id` | VARCHAR(36) | NO | - | Primary key (UUID v4) |
 | `toggle_id` | VARCHAR(36) | NO | - | FK to `T_toggle.id` (cascade delete) |
 | `stage_id` | VARCHAR(36) | NO | - | FK to `T_stage.id` |
-| `rule_id` | VARCHAR(36) | NO | - | FK to `T_toggle_rule.id` |
+| `rule_id` | VARCHAR(36) | NO | - | FK to `T_rule.id` |
 | `rule_value` | VARCHAR(255) | NO | 'off' | Toggle value returned when all criteria match |
 | `priority` | INT | NO | 100 | Evaluation order within this toggle+stage (lower = first) |
 
@@ -112,7 +112,7 @@ The `T_toggle_stage_rule` table directly links a toggle, a stage, and a rule in 
 - `UQ_toggle_stage_rule_toggle_stage_rule`: Unique constraint on (toggle_id, stage_id, rule_id) — a rule can only be assigned once per toggle+stage combination
 - `FK_toggle_stage_rule_toggle_id`: Foreign key to `T_toggle`
 - `FK_toggle_stage_rule_stage_id`: Foreign key to `T_stage`
-- `FK_toggle_stage_rule_rule_id`: Foreign key to `T_toggle_rule`
+- `FK_toggle_stage_rule_rule_id`: Foreign key to `T_rule`
 
 **Indices:**
 - `I_toggle_stage_rule_toggle_stage_priority`: Composite index on (toggle_id, stage_id, priority) for efficient rule ordering during evaluation
@@ -121,36 +121,36 @@ The `T_toggle_stage_rule` table directly links a toggle, a stage, and a rule in 
 **Relationships:**
 - Many-to-one with `T_toggle` via `toggle_id`
 - Many-to-one with `T_stage` via `stage_id`
-- Many-to-one with `T_toggle_rule` via `rule_id`
+- Many-to-one with `T_rule` via `rule_id`
 
 ---
 
-### T_toggle_criterion
+### T_criterion
 
-The `T_toggle_criterion` table stores the individual criteria (key/value pairs) for each rule. Values support regex patterns for flexible matching.
+The `T_criterion` table stores the individual criteria (key/value pairs) for each rule. Values support regex patterns for flexible matching.
 
 #### Columns
 
 | Column | Type | Nullable | Default | Description |
 |--------|------|----------|---------|-------------|
 | `id` | VARCHAR(36) | NO | - | Primary key (UUID v4) |
-| `toggle_rule_id` | VARCHAR(36) | NO | - | FK to `T_toggle_rule.id` (cascade delete) |
+| `toggle_rule_id` | VARCHAR(36) | NO | - | FK to `T_rule.id` (cascade delete) |
 | `criterion_key` | VARCHAR(100) | NO | - | Key for matching (e.g., "country", "age") |
 | `criterion_value` | VARCHAR(500) | NO | - | Value or regex pattern to match |
 
 **Key Features:**
 - Criteria within a rule use AND logic (all must match)
 - Values can be exact strings or regex patterns (e.g., `/^[5-9][0-9]$/`)
-- Audit tracking via Hibernate Envers (`T_toggle_criterion_AUD` table)
+- Audit tracking via Hibernate Envers (`T_criterion_AUD` table)
 
 **Constraints:**
-- `FK_toggle_criterion_rule_id`: Foreign key to `T_toggle_rule`
+- `FK_criterion_rule_id`: Foreign key to `T_rule`
 
 **Indices:**
-- `I_toggle_criterion_key`: Index on criterion_key for potential optimization
+- `I_criterion_key`: Index on criterion_key for potential optimization
 
 **Relationships:**
-- Many-to-one with `T_toggle_rule` via `toggle_rule_id`
+- Many-to-one with `T_rule` via `rule_id`
 
 **Example Criteria:**
 - `{"country": "EU"}` - Exact match
@@ -197,7 +197,7 @@ INSERT INTO T_stage (id, name, description, display_order, parent_stage_id) VALU
 ```
 
 **Important:** Deleting a stage from `T_stage` will fail if:
-- Any toggles reference it via `T_toggle_stage`
+- Any toggles reference it via `T_stage`
 - Any child stages reference it via `parent_stage_id`
 
 (FK constraints prevent orphaned references and circular inheritance)
@@ -211,9 +211,9 @@ Hibernate Envers automatically creates audit tables with `_AUD` suffix for all `
 | Table | Audit Table | Description |
 |-------|-------------|-------------|
 | `T_toggle` | `T_toggle_AUD` | Tracks toggle metadata changes |
-| `T_toggle_rule` | `T_toggle_rule_AUD` | Tracks rule definition changes (name, description) |
+| `T_rule` | `T_rule_AUD` | Tracks rule definition changes (name, description) |
 | `T_toggle_stage_rule` | `T_toggle_stage_rule_AUD` | Tracks rule assignments (toggle+stage+rule+priority+value) |
-| `T_toggle_criterion` | `T_toggle_criterion_AUD` | Tracks criteria changes |
+| `T_criterion` | `T_criterion_AUD` | Tracks criteria changes |
 | `T_stage` | `T_stage_AUD` | Tracks stage definition and inheritance changes |
 
 **REVINFO Table:**
@@ -246,8 +246,8 @@ The database follows strict naming conventions for consistency and clarity:
 ### Toggle Administration Flow
 
 1. Admin creates toggle: Insert into `T_toggle`
-2. Create or pick an existing rule: Insert into `T_toggle_rule` (or reuse an existing rule id)
-3. Add criteria to the rule: Insert into `T_toggle_criterion` (if newly created)
+2. Create or pick an existing rule: Insert into `T_rule` (or reuse an existing rule id)
+3. Add criteria to the rule: Insert into `T_criterion` (if newly created)
 4. Assign rule to toggle+stage: Insert into `T_toggle_stage_rule` with desired `stage_id`, `priority`, and `rule_value`
 5. All operations automatically audited via Envers
 
@@ -281,7 +281,7 @@ Strategic indexes are placed for common query patterns:
 ## Security Considerations
 
 - **Audit Trail**: All changes tracked via Hibernate Envers with username attribution
-- **Cascade Deletes**: Deleting a `T_toggle` cascades to all its `T_toggle_stage_rule` assignments; rule definitions (`T_toggle_rule`) and their criteria are preserved for reuse unless explicitly deleted
+- **Cascade Deletes**: Deleting a `T_toggle` cascades to all its `T_toggle_stage_rule` assignments; rule definitions (`T_rule`) and their criteria are preserved for reuse unless explicitly deleted
 - **No Sensitive Data**: Toggle values are strings (not passwords); criteria may contain patterns but not user data
 - **Read-Only Audit Tables**: Envers audit tables should not be manually modified
 
@@ -324,7 +324,7 @@ ORDER BY r.REV DESC;
 -- Rules with high priority (evaluated first) across all toggle+stage contexts
 SELECT t.name AS toggle_name, s.name AS stage_name, tsr.priority, tsr.rule_value, tr.name AS rule_name, tr.description
 FROM T_toggle_stage_rule tsr
-JOIN T_toggle_rule tr ON tsr.rule_id = tr.id
+JOIN T_rule tr ON tsr.rule_id = tr.id
 JOIN T_stage s ON tsr.stage_id = s.id
 JOIN T_toggle t ON tsr.toggle_id = t.id
 WHERE tsr.priority < 10
@@ -332,7 +332,7 @@ ORDER BY tsr.priority;
 
 -- Rules shared across multiple toggle+stage contexts
 SELECT tr.name AS rule_name, tsr.rule_value, COUNT(tsr.id) AS assignment_count
-FROM T_toggle_rule tr
+FROM T_rule tr
 JOIN T_toggle_stage_rule tsr ON tr.id = tsr.rule_id
 GROUP BY tr.id, tr.name, tsr.rule_value
 HAVING COUNT(tsr.id) > 1

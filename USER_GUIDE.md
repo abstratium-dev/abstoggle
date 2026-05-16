@@ -21,10 +21,13 @@ Abstoggle is a feature toggle service — a tool that lets teams enable or disab
 - **Toggle** — a named feature flag (e.g. `new-checkout-flow`). A toggle has a description and can be enabled or disabled globally.
 - **Stage** — an environment (e.g. `dev`, `test`, `prod`). Stages can inherit from a parent stage, so a toggle configured only for `prod` is automatically available to any stage that inherits from it.
 - **Toggle Stage** — a toggle is activated for a stage by assigning it. Only assigned toggle-stage combinations are returned by the public query endpoint.
-- **Rule** — defines what value a toggle resolves to for a given set of client attributes. Each rule has:
-  - **Priority** (integer, lower = higher priority) — rules are evaluated in ascending priority order; the first match wins.
-  - **Value** — the string to return when the rule matches (e.g. `on`, `off`, or any custom string like `variant-b`).
+- **Rule** — a reusable criteria definition that can be assigned to any toggle+stage combination. Each rule has:
+  - **Name** — a unique, human-readable identifier (e.g. `beta-testers`, `eu-premium`).
+  - **Description** — what this rule targets.
   - **Criteria** — a map of `key → pattern` pairs. The key names a client context attribute; the pattern is tested against the client's value for that attribute. If all criteria match, the rule matches. A rule with no criteria is a catch-all and always matches.
+- **Toggle Stage Rule Assignment** — links a rule to a toggle within a stage and controls evaluation. Each assignment has:
+  - **Priority** (integer, lower = higher priority) — assignments are evaluated in ascending priority order; the first match wins.
+  - **Value** — the string to return when the assigned rule matches (e.g. `on`, `off`, or any custom string like `variant-b`).
 
 ```mermaid
 erDiagram
@@ -46,10 +49,11 @@ erDiagram
     TOGGLE_STAGE {
         string toggleName
         string stageName
-    }
-    RULE {
         int    priority
         string value
+    }
+    RULE {
+        string name
         string description
     }
     CRITERION {
@@ -62,8 +66,8 @@ erDiagram
 
 1. Create one or more **Stages** (e.g. `prod`, `test`, `dev` with `test` inheriting from `prod`).
 2. Create a **Toggle** and assign it to the relevant stages.
-3. Add **Rules** to control what value is returned for different client attributes.
-4. Your application calls the public endpoint, evaluates the rules client-side, and gates behaviour on the resolved value.
+3. Create reusable **Rules** with criteria, then assign them to toggle+stage combinations and set a value for each assignment.
+4. Your application calls the public endpoint, evaluates the assignments client-side, and gates behaviour on the resolved value.
 
 ---
 
@@ -176,11 +180,13 @@ Both `country` AND `plan` must match.
 
 **OR example** — DACH users OR users aged 50+:
 
-| Priority | Value | Criteria |
-|----------|-------|----------|
-| 1 | `on` | `{"country": "/^(DE|AT|CH)$/i"}` |
-| 2 | `on` | `{"age": "/^[5-9][0-9]$/"}` |
-| 99 | `off` | `{}` (catch-all) |
+Create two reusable rules and assign them to the same toggle+stage with different values and priorities:
+
+| Priority | Rule | Value | Criteria |
+|----------|------|-------|----------|
+| 1 | `dach-users` | `on` | `{"country": "/^(DE|AT|CH)$/i"}` |
+| 2 | `age-50-plus` | `on` | `{"age": "/^[5-9][0-9]$/"}` |
+| 99 | `default-off` | `off` | `{}` (catch-all) |
 
 A user from the DACH gets `on` via priority 1. A 55-year-old from the US gets `on` via priority 2. Everyone else falls through to the catch-all at priority 99.
 
@@ -490,12 +496,12 @@ This section shows how to configure rules for common real-world scenarios.
 
 #### 1. Groups of test users
 
-Create two reusable rules and assign them to the same toggle+stage with different priorities.
+Create two reusable rules with criteria, then assign them to toggle `new-feature-x` for stage `test` with different values and priorities.
 
-**Rule: `new-features-testers`** — value `on`, criteria `{"userId": "^(alice|bob|charlie)$"}`  
-**Rule: `no-new-features-testers`** — value `off`, criteria `{}` (catch-all)
+**Rule: `new-features-testers`** — criteria `{"userId": "^(alice|bob|charlie)$"}`  
+**Rule: `no-new-features-testers`** — criteria `{}` (catch-all)
 
-Assign both to toggle `new-feature-x` for stage `test`:
+Assignment table for toggle `new-feature-x`, stage `test`:
 
 | Priority | Rule | Value | Criteria |
 |----------|------|-------|----------|
@@ -509,20 +515,20 @@ Alice, Bob, and Charlie get `on`; everyone else falls through to the catch-all a
 You can target a percentage of users by matching on a deterministic substring of their username.
 
 **~25% of users — first letter A–F**  
-Create a rule with value `variant-b` and criteria `{"username": "^[a-fA-F]"}`.
+Create a reusable rule with criteria `{"username": "^[a-fA-F]"}`, then assign it to a toggle+stage with value `variant-b`.
 
 **~50% of users — first letter A–M**  
-Create a rule with value `variant-b` and criteria `{"username": "^[a-mA-M]"}`.
+Create a reusable rule with criteria `{"username": "^[a-mA-M]"}`, then assign it with value `variant-b`.
 
 **~10% of users — last digit of userId 0**  
-Create a rule with value `variant-b` and criteria `{"userId": "0$"}`.
+Create a reusable rule with criteria `{"userId": "0$"}`, then assign it with value `variant-b`.
 
 **~10% of users — last two digits of userId 00–09**  
-Create a rule with value `variant-b` and criteria `{"userId": "(00|01|02|03|04|05|06|07|08|09)$"}`.
+Create a reusable rule with criteria `{"userId": "(00|01|02|03|04|05|06|07|08|09)$"}`, then assign it with value `variant-b`.
 
 > **Tip:** The match is against the string value supplied in the client context, so `userId` must be sent as a string (e.g. `"10042"`) even if it is a number in your database.
 
-Example assignment for a 50/50 split:
+Example assignment for a 50/50 split on toggle `new-feature`, stage `prod`:
 
 | Priority | Rule | Value | Criteria |
 |----------|------|-------|----------|
@@ -533,7 +539,7 @@ Example assignment for a 50/50 split:
 
 Enable a feature only for premium users in the EU.
 
-**Rule: `eu-premium`** — value `on`, criteria:
+**Rule: `eu-premium`** — criteria:
 ```json
 {
   "country": "/^(DE|AT|CH|NL|BE|LU)$/i",
@@ -541,41 +547,54 @@ Enable a feature only for premium users in the EU.
 }
 ```
 
-**Rule: `default-off`** — value `off`, criteria `{}`
+**Rule: `default-off`** — criteria `{}`
 
-Both criteria must match (AND logic) because they are in the same rule.
+Assignment for toggle `eu-premium-feature`, stage `prod`:
+
+| Priority | Rule | Value |
+|----------|------|-------|
+| 1 | `eu-premium` | `on` |
+| 99 | `default-off` | `off` |
+
+Both criteria within the `eu-premium` rule must match (AND logic) because they are in the same rule.
 
 #### 4. Canary rollout by user ID hash prefix
 
 If your client context includes a `userIdHash` field (e.g. the first 4 hex characters of a SHA-256 hash), you can release to a tiny fraction of users.
 
+Create a reusable rule with criteria, then assign it with the desired value:
+
 **~6% of users** — first hex digit `0` or `1`:  
-criteria `{"userIdHash": "^[01]"}`
+Rule: `{"userIdHash": "^[01]"}`, assign with value `canary`.
 
 **~0.4% of users** — first two hex digits `00`–`0f`:  
-criteria `{"userIdHash": "^0[0-9a-fA-F]"}`
+Rule: `{"userIdHash": "^0[0-9a-fA-F]"}`, assign with value `canary`.
 
 #### 5. Time-based or date-based targeting
 
 If your client context includes a `currentDate` or `currentHour` field, you can enable a feature only during specific windows.
 
+Create a reusable rule with time-based criteria, then assign it with value `on`:
+
 **Business hours only** (08:00–17:59):  
-criteria `{"currentHour": "^(08|09|1[0-7])$"}`
+Rule: `{"currentHour": "^(08|09|1[0-7])$"}`, assign with value `on`.
 
 **Weekdays only** (Mon–Fri, ISO day of week 1–5):  
-criteria `{"dayOfWeek": "^[1-5]$"}`
+Rule: `{"dayOfWeek": "^[1-5]$"}`, assign with value `on`.
 
 #### 6. Device or browser targeting
 
 Enable a feature only for mobile users.
 
+Create reusable rules with device-based criteria, then assign them with the desired value:
+
 **Mobile browsers only**:  
-criteria `{"userAgent": "/Mobile|Android|iPhone/i"}`
+Rule: `{"userAgent": "/Mobile|Android|iPhone/i"}`, assign with value `on`.
 
 **Chrome only**:  
-criteria `{"userAgent": "/Chrome/i"}`
+Rule: `{"userAgent": "/Chrome/i"}`, assign with value `on`.
 
-> **Note:** Always place the most specific rule at the lowest priority number (highest priority) and the catch-all default at the end. The first matching rule wins.
+> **Note:** Always place the most specific assignment at the lowest priority number (highest priority) and the catch-all default at the end. The first matching assignment wins.
 
 ---
 

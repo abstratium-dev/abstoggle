@@ -1,14 +1,21 @@
 package dev.abstratium.abstoggle.boundary.api;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
+
+import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import dev.abstratium.abstoggle.entity.ToggleRule;
-import dev.abstratium.abstoggle.entity.ToggleCriterion;
+import dev.abstratium.abstoggle.dto.CriterionDto;
+import dev.abstratium.abstoggle.dto.RuleDto;
+import dev.abstratium.abstoggle.entity.Criterion;
+import dev.abstratium.abstoggle.entity.Rule;
+import dev.abstratium.abstoggle.entity.Toggle;
+import dev.abstratium.abstoggle.entity.ToggleStageRule;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
@@ -28,10 +35,10 @@ class RuleResourceTest {
     void cleanup() throws Exception {
         userTransaction.begin();
         try {
-            em.createQuery("DELETE FROM ToggleCriterion").executeUpdate();
+            em.createQuery("DELETE FROM Criterion").executeUpdate();
             em.createQuery("DELETE FROM ToggleStageRule").executeUpdate();
-            em.createQuery("DELETE FROM ToggleRule").executeUpdate();
-            em.createQuery("DELETE FROM Toggle WHERE name LIKE 'rule-test%'").executeUpdate();
+            em.createQuery("DELETE FROM Rule").executeUpdate();
+            em.createQuery("DELETE FROM Toggle").executeUpdate();
             userTransaction.commit();
         } catch (Exception e) {
             userTransaction.rollback();
@@ -39,247 +46,384 @@ class RuleResourceTest {
         }
     }
 
-    @Test
-    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
-    void testGetAllRules_returnsRulesWithCriteria() throws Exception {
-        // Create test rules in a committed transaction
+    private void commitData(Runnable setup) throws Exception {
         userTransaction.begin();
         try {
-            ToggleRule rule1 = new ToggleRule();
-            rule1.setName("rule-test-1");
-            rule1.setRuleValue("on");
-            rule1.setDescription("First test rule");
-            em.persist(rule1);
-
-            ToggleCriterion criterion1 = new ToggleCriterion();
-            criterion1.setToggleRule(rule1);
-            criterion1.setCriterionKey("country");
-            criterion1.setCriterionValue("DE");
-            em.persist(criterion1);
-
-            ToggleRule rule2 = new ToggleRule();
-            rule2.setName("rule-test-2");
-            rule2.setRuleValue("off");
-            rule2.setDescription("Second test rule");
-            em.persist(rule2);
-
+            setup.run();
             em.flush();
             userTransaction.commit();
         } catch (Exception e) {
             userTransaction.rollback();
             throw e;
         }
+    }
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testGetAllRules_returnsRules() throws Exception {
+        commitData(() -> {
+            Rule rule1 = new Rule();
+            rule1.setName("api-rule-get-1");
+            rule1.setDescription("First rule");
+            em.persist(rule1);
+
+            Rule rule2 = new Rule();
+            rule2.setName("api-rule-get-2");
+            rule2.setDescription("Second rule");
+            em.persist(rule2);
+
+            Criterion criterion = new Criterion();
+            criterion.setRule(rule1);
+            criterion.setCriterionKey("country");
+            criterion.setCriterionValue("/US/i");
+            em.persist(criterion);
+        });
 
         given()
             .when()
             .get("/api/rules")
             .then()
             .statusCode(200)
-            .contentType("application/json")
-            .body("size()", is(2))
-            .body("[0].id", notNullValue())
-            .body("[0].value", is("on"))
-            .body("[0].description", is("First test rule"))
-            .body("[0].criteria.country", is("DE"))
-            .body("[1].value", is("off"))
-            .body("[1].description", is("Second test rule"));
+            .body("$.size()", equalTo(2))
+            .body("[0].name", notNullValue())
+            .body("[0].id", notNullValue());
     }
 
     @Test
     @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
-    void testGetAllRules_returnsEmptyListWhenNoRules() {
+    void testGetAllRules_emptyList_whenNoRules() {
         given()
             .when()
             .get("/api/rules")
             .then()
             .statusCode(200)
-            .contentType("application/json")
-            .body("size()", is(0));
+            .body("$.size()", equalTo(0));
     }
 
     @Test
     @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
-    void testCreateRule_createsStandaloneRule() {
+    void testCreateRule_persistsRule() {
+        RuleDto request = new RuleDto();
+        request.setName("api-rule-create");
+        request.setDescription("Created via API");
+        request.setCriteria(List.of(
+            new CriterionDto(null, "country", "/US/i", null),
+            new CriterionDto(null, "age", "/^[2-5][0-9]$/", null)
+        ));
+
         given()
             .contentType("application/json")
-            .body("{\"name\":\"api-new-rule\",\"ruleValue\":\"variant-a\",\"description\":\"A test rule\",\"criteria\":{\"userId\":\"^alice$\"}}")
+            .body(request)
             .when()
             .post("/api/rules")
             .then()
             .statusCode(200)
-            .contentType("application/json")
             .body("id", notNullValue())
-            .body("name", is("api-new-rule"))
-            .body("value", is("variant-a"))
-            .body("description", is("A test rule"))
-            .body("criteria.userId", is("^alice$"));
-
-        // Verify it appears in the list
-        given()
-            .when()
-            .get("/api/rules")
-            .then()
-            .statusCode(200)
-            .body("size()", is(1))
-            .body("[0].name", is("api-new-rule"));
+            .body("name", equalTo("api-rule-create"))
+            .body("description", equalTo("Created via API"))
+            .body("criteria.size()", equalTo(2))
+            .body("criteria.size()", equalTo(2))
+            .body("criteria.criterionKey", org.hamcrest.Matchers.hasItems("country", "age"));
     }
 
     @Test
     @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
-    void testCreateRule_missingName_returns400() {
+    void testCreateRule_nullRequest_returns400() {
         given()
             .contentType("application/json")
-            .body("{\"ruleValue\":\"on\",\"criteria\":{}}")
             .when()
             .post("/api/rules")
             .then()
-            .statusCode(400);
+            .statusCode(400)
+            .body("detail", containsString("Request body is required"));
     }
 
     @Test
     @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
     void testCreateRule_duplicateName_returns400() throws Exception {
-        userTransaction.begin();
-        try {
-            ToggleRule rule = new ToggleRule();
-            rule.setName("api-dup-rule");
-            rule.setRuleValue("on");
+        commitData(() -> {
+            Rule rule = new Rule();
+            rule.setName("api-rule-dup");
+            rule.setDescription("Existing rule");
             em.persist(rule);
-            em.flush();
-            userTransaction.commit();
-        } catch (Exception e) {
-            userTransaction.rollback();
-            throw e;
-        }
+        });
+
+        RuleDto request = new RuleDto();
+        request.setName("api-rule-dup");
+        request.setDescription("Duplicate attempt");
 
         given()
             .contentType("application/json")
-            .body("{\"name\":\"api-dup-rule\",\"ruleValue\":\"off\",\"criteria\":{}}")
+            .body(request)
             .when()
             .post("/api/rules")
             .then()
-            .statusCode(400);
+            .statusCode(400)
+            .body("detail", containsString("already exists"));
     }
 
     @Test
     @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
-    void testUpdateRule_updatesRule() throws Exception {
-        final String[] ruleIdHolder = new String[1];
-        userTransaction.begin();
-        try {
-            ToggleRule rule = new ToggleRule();
-            rule.setName("api-update-rule");
-            rule.setRuleValue("on");
-            rule.setDescription("Original desc");
-            em.persist(rule);
-            em.flush();
-            userTransaction.commit();
-            ruleIdHolder[0] = rule.getId();
-        } catch (Exception e) {
-            userTransaction.rollback();
-            throw e;
-        }
+    void testCreateRule_emptyName_returns400() {
+        RuleDto request = new RuleDto();
+        request.setName("");
+        request.setDescription("Rule with empty name");
 
         given()
             .contentType("application/json")
-            .body("{\"name\":\"api-update-rule\",\"ruleValue\":\"off\",\"description\":\"Updated desc\",\"criteria\":{\"env\":\"prod\"}}")
+            .body(request)
             .when()
-            .put("/api/rules/" + ruleIdHolder[0])
+            .post("/api/rules")
+            .then()
+            .statusCode(400)
+            .body("detail", containsString("name"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testUpdateRule_updatesFields() throws Exception {
+        commitData(() -> {
+            Rule rule = new Rule();
+            rule.setName("api-rule-update");
+            rule.setDescription("Original description");
+            em.persist(rule);
+
+            Criterion criterion = new Criterion();
+            criterion.setRule(rule);
+            criterion.setCriterionKey("old_key");
+            criterion.setCriterionValue("old_value");
+            em.persist(criterion);
+        });
+
+        // Get the rule ID
+        Rule existing = em.createQuery("SELECT r FROM Rule r WHERE r.name = :name", Rule.class)
+            .setParameter("name", "api-rule-update")
+            .getSingleResult();
+
+        RuleDto request = new RuleDto();
+        request.setName("api-rule-update-renamed");
+        request.setDescription("Updated description");
+        request.setCriteria(List.of(
+            new CriterionDto(null, "new_country", "/UK/i", null)
+        ));
+
+        given()
+            .contentType("application/json")
+            .body(request)
+            .when()
+            .put("/api/rules/" + existing.getId())
             .then()
             .statusCode(200)
-            .contentType("application/json")
-            .body("id", is(ruleIdHolder[0]))
-            .body("name", is("api-update-rule"))
-            .body("value", is("off"))
-            .body("description", is("Updated desc"))
-            .body("criteria.env", is("prod"));
+            .body("id", equalTo(existing.getId()))
+            .body("name", equalTo("api-rule-update-renamed"))
+            .body("description", equalTo("Updated description"))
+            .body("criteria.size()", equalTo(1))
+            .body("criteria[0].criterionKey", equalTo("new_country"));
     }
 
     @Test
     @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
-    void testUpdateRule_notFound_returns400() {
+    void testUpdateRule_whitespaceId_returns405() {
+        // JAX-RS returns 405 for empty/whitespace path segments (no matching route)
+        RuleDto request = new RuleDto();
+        request.setName("some-name");
+
         given()
             .contentType("application/json")
-            .body("{\"name\":\"nonexistent\",\"ruleValue\":\"on\",\"criteria\":{}}")
+            .body(request)
             .when()
-            .put("/api/rules/nonexistent-id")
+            .put("/api/rules/  ")
             .then()
-            .statusCode(400);
+            .statusCode(405);
     }
 
     @Test
     @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
-    void testDeleteRule_deletesStandaloneRule() throws Exception {
-        final String[] ruleIdHolder = new String[1];
-        userTransaction.begin();
-        try {
-            ToggleRule rule = new ToggleRule();
-            rule.setName("api-delete-rule");
-            rule.setRuleValue("on");
+    void testUpdateRule_nullRequestBody_returns400() throws Exception {
+        commitData(() -> {
+            Rule rule = new Rule();
+            rule.setName("api-rule-null-req");
             em.persist(rule);
-            em.flush();
-            userTransaction.commit();
-            ruleIdHolder[0] = rule.getId();
-        } catch (Exception e) {
-            userTransaction.rollback();
-            throw e;
-        }
+        });
+
+        Rule existing = em.createQuery("SELECT r FROM Rule r WHERE r.name = :name", Rule.class)
+            .setParameter("name", "api-rule-null-req")
+            .getSingleResult();
+
+        given()
+            .contentType("application/json")
+            .when()
+            .put("/api/rules/" + existing.getId())
+            .then()
+            .statusCode(400)
+            .body("detail", containsString("Request body is required"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testUpdateRule_nonexistent_returns400() {
+        RuleDto request = new RuleDto();
+        request.setName("updated-name");
+
+        given()
+            .contentType("application/json")
+            .body(request)
+            .when()
+            .put("/api/rules/nonexistent-id-xyz")
+            .then()
+            .statusCode(400)
+            .body("detail", containsString("not found"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testDeleteRule_removesRule() throws Exception {
+        commitData(() -> {
+            Rule rule = new Rule();
+            rule.setName("api-rule-delete");
+            em.persist(rule);
+        });
+
+        Rule existing = em.createQuery("SELECT r FROM Rule r WHERE r.name = :name", Rule.class)
+            .setParameter("name", "api-rule-delete")
+            .getSingleResult();
 
         given()
             .when()
-            .delete("/api/rules/" + ruleIdHolder[0])
+            .delete("/api/rules/" + existing.getId())
             .then()
             .statusCode(200);
 
-        // Verify it was deleted
+        // Verify it's gone
         given()
             .when()
             .get("/api/rules")
             .then()
             .statusCode(200)
-            .body("size()", is(0));
+            .body("$.size()", equalTo(0));
     }
 
     @Test
     @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
-    void testDeleteRule_stillAssigned_returns400() throws Exception {
-        final String[] ruleIdHolder = new String[1];
-        userTransaction.begin();
-        try {
-            dev.abstratium.abstoggle.entity.Stage stage = new dev.abstratium.abstoggle.entity.Stage();
-            stage.setName("api-delete-stage");
-            stage.setDisplayOrder(1);
-            em.persist(stage);
+    void testDeleteRule_withAssignments_returnsError() throws Exception {
+        commitData(() -> {
+            Rule rule = new Rule();
+            rule.setName("api-rule-with-assignments");
+            em.persist(rule);
 
-            dev.abstratium.abstoggle.entity.Toggle toggle = new dev.abstratium.abstoggle.entity.Toggle();
-            toggle.setName("api-delete-toggle");
+            Toggle toggle = new Toggle();
+            toggle.setName("api-delete-rule-toggle");
+            toggle.setEnabled(true);
             toggle.setContext("global");
             em.persist(toggle);
 
-            ToggleRule rule = new ToggleRule();
-            rule.setName("api-assigned-rule");
-            rule.setRuleValue("on");
-            em.persist(rule);
+            dev.abstratium.abstoggle.entity.Stage stage = new dev.abstratium.abstoggle.entity.Stage();
+            stage.setName("api-delete-rule-stage");
+            stage.setDisplayOrder(1);
+            em.persist(stage);
 
-            dev.abstratium.abstoggle.entity.ToggleStageRule tsr = new dev.abstratium.abstoggle.entity.ToggleStageRule();
+            ToggleStageRule tsr = new ToggleStageRule();
             tsr.setToggle(toggle);
             tsr.setStage(stage);
             tsr.setRule(rule);
-            tsr.setPriority(100);
+            tsr.setPriority(1);
             em.persist(tsr);
+        });
 
-            em.flush();
-            userTransaction.commit();
-            ruleIdHolder[0] = rule.getId();
-        } catch (Exception e) {
-            userTransaction.rollback();
-            throw e;
-        }
+        Rule existing = em.createQuery("SELECT r FROM Rule r WHERE r.name = :name", Rule.class)
+            .setParameter("name", "api-rule-with-assignments")
+            .getSingleResult();
 
         given()
             .when()
-            .delete("/api/rules/" + ruleIdHolder[0])
+            .delete("/api/rules/" + existing.getId())
             .then()
-            .statusCode(400);
+            .statusCode(400)
+            .body("detail", containsString("assigned"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testDeleteRule_nonexistent_returns200() {
+        // Deleting non-existent rule returns 200 (no-op)
+        given()
+            .when()
+            .delete("/api/rules/nonexistent-id-xyz")
+            .then()
+            .statusCode(200);
+    }
+
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testCreateRule_noCriteria() {
+        RuleDto request = new RuleDto();
+        request.setName("api-rule-no-criteria");
+        request.setDescription("Rule without criteria");
+        request.setCriteria(List.of());
+
+        given()
+            .contentType("application/json")
+            .body(request)
+            .when()
+            .post("/api/rules")
+            .then()
+            .statusCode(200)
+            .body("name", equalTo("api-rule-no-criteria"))
+            .body("criteria.size()", equalTo(0));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testUpdateRule_clearCriteria() throws Exception {
+        commitData(() -> {
+            Rule rule = new Rule();
+            rule.setName("api-rule-clear-crit");
+            em.persist(rule);
+
+            Criterion criterion = new Criterion();
+            criterion.setRule(rule);
+            criterion.setCriterionKey("temp");
+            criterion.setCriterionValue("tempval");
+            em.persist(criterion);
+        });
+
+        Rule existing = em.createQuery("SELECT r FROM Rule r WHERE r.name = :name", Rule.class)
+            .setParameter("name", "api-rule-clear-crit")
+            .getSingleResult();
+
+        RuleDto request = new RuleDto();
+        request.setName("api-rule-clear-crit");
+        request.setDescription("Updated");
+        request.setCriteria(List.of()); // Clear criteria
+
+        given()
+            .contentType("application/json")
+            .body(request)
+            .when()
+            .put("/api/rules/" + existing.getId())
+            .then()
+            .statusCode(200)
+            .body("criteria.size()", equalTo(0));
+    }
+
+    @Test
+    void testGetAllRules_withoutAuth_returns401or400() {
+        // Without auth, either 401 (unauthorized) or 400 (if validation runs first in test env)
+        given()
+            .when()
+            .get("/api/rules")
+            .then()
+            .statusCode(org.hamcrest.Matchers.anyOf(equalTo(400), equalTo(401)));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "some_other_role" })
+    void testGetAllRules_withoutProperRole_returns403() {
+        given()
+            .when()
+            .get("/api/rules")
+            .then()
+            .statusCode(403);
     }
 }

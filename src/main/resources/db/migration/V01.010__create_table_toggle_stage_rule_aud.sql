@@ -4,6 +4,7 @@ CREATE TABLE T_toggle_stage_rule_AUD (
     toggle_id VARCHAR(36),
     stage_id VARCHAR(36),
     rule_id VARCHAR(36),
+    rule_value VARCHAR(255),
     priority INT,
     REV BIGINT NOT NULL,
     REVTYPE TINYINT,

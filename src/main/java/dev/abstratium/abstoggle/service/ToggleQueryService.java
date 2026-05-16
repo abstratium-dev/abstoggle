@@ -1,34 +1,35 @@
 package dev.abstratium.abstoggle.service;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.time.Duration;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
-import jakarta.transaction.Transactional;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
+import dev.abstratium.abstoggle.dto.CriterionDto;
 import dev.abstratium.abstoggle.dto.QueryMetadata;
-import dev.abstratium.abstoggle.dto.RuleDto;
+import dev.abstratium.abstoggle.dto.QueryResponse;
+import dev.abstratium.abstoggle.dto.QueryTSRDto;
 import dev.abstratium.abstoggle.dto.ToggleDto;
-import dev.abstratium.abstoggle.dto.ToggleQueryResponse;
+import dev.abstratium.abstoggle.entity.Criterion;
 import dev.abstratium.abstoggle.entity.Stage;
 import dev.abstratium.abstoggle.entity.Toggle;
-import dev.abstratium.abstoggle.entity.ToggleCriterion;
-import dev.abstratium.abstoggle.entity.ToggleRule;
 import dev.abstratium.abstoggle.entity.ToggleStageRule;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
+import jakarta.transaction.Transactional;
 
 @ApplicationScoped
 public class ToggleQueryService {
@@ -51,14 +52,14 @@ public class ToggleQueryService {
     @ConfigProperty(name = "toggle.cache.max-size-mb", defaultValue = "5")
     int cacheMaxSizeMb;
 
-    private Cache<String, ToggleQueryResponse> toggleCache;
+    private Cache<String, QueryResponse> toggleCache;
 
-    // Initialize cache on first use
-    private Cache<String, ToggleQueryResponse> getCache() {
-        if (toggleCache == null && cacheEnabled) {
+    @PostConstruct
+    private void initCache() {
+        if (cacheEnabled) {
             toggleCache = CacheBuilder.newBuilder()
                 .maximumWeight(cacheMaxSizeMb * 1024 * 1024L)
-                .weigher((String key, ToggleQueryResponse value) -> {
+                .weigher((String key, QueryResponse value) -> {
                     // Rough estimate of size in bytes
                     return key.length() * 2 + value.toString().length() * 2;
                 })
@@ -66,7 +67,6 @@ public class ToggleQueryService {
                 .recordStats()
                 .build();
         }
-        return toggleCache;
     }
 
     /**
@@ -74,28 +74,27 @@ public class ToggleQueryService {
      * Results are cached based on stage, nameFilter, and includeDisabled parameters.
      */
     @Transactional
-    public ToggleQueryResponse queryToggles(String stage, String context, String nameFilter, Boolean includeDisabled) {
+    public QueryResponse queryToggles(String stage, String context, String nameFilter, Boolean includeDisabled) {
         // Build cache key
         String cacheKey = buildCacheKey(stage, context, nameFilter, includeDisabled);
 
         // Check cache first
         if (cacheEnabled) {
-            Cache<String, ToggleQueryResponse> cache = getCache();
-            ToggleQueryResponse cached = cache.getIfPresent(cacheKey);
+            Cache<String, QueryResponse> cache = toggleCache;
+            QueryResponse cached = cache.getIfPresent(cacheKey);
             if (cached != null) {
                 // Update cache hit flag in metadata
-                cached.getQueryMetadata().setCacheHit(true);
+                cached.queryMetadata().setCacheHit(true);
                 return cached;
             }
         }
 
         // Perform actual query
-        ToggleQueryResponse response = performQuery(stage, context, nameFilter, includeDisabled);
+        QueryResponse response = performQuery(stage, context, nameFilter, includeDisabled);
 
         // Cache the result
         if (cacheEnabled && response != null) {
-            Cache<String, ToggleQueryResponse> cache = getCache();
-            cache.put(cacheKey, response);
+            toggleCache.put(cacheKey, response);
         }
 
         return response;
@@ -106,14 +105,14 @@ public class ToggleQueryService {
      * Always fetches fresh data from the database.
      */
     @Transactional
-    public ToggleQueryResponse queryTogglesWithoutCache(String stage, String context, String nameFilter, Boolean includeDisabled) {
-        ToggleQueryResponse response = performQuery(stage, context, nameFilter, includeDisabled);
+    public QueryResponse queryTogglesWithoutCache(String stage, String context, String nameFilter, Boolean includeDisabled) {
+        QueryResponse response = performQuery(stage, context, nameFilter, includeDisabled);
         // Ensure cacheHit is always false for non-cached queries
-        response.getQueryMetadata().setCacheHit(false);
+        response.queryMetadata().setCacheHit(false);
         return response;
     }
 
-    private ToggleQueryResponse performQuery(String stage, String context, String nameFilter, Boolean includeDisabled) {
+    private QueryResponse performQuery(String stage, String context, String nameFilter, Boolean includeDisabled) {
         // Validate stage exists
         Optional<Stage> stageOpt = stageService.findByName(stage);
         if (stageOpt.isEmpty()) {
@@ -126,13 +125,13 @@ public class ToggleQueryService {
         // Find toggles matching the criteria
         List<Toggle> toggles = findToggles(context, nameFilter, includeDisabled);
         
-        // Build toggle DTOs with rules and criteria
-        List<ToggleDto> toggleDtos = new ArrayList<>();
+        // Build TSR DTOs with rules and criteria
+        List<QueryTSRDto> allTsrDtos = new ArrayList<>();
         
         for (Toggle toggle : toggles) {
-            ToggleDto toggleDto = buildToggleDto(toggle, stage, stageChain);
-            if (toggleDto != null) {
-                toggleDtos.add(toggleDto);
+            List<QueryTSRDto> tsrDtos = buildQueryResults(toggle, stage, stageChain);
+            if (tsrDtos != null && !tsrDtos.isEmpty()) {
+                allTsrDtos.addAll(tsrDtos);
             }
         }
         
@@ -140,11 +139,11 @@ public class ToggleQueryService {
         QueryMetadata metadata = new QueryMetadata(
             stage,
             nameFilter,
-            toggleDtos.size(),
+            allTsrDtos.size(),
             false // cache hit
         );
         
-        return new ToggleQueryResponse(toggleDtos, metadata);
+        return new QueryResponse(allTsrDtos, metadata);
     }
 
     private List<Toggle> findToggles(String context, String nameFilter, Boolean includeDisabled) {
@@ -174,7 +173,7 @@ public class ToggleQueryService {
         
         jpql += " ORDER BY t.name";
         
-        jakarta.persistence.TypedQuery<Toggle> query = em.createQuery(jpql, Toggle.class);
+        TypedQuery<Toggle> query = em.createQuery(jpql, Toggle.class);
         for (Map.Entry<String, Object> entry : params.entrySet()) {
             query.setParameter(entry.getKey(), entry.getValue());
         }
@@ -182,7 +181,7 @@ public class ToggleQueryService {
         return query.getResultList();
     }
 
-    private ToggleDto buildToggleDto(Toggle toggle, String stage, List<String> stageChain) {
+    private List<QueryTSRDto> buildQueryResults(Toggle toggle, String stage, List<String> stageChain) {
         // Find the first matching ToggleStageRule assignment in the inheritance chain
         List<ToggleStageRule> assignments = findAssignmentsInChain(toggle.getName(), stageChain);
         if (assignments.isEmpty()) {
@@ -191,16 +190,32 @@ public class ToggleQueryService {
         }
 
         // Build rule DTOs with criteria
-        List<RuleDto> ruleDtos = new ArrayList<>();
+        List<QueryTSRDto> tsrDtos = new ArrayList<>();
         for (ToggleStageRule tsr : assignments) {
-            RuleDto ruleDto = buildRuleDto(tsr);
-            ruleDtos.add(ruleDto);
+
+            List<Criterion> criteria = em.createQuery("SELECT c FROM Criterion c WHERE c.rule.id = :ruleId", Criterion.class)
+                .setParameter("ruleId", tsr.getRule().getId())
+                .getResultList();
+
+            List<CriterionDto> criteriaDtos = criteria.stream()
+                .map(c -> new CriterionDto(c.getId(), c.getCriterionKey(), c.getCriterionValue(), c.getRule().getId()))
+                .toList();
+
+            QueryTSRDto dto = new QueryTSRDto(
+                toggle.getName(),
+                toggle.getDescription(),
+                toggle.getEnabled(),
+                toggle.getContext(),
+                tsr.getStage().getName(),
+                tsr.getRule().getName(),
+                tsr.getRule().getDescription(),
+                criteriaDtos,
+                tsr.getPriority(),
+                tsr.getRuleValue()
+            );
+            tsrDtos.add(dto);
         }
-
-        // Determine which stage actually provided the configuration
-        String actualStage = assignments.get(0).getStage().getName();
-
-        return new ToggleDto(toggle.getName(), actualStage, toggle.getDescription(), toggle.getEnabled(), toggle.getContext(), ruleDtos);
+        return tsrDtos;
     }
 
     private List<ToggleStageRule> findAssignmentsInChain(String toggleName, List<String> stageChain) {
@@ -232,31 +247,6 @@ public class ToggleQueryService {
         return all.stream()
             .filter(tsr -> tsr.getStage().getName().equals(closestStage))
             .toList();
-    }
-
-    private RuleDto buildRuleDto(ToggleStageRule assignment) {
-        ToggleRule rule = assignment.getRule();
-        // Get criteria for this rule
-        List<ToggleCriterion> criteria = em.createQuery(
-            "SELECT tc FROM ToggleCriterion tc WHERE tc.toggleRule.id = :ruleId ORDER BY tc.criterionKey",
-            ToggleCriterion.class)
-            .setParameter("ruleId", rule.getId())
-            .getResultList();
-
-        // Build criteria map
-        Map<String, String> criteriaMap = new HashMap<>();
-        for (ToggleCriterion criterion : criteria) {
-            criteriaMap.put(criterion.getCriterionKey(), criterion.getCriterionValue());
-        }
-
-        return new RuleDto(
-            rule.getId(),
-            rule.getName(),
-            assignment.getPriority(),
-            rule.getRuleValue(),
-            rule.getDescription(),
-            criteriaMap
-        );
     }
 
     private String buildCacheKey(String stage, String context, String nameFilter, Boolean includeDisabled) {
@@ -346,6 +336,17 @@ public class ToggleQueryService {
         }
         
         List<String> stageChain = List.of(stage); // Only this stage, no inheritance
-        return buildToggleDto(toggleOpt.get(), stage, stageChain);
+        List<QueryTSRDto> tsrDtos = buildQueryResults(toggleOpt.get(), stage, stageChain);
+        if (tsrDtos == null || tsrDtos.isEmpty()) {
+            return null;
+        }
+        Toggle toggle = toggleOpt.get();
+        return new ToggleDto(
+            toggle.getId(),
+            toggle.getName(),
+            toggle.getDescription(),
+            toggle.getEnabled(),
+            toggle.getContext()
+        );
     }
 }

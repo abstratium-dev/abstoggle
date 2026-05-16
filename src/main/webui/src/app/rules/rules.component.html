@@ -134,7 +134,6 @@
       <tbody>
         <tr *ngFor="let rule of rules()">
           <td><strong>{{ rule.name || rule.id }}</strong></td>
-          <td><span class="badge badge-primary">{{ rule.value }}</span></td>
           <td>{{ rule.description || '-' }}</td>
           <td>
             <span class="criteria-summary">{{ formatCriteria(rule.criteria) }}</span>

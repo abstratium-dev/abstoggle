@@ -1,4 +1,4 @@
-import { ToggleDto } from '../model.service';
+import { ToggleDto, ToggleQueryRule } from '../model.service';
 
 export type EvalLogLevel = 'info' | 'match' | 'skip' | 'result';
 
@@ -60,7 +60,7 @@ export function evaluateToggle(toggle: ToggleDto, clientContext: { [key: string]
         name: toggle.name,
         description: toggle.description,
         enabled: toggle.enabled,
-        resolvedValue: rule.value,
+        resolvedValue: rule.value ?? 'off',
         matchedRule: `Priority ${rule.priority}${criteriaDesc}`,
         evalLog: log,
         showLog: false
