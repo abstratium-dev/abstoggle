@@ -68,7 +68,7 @@ public class ToggleStageRuleService {
      * EntityManager cache - no additional SQL if entities are already loaded.
      */
     @Transactional
-    public ToggleStageRule create(String toggleId, String stageId, String ruleId, String ruleValue, Integer priority) {
+    public ToggleStageRule create(String toggleId, String stageId, String ruleId, String toggleValue, Integer priority) {
         Toggle toggle = em.find(Toggle.class, toggleId);
         if (toggle == null) {
             throw new IllegalArgumentException("Toggle not found: " + toggleId);
@@ -95,7 +95,7 @@ public class ToggleStageRuleService {
         tsr.setToggle(toggle);
         tsr.setStage(stage);
         tsr.setRule(rule);
-        tsr.setRuleValue(ruleValue != null ? ruleValue : "off");
+        tsr.setToggleValue(toggleValue != null ? toggleValue : "off");
         tsr.setPriority(priority != null ? priority : 100);
 
         em.persist(tsr);
@@ -103,14 +103,14 @@ public class ToggleStageRuleService {
     }
 
     @Transactional
-    public ToggleStageRule update(String id, String ruleValue, Integer priority) {
+    public ToggleStageRule update(String id, String toggleValue, Integer priority) {
         ToggleStageRule tsr = em.find(ToggleStageRule.class, id);
         if (tsr == null) {
             throw new IllegalArgumentException("ToggleStageRule not found with id: " + id);
         }
 
-        if (ruleValue != null) {
-            tsr.setRuleValue(ruleValue);
+        if (toggleValue != null) {
+            tsr.setToggleValue(toggleValue);
         }
 
         if (priority != null) {

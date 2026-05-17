@@ -11,17 +11,17 @@ public class ToggleStageRuleDto {
     private String toggleId;
     private String stageId;
     private String ruleId;
-    private String ruleValue;
+    private String toggleValue;
     private Integer priority;
 
     public ToggleStageRuleDto() {}
 
-    public ToggleStageRuleDto(String id, String toggleId, String stageId, String ruleId, String ruleValue, Integer priority) {
+    public ToggleStageRuleDto(String id, String toggleId, String stageId, String ruleId, String toggleValue, Integer priority) {
         this.id = id;
         this.toggleId = toggleId;
         this.stageId = stageId;
         this.ruleId = ruleId;
-        this.ruleValue = ruleValue;
+        this.toggleValue = toggleValue;
         this.priority = priority;
     }
 
@@ -57,12 +57,12 @@ public class ToggleStageRuleDto {
         this.ruleId = ruleId;
     }
 
-    public String getRuleValue() {
-        return ruleValue;
+    public String getToggleValue() {
+        return toggleValue;
     }
 
-    public void setRuleValue(String ruleValue) {
-        this.ruleValue = ruleValue;
+    public void setToggleValue(String toggleValue) {
+        this.toggleValue = toggleValue;
     }
 
     public Integer getPriority() {

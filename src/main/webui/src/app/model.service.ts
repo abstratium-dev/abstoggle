@@ -107,7 +107,7 @@ export interface ToggleStageRule {
   /** v4 UUID of the reusable rule. */
   ruleId: string;
   /** Toggle value if criteria match ("off" or custom). */
-  ruleValue: string;
+  toggleValue: string;
   /** Evaluation order (lower = first). */
   priority: number;
 }

@@ -184,7 +184,7 @@ public class ToggleStageRuleServiceTest {
 
     @Test
     @TestTransaction
-    void testUpdate_updatesRuleValueAndPriority() {
+    void testUpdate_updatesToggleValueAndPriority() {
         Toggle toggle = new Toggle();
         toggle.setName("svc-tsr-update-toggle");
         toggle.setEnabled(true);
@@ -205,7 +205,7 @@ public class ToggleStageRuleServiceTest {
 
         ToggleStageRule updated = toggleStageRuleService.update(created.getId(), "updated", 99);
 
-        assertEquals("updated", updated.getRuleValue());
+        assertEquals("updated", updated.getToggleValue());
         assertEquals(99, updated.getPriority());
     }
 
@@ -372,13 +372,13 @@ public class ToggleStageRuleServiceTest {
         assertEquals(toggle.getId(), tsr.getToggle().getId());
         assertEquals(stage.getId(), tsr.getStage().getId());
         assertEquals(rule.getId(), tsr.getRule().getId());
-        assertEquals("enabled", tsr.getRuleValue());
+        assertEquals("enabled", tsr.getToggleValue());
         assertEquals(10, tsr.getPriority());
     }
 
     @Test
     @TestTransaction
-    void testCreate_withNullRuleValueAndPriority_usesDefaults() {
+    void testCreate_withNullToggleValueAndPriority_usesDefaults() {
         Toggle toggle = new Toggle();
         toggle.setName("svc-tsr-ids-default-toggle");
         toggle.setEnabled(true);
@@ -397,7 +397,7 @@ public class ToggleStageRuleServiceTest {
         ToggleStageRule tsr = toggleStageRuleService.create(
             toggle.getId(), stage.getId(), rule.getId(), null, null);
 
-        assertEquals("off", tsr.getRuleValue());
+        assertEquals("off", tsr.getToggleValue());
         assertEquals(100, tsr.getPriority());
     }
 

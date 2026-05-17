@@ -40,7 +40,7 @@ erDiagram
         char(36) toggle_id FK
         char(36) stage_id FK
         char(36) rule_id FK
-        varchar rule_value "off or custom value"
+        varchar toggle_value "off or custom value"
         int priority "evaluation order"
     }
 
@@ -75,7 +75,7 @@ erDiagram
 | `toggle` | ManyToOne | Reference to `T_toggle` (cascade delete) |
 | `stage` | ManyToOne | Reference to `T_stage` |
 | `rule` | ManyToOne | Reference to `T_rule` (criteria template) |
-| `ruleValue` | String | Value when criteria match (default: "off") |
+| `toggleValue` | String | Value when criteria match (default: "off") |
 | `priority` | Integer | Evaluation order within this toggle+stage (lower = first) |
 
 #### Stage
@@ -224,50 +224,108 @@ GET /api/toggles?stage=prod&nameFilter=user-profile-redesign
 
 ---
 
-## Client-Side Matching
+## Toggle Evaluation
 
-The service does **not** perform criteria matching. Clients receive all toggles matching the stage and name filter, then match against the criteria dictionary themselves.
+Toggles can be evaluated either **client-side** (using the query endpoints) or **server-side** (using the evaluator endpoints).
 
-### Client Matching Algorithm
+### Client-Side Evaluation
 
-```java
-// Pseudocode for client-side matching
-for (Toggle toggle : response.toggles) {
-    // Rules are pre-sorted by priority (ascending)
-    for (Rule rule : toggle.rules) {
-        boolean matchesAll = true;
+With client-side evaluation, the service returns all toggles matching the stage and name filter. Clients then match against the criteria dictionary themselves.
 
-        // Empty criteria = always matches (catch-all rule)
-        if (!rule.criteria.isEmpty()) {
-            for (Entry<String, String> criterion : rule.criteria.entrySet()) {
-                String clientValue = clientContext.get(criterion.getKey());
-                String pattern = criterion.getValue();
+### Server-Side Evaluation (Evaluator Endpoint)
 
-                if (!matchesRegex(clientValue, pattern)) {
-                    matchesAll = false;
-                    break;
-                }
-            }
-        }
+The evaluator endpoint (`POST /public/toggles/evaluate` or `POST /api/query/toggles/evaluate`) performs criteria matching on the server and returns only the resolved values. This simplifies client implementations but introduces network latency and coupling to the service.
 
-        if (matchesAll) {
-            return rule.value; // Return first matching rule's value
-        }
+### Evaluation Algorithm
+
+Both client-side and server-side evaluation use the same algorithm:
+
+```typescript
+// Pseudocode for toggle evaluation
+function evaluateToggle(toggle: ToggleDto, clientContext: { [key: string]: string }): ToggleResult {
+  // Check if toggle is disabled first
+  if (!toggle.toggleEnabled) {
+    return {
+      toggleName: toggle.toggleName,
+      resolvedValue: 'off',
+      debug: 'Toggle is disabled'
+    };
+  }
+
+  const criteria = toggle.ruleCriteria || [];
+  let matchesAll = true;
+
+  if (criteria.length === 0) {
+    // Empty criteria = always matches (catch-all rule)
+    matchesAll = true;
+  } else {
+    for (const criterion of criteria) {
+      const clientValue = clientContext[criterion.criterionKey] ?? '';
+      const matched = matchesPattern(clientValue, criterion.criterionValue);
+      if (!matched) {
+        matchesAll = false;
+        break;
+      }
     }
+  }
+
+  if (matchesAll) {
+    // Return the toggleValue from the assignment (not from the rule itself)
+    return {
+      toggleName: toggle.toggleName,
+      resolvedValue: toggle.toggleValue ?? 'off',
+      debug: `Priority ${toggle.priority}`
+    };
+  }
+
+  // No rule matched - return default "off"
+  return {
+    toggleName: toggle.toggleName,
+    resolvedValue: 'off',
+    debug: 'No matching rule — default'
+  };
 }
-return "off"; // Default if no rules match
+
+function matchesPattern(value: string, pattern: string): boolean {
+  // Support /pattern/flags syntax
+  const slashRegex = /^\/(.+)\/([gimsuy]*)$/;
+  const match = slashRegex.exec(pattern);
+  if (match) {
+    return new RegExp(match[1], match[2]).test(value);
+  }
+  return new RegExp(pattern).test(value);
+}
 ```
 
-### Example Client Context
+### Client Context Format
+
+For client-side evaluation, the context is a simple key-value dictionary:
 
 ```json
 {
   "userId": "10042",
   "country": "DE",
-  "plan": "premium",
-  "userAgent": "Mozilla/5.0..."
+  "plan": "premium"
 }
 ```
+
+For server-side evaluation, the context is sent as a list of key-value pairs (allowing duplicate keys):
+
+```json
+[
+  {"key": "userId", "value": "10042"},
+  {"key": "country", "value": "DE"},
+  {"key": "plan", "value": "premium"}
+]
+```
+
+### Key Points
+
+- **toggleValue comes from the ToggleStageRule assignment**, not from the Rule itself. This allows the same Rule to be used with different values for different toggles/stages.
+- **Criteria matching**: All criteria within a rule must match (AND logic). OR logic is achieved by creating multiple rules with different criteria.
+- **Pattern syntax**: Supports plain regex or `/pattern/flags` syntax for case-insensitive matching (e.g., `/^DE$/i`).
+- **Disabled toggles**: Always resolve to "off" regardless of any matching rules.
+- **Empty criteria**: A rule with no criteria acts as a catch-all and always matches.
 
 ---
 
@@ -423,7 +481,6 @@ prod (parent: none)
 - **Name-based only**: Inheritance matches by toggle name, never by criteria
 - **No criteria merging**: The entire toggle configuration (all rules) is inherited as-is
 - **Explicit wins**: If defined in current stage, inheritance is not used
-- **Full inheritance**: The toggle's rules, values, and descriptions are inherited together
 
 #### Lookup Algorithm
 

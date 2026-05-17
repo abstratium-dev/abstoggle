@@ -65,7 +65,7 @@ public class ToggleQueryServiceTest {
         tsr.setStage(stage);
         tsr.setRule(rule);
         tsr.setPriority(1);
-        tsr.setRuleValue("on");
+        tsr.setToggleValue("on");
         em.persist(tsr);
         em.flush();
 
@@ -105,7 +105,7 @@ public class ToggleQueryServiceTest {
         tsr.setStage(stage);
         tsr.setRule(rule);
         tsr.setPriority(1);
-        tsr.setRuleValue("on");
+        tsr.setToggleValue("on");
         em.persist(tsr);
         em.flush();
 
@@ -326,7 +326,7 @@ public class ToggleQueryServiceTest {
         tsr.setStage(parent);
         tsr.setRule(rule);
         tsr.setPriority(1);
-        tsr.setRuleValue("parent-value");
+        tsr.setToggleValue("parent-value");
         em.persist(tsr);
         em.flush();
 
@@ -632,7 +632,7 @@ public class ToggleQueryServiceTest {
         tsr.setStage(child);
         tsr.setRule(rule);
         tsr.setPriority(1);
-        tsr.setRuleValue("child-value");
+        tsr.setToggleValue("child-value");
         em.persist(tsr);
         em.flush();
 
@@ -678,7 +678,7 @@ public class ToggleQueryServiceTest {
         tsr.setStage(stage);
         tsr.setRule(rule);
         tsr.setPriority(1);
-        tsr.setRuleValue("on");
+        tsr.setToggleValue("on");
         em.persist(tsr);
         em.flush();
 
@@ -722,7 +722,7 @@ public class ToggleQueryServiceTest {
         tsr.setStage(stage);
         tsr.setRule(rule);
         tsr.setPriority(1);
-        tsr.setRuleValue("on");
+        tsr.setToggleValue("on");
         em.persist(tsr);
         em.flush();
 
@@ -766,7 +766,7 @@ public class ToggleQueryServiceTest {
         tsr.setStage(stage);
         tsr.setRule(rule);
         tsr.setPriority(1);
-        tsr.setRuleValue("enabled");
+        tsr.setToggleValue("enabled");
         em.persist(tsr);
         em.flush();
 
@@ -810,7 +810,7 @@ public class ToggleQueryServiceTest {
         tsr.setStage(stage);
         tsr.setRule(rule);
         tsr.setPriority(1);
-        tsr.setRuleValue("enabled");
+        tsr.setToggleValue("enabled");
         em.persist(tsr);
         em.flush();
 
@@ -855,7 +855,7 @@ public class ToggleQueryServiceTest {
         tsr.setStage(stage);
         tsr.setRule(rule);
         tsr.setPriority(1);
-        tsr.setRuleValue("on");
+        tsr.setToggleValue("on");
         em.persist(tsr);
         em.flush();
 
@@ -908,7 +908,7 @@ public class ToggleQueryServiceTest {
         tsr1.setStage(stage);
         tsr1.setRule(rule1);
         tsr1.setPriority(1);
-        tsr1.setRuleValue("premium-value");
+        tsr1.setToggleValue("premium-value");
         em.persist(tsr1);
 
         ToggleStageRule tsr2 = new ToggleStageRule();
@@ -916,7 +916,7 @@ public class ToggleQueryServiceTest {
         tsr2.setStage(stage);
         tsr2.setRule(rule2);
         tsr2.setPriority(10);
-        tsr2.setRuleValue("default-value");
+        tsr2.setToggleValue("default-value");
         em.persist(tsr2);
         em.flush();
 
@@ -974,7 +974,7 @@ public class ToggleQueryServiceTest {
         tsr.setStage(stage);
         tsr.setRule(rule);
         tsr.setPriority(1);
-        tsr.setRuleValue("on");
+        tsr.setToggleValue("on");
         em.persist(tsr);
         em.flush();
 
@@ -1028,7 +1028,7 @@ public class ToggleQueryServiceTest {
         tsr.setStage(stage);
         tsr.setRule(rule);
         tsr.setPriority(1);
-        tsr.setRuleValue("on");
+        tsr.setToggleValue("on");
         em.persist(tsr);
         em.flush();
 
@@ -1063,7 +1063,7 @@ public class ToggleQueryServiceTest {
         tsr.setStage(stage);
         tsr.setRule(rule);
         tsr.setPriority(1);
-        tsr.setRuleValue("on");
+        tsr.setToggleValue("on");
         em.persist(tsr);
         em.flush();
 
@@ -1111,7 +1111,7 @@ public class ToggleQueryServiceTest {
         tsr.setStage(stage);
         tsr.setRule(rule);
         tsr.setPriority(1);
-        tsr.setRuleValue("on");
+        tsr.setToggleValue("on");
         em.persist(tsr);
         em.flush();
 
@@ -1160,7 +1160,7 @@ public class ToggleQueryServiceTest {
         tsr.setStage(stage);
         tsr.setRule(rule);
         tsr.setPriority(1);
-        tsr.setRuleValue("on");
+        tsr.setToggleValue("on");
         em.persist(tsr);
         em.flush();
 
@@ -1337,7 +1337,7 @@ public class ToggleQueryServiceTest {
         tsr.setStage(parent);
         tsr.setRule(rule);
         tsr.setPriority(1);
-        tsr.setRuleValue("parent-value");
+        tsr.setToggleValue("parent-value");
         em.persist(tsr);
         em.flush();
 

@@ -10,11 +10,10 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 ## Today
 
 
-- rename "rule_value" in TSR to just "value" or "toggle_value"? "rule" is not right, "value" is a mare in terms of refactoring later because its a very generic term.
-
-
 
 ## Tomorrow
+
+- provide endpoints to query history of toggles, rules and stages and TSRs
 
 - performance: rather than loading all toggles with all their content, load only the names and descriptions and let the user load details when needed
 

@@ -83,7 +83,7 @@ public class ToggleStageRuleResource {
             request.getToggleId(),
             request.getStageId(),
             request.getRuleId(),
-            request.getRuleValue(),
+            request.getToggleValue(),
             request.getPriority()
         );
 
@@ -101,7 +101,7 @@ public class ToggleStageRuleResource {
 
         ToggleStageRule tsr = toggleStageRuleService.update(
             id,
-            request.getRuleValue(),
+            request.getToggleValue(),
             request.getPriority()
         );
 
@@ -127,7 +127,7 @@ public class ToggleStageRuleResource {
             tsr.getToggle().getId(),
             tsr.getStage().getId(),
             tsr.getRule().getId(),
-            tsr.getRuleValue(),
+            tsr.getToggleValue(),
             tsr.getPriority()
         );
     }

@@ -57,9 +57,9 @@ export class TogglesComponent implements OnInit {
   selectedStageId = '';
   selectedRuleId = '';
   newRulePriority = 100;
-  newRuleValue = 'off';
+  newToggleValue = 'off';
   editRulePriority = 100;
-  editRuleValue = 'off';
+  editToggleValue = 'off';
 
   // Filter fields
   filterStageName: string | null = null;
@@ -313,14 +313,14 @@ export class TogglesComponent implements OnInit {
       this.selectedStageId = '';
       this.selectedRuleId = '';
       this.newRulePriority = 100;
-      this.newRuleValue = 'off';
+      this.newToggleValue = 'off';
     }
   }
 
   startEditStageRule(stageRule: ToggleStageRule): void {
     this.editingStageRule = stageRule;
     this.editRulePriority = stageRule.priority;
-    this.editRuleValue = stageRule.ruleValue;
+    this.editToggleValue = stageRule.toggleValue;
     this.showAddStageRuleForm = true;
   }
 
@@ -346,7 +346,7 @@ export class TogglesComponent implements OnInit {
       if (this.editingStageRule) {
         await this.controller.updateToggleStageRule(
           this.editingStageRule.id,
-          this.editRuleValue,
+          this.editToggleValue,
           this.editRulePriority
         );
         this.toastService.success('Assignment updated successfully');
@@ -360,7 +360,7 @@ export class TogglesComponent implements OnInit {
           this.selectedStageId,
           this.selectedRuleId,
           this.newRulePriority,
-          this.newRuleValue
+          this.newToggleValue
         );
         this.toastService.success('Assignment created successfully');
       }

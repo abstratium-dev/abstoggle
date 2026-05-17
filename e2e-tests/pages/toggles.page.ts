@@ -77,7 +77,7 @@ function ruleAutocompleteInAssignmentForm(page: Page) {
 }
 
 function assignmentValueInput(page: Page) {
-    return page.locator('input#ruleValue');
+    return page.locator('input#toggleValue');
 }
 
 function assignmentPriorityInput(page: Page) {

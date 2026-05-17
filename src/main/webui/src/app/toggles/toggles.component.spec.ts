@@ -366,8 +366,8 @@ describe('TogglesComponent', () => {
 
   describe('Toggle Stage Rule Management', () => {
     const mockStageRules = [
-      { id: 'sr-1', toggleId: 'toggle-1', stageId: 'stage-dev', ruleId: 'rule-1', ruleValue: 'on', priority: 1 },
-      { id: 'sr-2', toggleId: 'toggle-1', stageId: 'stage-prod', ruleId: 'rule-2', ruleValue: 'off', priority: 100 }
+      { id: 'sr-1', toggleId: 'toggle-1', stageId: 'stage-dev', ruleId: 'rule-1', toggleValue: 'on', priority: 1 },
+      { id: 'sr-2', toggleId: 'toggle-1', stageId: 'stage-prod', ruleId: 'rule-2', toggleValue: 'off', priority: 100 }
     ];
 
     it('should load stage rules when starting management', async () => {
@@ -410,7 +410,7 @@ describe('TogglesComponent', () => {
       component.selectedStageId = 'stage-dev';
       component.selectedRuleId = 'rule-1';
       component.newRulePriority = 5;
-      component.newRuleValue = 'on';
+      component.newToggleValue = 'on';
 
       await component.saveStageRule();
 
@@ -437,7 +437,7 @@ describe('TogglesComponent', () => {
       component.managingToggle = mockToggles[0];
       component.editingStageRule = mockStageRules[0];
       component.editRulePriority = 10;
-      component.editRuleValue = 'off';
+      component.editToggleValue = 'off';
 
       await component.saveStageRule();
 

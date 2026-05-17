@@ -89,7 +89,7 @@ class ToggleStageRuleResourceTest {
         request.setToggleId(testToggle.getId());
         request.setStageId(testStage.getId());
         request.setRuleId(testRule.getId());
-        request.setRuleValue("enabled");
+        request.setToggleValue("enabled");
         request.setPriority(50);
 
         String id = given()
@@ -102,7 +102,7 @@ class ToggleStageRuleResourceTest {
             .body("toggleId", equalTo(testToggle.getId()))
             .body("stageId", equalTo(testStage.getId()))
             .body("ruleId", equalTo(testRule.getId()))
-            .body("ruleValue", equalTo("enabled"))
+            .body("toggleValue", equalTo("enabled"))
             .body("priority", equalTo(50))
             .extract().path("id");
 
@@ -118,7 +118,7 @@ class ToggleStageRuleResourceTest {
         ToggleStageRuleDto request = new ToggleStageRuleDto();
         request.setStageId(testStage.getId());
         request.setRuleId(testRule.getId());
-        request.setRuleValue("on");
+        request.setToggleValue("on");
 
         given()
             .contentType("application/json")
@@ -137,7 +137,7 @@ class ToggleStageRuleResourceTest {
         ToggleStageRuleDto request = new ToggleStageRuleDto();
         request.setToggleId(testToggle.getId());
         request.setRuleId(testRule.getId());
-        request.setRuleValue("on");
+        request.setToggleValue("on");
 
         given()
             .contentType("application/json")
@@ -156,7 +156,7 @@ class ToggleStageRuleResourceTest {
         ToggleStageRuleDto request = new ToggleStageRuleDto();
         request.setToggleId(testToggle.getId());
         request.setStageId(testStage.getId());
-        request.setRuleValue("on");
+        request.setToggleValue("on");
 
         given()
             .contentType("application/json")
@@ -176,7 +176,7 @@ class ToggleStageRuleResourceTest {
         request.setToggleId("nonexistent-toggle-id");
         request.setStageId(testStage.getId());
         request.setRuleId(testRule.getId());
-        request.setRuleValue("on");
+        request.setToggleValue("on");
 
         given()
             .contentType("application/json")
@@ -233,14 +233,14 @@ class ToggleStageRuleResourceTest {
         tsr.setToggle(em.find(Toggle.class, testToggle.getId()));
         tsr.setStage(em.find(Stage.class, testStage.getId()));
         tsr.setRule(em.find(Rule.class, testRule.getId()));
-        tsr.setRuleValue("original");
+        tsr.setToggleValue("original");
         tsr.setPriority(10);
         em.persist(tsr);
         em.flush();
         userTransaction.commit();
 
         ToggleStageRuleDto request = new ToggleStageRuleDto();
-        request.setRuleValue("updated");
+        request.setToggleValue("updated");
         request.setPriority(99);
 
         given()
@@ -251,7 +251,7 @@ class ToggleStageRuleResourceTest {
             .then()
             .statusCode(200)
             .body("id", equalTo(tsr.getId()))
-            .body("ruleValue", equalTo("updated"))
+            .body("toggleValue", equalTo("updated"))
             .body("priority", equalTo(99));
 
         // Cleanup
@@ -268,7 +268,7 @@ class ToggleStageRuleResourceTest {
     @TestTransaction
     void testUpdateAssignment_nonexistent_returns400() {
         ToggleStageRuleDto request = new ToggleStageRuleDto();
-        request.setRuleValue("updated");
+        request.setToggleValue("updated");
 
         given()
             .contentType("application/json")
@@ -289,7 +289,7 @@ class ToggleStageRuleResourceTest {
         tsr.setToggle(em.find(Toggle.class, testToggle.getId()));
         tsr.setStage(em.find(Stage.class, testStage.getId()));
         tsr.setRule(em.find(Rule.class, testRule.getId()));
-        tsr.setRuleValue("on");
+        tsr.setToggleValue("on");
         tsr.setPriority(1);
         em.persist(tsr);
         em.flush();

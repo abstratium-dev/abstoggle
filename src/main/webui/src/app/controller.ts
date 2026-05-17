@@ -350,14 +350,14 @@ export class Controller {
   }
 
   /**
-   * Creates a new ToggleStageRule assignment (toggleId + stageId + ruleId + priority + ruleValue).
+   * Creates a new ToggleStageRule assignment (toggleId + stageId + ruleId + priority + toggleValue).
    */
   async createToggleStageRule(
     toggleId: string,
     stageId: string,
     ruleId: string,
     priority: number,
-    ruleValue: string
+    toggleValue: string
   ): Promise<ToggleStageRule> {
     try {
       const response = await firstValueFrom(
@@ -366,7 +366,7 @@ export class Controller {
           stageId,
           ruleId,
           priority,
-          ruleValue
+          toggleValue
         })
       );
       return response;
@@ -377,17 +377,17 @@ export class Controller {
   }
 
   /**
-   * Updates the ruleValue and priority of an existing ToggleStageRule assignment.
+   * Updates the toggleValue and priority of an existing ToggleStageRule assignment.
    */
   async updateToggleStageRule(
     id: string,
-    ruleValue: string,
+    toggleValue: string,
     priority: number
   ): Promise<ToggleStageRule> {
     try {
       const response = await firstValueFrom(
         this.http.put<ToggleStageRule>(`/api/toggle-stage-rules/${id}`, {
-          ruleValue,
+          toggleValue,
           priority
         })
       );

@@ -1,19 +1,32 @@
 <div class="container">
   <div class="page-header">
-    <h1>Help</h1>
+    <h1>User Guide</h1>
   </div>
 
   <div class="help-content">
     <section class="help-section">
       <h2>Overview</h2>
       <p>
-        Abstoggle is a feature toggle service. It lets you control which features are active for different
-        environments and user groups — without redeploying your application.
+        Abstoggle is a feature toggle service — a tool that lets teams enable or disable application features at runtime,
+        without redeploying code. It lets you control which features are active for different environments and user groups
+        by evaluating configurable rules against client context.
       </p>
+
+      <h3>Key Features</h3>
+      <ul>
+        <li><strong>OAuth Authentication</strong> — Secure login via OAuth2/OpenID Connect providers</li>
+        <li><strong>Auditing</strong> — All administrative changes are tracked with timestamps and user attribution</li>
+        <li><strong>In-Memory Caching</strong> — Toggle query results are cached with configurable TTL and size limits</li>
+        <li><strong>Stage Inheritance</strong> — Stages can inherit configuration from parent stages</li>
+        <li><strong>Built-in Tester</strong> — Interactive testing page for simulating toggle evaluation</li>
+        <li><strong>Dark Mode</strong> — Full dark mode support in the web UI</li>
+        <li><strong>Low Footprint Native Image</strong> — Built as a GraalVM native image for optimal performance</li>
+      </ul>
     </section>
 
     <section class="help-section">
       <h2>Core Concepts</h2>
+
       <div class="concept-list">
         <div class="concept-item">
           <h3>Toggle</h3>
@@ -22,6 +35,7 @@
             enabled or disabled globally.
           </p>
         </div>
+
         <div class="concept-item">
           <h3>Stage</h3>
           <p>
@@ -30,6 +44,7 @@
             that inherits from it.
           </p>
         </div>
+
         <div class="concept-item">
           <h3>Toggle Stage</h3>
           <p>
@@ -37,15 +52,25 @@
             by the public query endpoint.
           </p>
         </div>
+
         <div class="concept-item">
           <h3>Rule</h3>
-          <p>
-            Defines what value a toggle resolves to for a given set of client attributes. Each rule has:
-          </p>
+          <p>A reusable criteria definition that can be assigned to any toggle+stage combination:</p>
           <ul>
-            <li><strong>Priority</strong> (integer, lower = higher priority) — rules are evaluated in ascending priority order; the first match wins.</li>
-            <li><strong>Value</strong> — the string to return when the rule matches (e.g. <code>on</code>, <code>off</code>, or any custom string like <code>variant-b</code>).</li>
-            <li><strong>Criteria</strong> — a map of <code>key → pattern</code> pairs. The key names a client context attribute; the pattern is tested against the client's value for that attribute. If all criteria match, the rule matches. A rule with no criteria is a catch-all and always matches.</li>
+            <li><strong>Name</strong> — a unique, human-readable identifier (e.g. <code>beta-testers</code>, <code>eu-premium</code>)</li>
+            <li><strong>Description</strong> — what this rule targets</li>
+            <li><strong>Criteria</strong> — an ordered list of <code>&#123;key, pattern&#125;</code> pairs. The key names a client context attribute;
+              the pattern is tested against the client's value. If all criteria match, the rule matches.
+              A rule with no criteria is a catch-all and always matches.</li>
+          </ul>
+        </div>
+
+        <div class="concept-item">
+          <h3>Toggle Stage Rule Assignment</h3>
+          <p>Links a rule to a toggle within a stage and controls evaluation:</p>
+          <ul>
+            <li><strong>Priority</strong> (integer, lower = higher priority) — assignments are evaluated in ascending priority order; the first match wins</li>
+            <li><strong>Value</strong> — the string to return when the assigned rule matches (e.g. <code>on</code>, <code>off</code>, <code>variant-b</code>)</li>
           </ul>
         </div>
       </div>
@@ -55,34 +80,20 @@
       <h2>Typical Workflow</h2>
       <ol class="workflow-list">
         <li>Create one or more <strong>Stages</strong> (e.g. <code>prod</code>, <code>test</code>, <code>dev</code> with <code>test</code> inheriting from <code>prod</code>).</li>
-        <li>Create a <strong>Toggle</strong> and assign it to the relevant stages.</li>
-        <li>Add <strong>Rules</strong> to control what value is returned for different client attributes.</li>
-        <li>Your application calls the public endpoint, evaluates the rules client-side, and gates behaviour on the resolved value.</li>
+        <li>Create reusable <strong>Rules</strong> with criteria (e.g. <code>beta-testers</code> with <code>userId = ^(alice|bob)$</code>, or <code>default-off</code> with no criteria as a catch-all).</li>
+        <li>Create a <strong>Toggle</strong> (e.g. <code>new-checkout-flow</code>).</li>
+        <li>Open the toggle and create <strong>Assignments</strong> — link each stage+rule combination, set the priority and the value to return when the rule matches.</li>
+        <li>Your application calls the public endpoint, evaluates the assignments client-side, and gates behaviour on the resolved value.</li>
       </ol>
     </section>
 
     <section class="help-section">
-      <h2>Pattern Matching</h2>
-      <p>Criteria values are matched using regular expressions. Two formats are supported:</p>
-      <ul>
-        <li><strong>Literal regex string</strong>: <code>de</code> — matches if the value contains <code>de</code></li>
-        <li><strong>Slash-delimited with flags</strong>: <code>/^DE$/i</code> — standard JS literal notation; <code>i</code> makes it case-insensitive</li>
-      </ul>
-      <p>If the pattern is not a valid regex, exact string equality is used as a fallback.</p>
-    </section>
+      <h2>Toggle Evaluation</h2>
 
-    <section class="help-section">
-      <h2>Evaluation Algorithm</h2>
-      <p>
-        Rules are sorted by priority (ascending). For each rule, all criteria are tested against the client context.
-        If all criteria match, that rule's value is returned immediately. If no rule matches, <code>"off"</code> is returned.
-      </p>
-    </section>
-
-    <section class="help-section">
-      <h2>Public API</h2>
+      <h3>Public Endpoint</h3>
       <p>Your application fetches toggle configuration from the unauthenticated endpoint:</p>
-      <pre><code>GET /public/toggles?stage=&lt;stageName&gt;[&amp;nameFilter=&lt;toggleName&gt;][&amp;includeDisabled=true]</code></pre>
+      <pre><code>GET /public/toggles?stage=&lt;stageName&gt;&amp;context=&lt;contextName&gt;[&amp;nameFilter=&lt;toggleName&gt;][&amp;includeDisabled=true]</code></pre>
+
       <table class="param-table">
         <thead>
           <tr>
@@ -98,6 +109,11 @@
             <td>The stage name your application is running in</td>
           </tr>
           <tr>
+            <td><code>context</code></td>
+            <td>Yes</td>
+            <td>Only toggles whose context matches this value are returned</td>
+          </tr>
+          <tr>
             <td><code>nameFilter</code></td>
             <td>No</td>
             <td>Return only the named toggle (exact match)</td>
@@ -105,19 +121,324 @@
           <tr>
             <td><code>includeDisabled</code></td>
             <td>No</td>
-            <td>Include disabled toggles (default: false)</td>
+            <td>Include disabled toggles (default: <code>false</code>)</td>
           </tr>
         </tbody>
       </table>
+
+      <p>The response is a <strong>flat list</strong> — each entry is one toggle+stage+rule assignment row. A single toggle with multiple assignments appears as multiple rows sorted by priority.</p>
+
+      <h3>Pattern Matching</h3>
+      <p>Criteria values are matched using regular expressions. Two formats are supported:</p>
+      <ul>
+        <li><strong>Literal regex string</strong>: <code>de</code> — matches if the value contains <code>de</code></li>
+        <li><strong>Slash-delimited with flags</strong>: <code>/^DE$/i</code> — standard JS literal notation; <code>i</code> makes it case-insensitive</li>
+      </ul>
+      <p>If the pattern is not a valid regex, exact string equality is used as a fallback.</p>
+
+      <h3>Client Context</h3>
+      <p>The client context is a flat map of string key-value pairs that your code assembles at runtime:</p>
+      <pre><code>&#123;
+  "userId": "10042",
+  "country": "DE",
+  "plan": "premium",
+  "userAgent": "Mozilla/5.0...",
+  "region": "eu-west-1",
+  "betaUser": "true"
+&#125;</code></pre>
+      <p>The keys must match the criterion keys configured in the rules. Any key not present in the context is treated as an empty string when evaluated.</p>
+
+      <h3>Evaluation Algorithm</h3>
+      <ol>
+        <li>If the toggle is <strong>disabled</strong>, return <code>"off"</code> immediately.</li>
+        <li>Rules are sorted by priority (ascending).</li>
+        <li>For each rule, all criteria are tested against the client context.</li>
+        <li>If all criteria match, the <strong>value</strong> from the assignment is returned immediately.</li>
+        <li>If no rule matches, return <code>"off"</code>.</li>
+      </ol>
     </section>
 
     <section class="help-section">
-      <h2>Tester</h2>
-      <p>
-        The <a routerLink="/toggle-tester">Tester</a> page lets you simulate toggle evaluation with custom
-        client context without writing any code. Select a stage, enter a context, add client attributes, and click
-        <strong>Run Query</strong> to see the resolved values.
-      </p>
+      <h2>AND vs OR Logic</h2>
+
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Logic</th>
+            <th>How to configure</th>
+            <th>Behaviour</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>AND</strong></td>
+            <td>Put multiple key/value pairs in <strong>one rule's criteria</strong></td>
+            <td>Every criterion must match for the rule to fire.</td>
+          </tr>
+          <tr>
+            <td><strong>OR</strong></td>
+            <td>Create <strong>multiple rules</strong> and assign them to the same toggle+stage</td>
+            <td>Rules are evaluated in priority order; the first matching rule wins. Each rule is independent.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>AND Example — DACH Premium Users Only</h4>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>criterionKey</th>
+            <th>criterionValue</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>country</code></td>
+            <td><code>/^(DE|AT|CH)$/i</code></td>
+          </tr>
+          <tr>
+            <td><code>plan</code></td>
+            <td><code>premium</code></td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Both <code>country</code> AND <code>plan</code> must match (all criteria in one rule = AND logic).</p>
+
+      <h4>OR Example — DACH Users OR Users Aged 50+</h4>
+      <p>Create two reusable rules and assign them to the same toggle+stage with different values and priorities:</p>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Priority</th>
+            <th>Rule</th>
+            <th>Value</th>
+            <th>Criteria</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td><code>dach-users</code></td>
+            <td><code>on</code></td>
+            <td><code>country</code> = <code>/^(DE|AT|CH)$/i</code></td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td><code>age-50-plus</code></td>
+            <td><code>on</code></td>
+            <td><code>age</code> = <code>/^[5-9][0-9]$/</code></td>
+          </tr>
+          <tr>
+            <td>99</td>
+            <td><code>default-off</code></td>
+            <td><code>off</code></td>
+            <td>(none — catch-all)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p><strong>Note:</strong> You can put the same criterion key more than once in a rule — all occurrences must match independently. For OR on a single key you can also use a regular expression with alternation (e.g., <code>^(alice|bob)$</code>), or create a second rule.</p>
+    </section>
+
+    <section class="help-section">
+      <h2>Server-Side Evaluator Endpoint</h2>
+      <p>The evaluator endpoints perform toggle rule evaluation on the server side, returning the resolved value directly.</p>
+
+      <h3>Public Evaluator Endpoint</h3>
+      <pre><code>POST /public/toggles/evaluate?stage=&lt;stageName&gt;&amp;context=&lt;contextName&gt;[&amp;nameFilter=&lt;toggleName&gt;]</code></pre>
+
+      <p>Request body: Client context as a JSON array of key-value entries:</p>
+      <pre><code>[
+  &#123;"key": "userId", "value": "10042"&#125;,
+  &#123;"key": "country", "value": "DE"&#125;,
+  &#123;"key": "plan", "value": "premium"&#125;
+]</code></pre>
+
+      <div class="warning-box">
+        <strong>Trade-off Warning:</strong> The server-side evaluator has different resilience characteristics:
+        <ul>
+          <li><strong>Increased coupling</strong> — Your application relies on Abstoggle being available</li>
+          <li><strong>Network latency</strong> — Every toggle check requires a network round-trip</li>
+          <li><strong>Cache complexity</strong> — Different users with different contexts rarely share cached results</li>
+        </ul>
+        <p>For maximum resilience, prefer client-side evaluation using the <code>GET /public/toggles</code> endpoint.</p>
+      </div>
+    </section>
+
+    <section class="help-section">
+      <h2>Public API Security Considerations</h2>
+      <p>The <code>/public/toggles</code> endpoint is unauthenticated and <strong>enabled by default</strong>. Every response exposes toggle names, rule priorities, values, descriptions, and all criteria patterns.</p>
+
+      <h3>Strategy 1 — Use the Context Field to Limit Exposure</h3>
+      <p>Every toggle has a <strong>context</strong> field. The public API requires <code>context</code> as a mandatory parameter and returns <strong>only toggles whose context matches</strong>:</p>
+      <ul>
+        <li>Place low-risk, UI-facing toggles in a context like <code>frontend</code> or <code>ui</code></li>
+        <li>Keep sensitive toggles (payments, fraud, admin) in a different context such as <code>internal</code></li>
+      </ul>
+      <pre><code>GET /public/toggles?stage=prod&amp;context=frontend</code></pre>
+
+      <h3>Strategy 2 — Use the Authenticated Query Endpoint</h3>
+      <p>For sensitive toggles, call the authenticated endpoint from your backend:</p>
+      <pre><code>GET /api/query/toggles?stage=prod&amp;context=internal
+Authorization: Bearer &lt;token&gt;</code></pre>
+
+      <h3>Strategy 3 — Disable the Public Endpoint Entirely</h3>
+      <p>Set <code>PUBLIC_API_ENABLED=false</code> to make both <code>/public/toggles</code> and <code>/public/toggles/evaluate</code> return <code>404</code>.</p>
+
+      <p><strong>Rule of thumb:</strong> assign a <code>context</code> to every toggle from day one. Toggles in <code>frontend</code> are safe to query publicly. Toggles in <code>internal</code>, <code>payments</code>, or <code>security</code> should only be queried server-side.</p>
+    </section>
+
+    <section class="help-section">
+      <h2>Testing</h2>
+      <p>The built-in <a routerLink="/toggle-tester">Tester</a> page lets you simulate the evaluation without writing any code:</p>
+      <ol>
+        <li>Navigate to <strong>Tester</strong> in the top navigation bar.</li>
+        <li>Select a <strong>Stage</strong> from the dropdown.</li>
+        <li>Optionally enter a <strong>Toggle Name Filter</strong> to restrict results to a single toggle.</li>
+        <li>Edit the <strong>Client Context</strong> table — add, remove, or change key-value pairs.</li>
+        <li>Click <strong>Run Query</strong>. The results table shows each toggle and its resolved value.</li>
+        <li>Click <strong>▶ Log</strong> on any row to expand a step-by-step evaluation trace.</li>
+        <li>Click <strong>⚙️ Configure</strong> on any row to navigate directly to the toggle's configuration.</li>
+      </ol>
+    </section>
+
+    <section class="help-section">
+      <h2>Practical Toggle Recipes</h2>
+
+      <h3>1. Groups of Test Users</h3>
+      <p>Create two reusable rules with criteria, then assign them to a toggle:</p>
+      <ul>
+        <li><strong>Rule: <code>new-features-testers</code></strong> — criterion: <code>userId</code> = <code>^(alice|bob|charlie)$</code></li>
+        <li><strong>Rule: <code>no-new-features-testers</code></strong> — no criteria (catch-all)</li>
+      </ul>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Priority</th>
+            <th>Rule</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td><code>new-features-testers</code></td>
+            <td><code>on</code></td>
+          </tr>
+          <tr>
+            <td>99</td>
+            <td><code>no-new-features-testers</code></td>
+            <td><code>off</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>2. Percentage-Based A/B Testing via Username</h3>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Percentage</th>
+            <th>Pattern</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>~25% (A–F)</td>
+            <td><code>username</code> = <code>^[a-fA-F]</code></td>
+          </tr>
+          <tr>
+            <td>~50% (A–M)</td>
+            <td><code>username</code> = <code>^[a-mA-M]</code></td>
+          </tr>
+          <tr>
+            <td>~10% (last digit 0)</td>
+            <td><code>userId</code> = <code>0$</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>3. Country + Plan Targeting</h3>
+      <p>Enable a feature only for premium users in the EU:</p>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>criterionKey</th>
+            <th>criterionValue</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>country</code></td>
+            <td><code>/^(DE|AT|CH|NL|BE|LU)$/i</code></td>
+          </tr>
+          <tr>
+            <td><code>plan</code></td>
+            <td><code>premium</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>4. Canary Rollout by User ID Hash Prefix</h3>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Percentage</th>
+            <th>Pattern</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>~6%</td>
+            <td><code>userIdHash</code> = <code>^[01]</code></td>
+          </tr>
+          <tr>
+            <td>~0.4%</td>
+            <td><code>userIdHash</code> = <code>^0[0-9a-fA-F]</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>5. Time-Based Targeting</h3>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Target</th>
+            <th>Pattern</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Business hours (08:00–17:59)</td>
+            <td><code>currentHour</code> = <code>^(08|09|1[0-7])$</code></td>
+          </tr>
+          <tr>
+            <td>Weekdays only (Mon–Fri)</td>
+            <td><code>dayOfWeek</code> = <code>^[1-5]$</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>6. Device or Browser Targeting</h3>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Target</th>
+            <th>Pattern</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Mobile browsers</td>
+            <td><code>userAgent</code> = <code>/Mobile|Android|iPhone/i</code></td>
+          </tr>
+          <tr>
+            <td>Chrome only</td>
+            <td><code>userAgent</code> = <code>/Chrome/i</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p><strong>Note:</strong> Always place the most specific assignment at the lowest priority number (highest priority) and the catch-all default at the end. The first matching assignment wins.</p>
     </section>
 
     <section class="help-section">
@@ -126,7 +447,9 @@
         <li>Use <code>/pattern/i</code> syntax in criteria values for case-insensitive matching (e.g. <code>/^DE$/i</code> matches <code>DE</code>, <code>de</code>, <code>De</code>).</li>
         <li>A rule with <strong>no criteria</strong> is a catch-all — it always matches. Place it at the lowest priority (highest number) to act as a default.</li>
         <li>Rules are evaluated in <strong>ascending priority order</strong> — priority <code>1</code> is checked before priority <code>10</code>. The first matching rule wins.</li>
-        <li>If a toggle is configured on a <strong>parent stage</strong> only, it will still appear when querying a child stage — the <code>stage</code> field in the response shows which stage provided the configuration.</li>
+        <li><strong>AND logic</strong>: all criteria within a single rule must match. <strong>OR logic</strong>: create multiple rules — each is evaluated independently.</li>
+        <li>If a toggle is configured on a <strong>parent stage</strong> only, it will still appear when querying a child stage — the <code>stageName</code> field in the response shows which stage provided the configuration.</li>
+        <li>The <strong>cacheHit</strong> flag in the response metadata indicates whether the result was served from cache.</li>
       </ul>
     </section>
   </div>

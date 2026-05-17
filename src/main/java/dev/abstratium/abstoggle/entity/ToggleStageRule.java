@@ -73,8 +73,8 @@ public class ToggleStageRule {
     /**
      * Value returned when this rule's criteria match (default: "off").
      */
-    @Column(name = "rule_value", length = 255, nullable = false)
-    private String ruleValue = "off";
+    @Column(name = "toggle_value", length = 255, nullable = false)
+    private String toggleValue = "off";
 
     /**
      * Evaluation order within this toggle and stage. Lower values are evaluated first.
@@ -122,12 +122,12 @@ public class ToggleStageRule {
         this.rule = rule;
     }
 
-    public String getRuleValue() {
-        return ruleValue;
+    public String getToggleValue() {
+        return toggleValue;
     }
 
-    public void setRuleValue(String ruleValue) {
-        this.ruleValue = ruleValue;
+    public void setToggleValue(String toggleValue) {
+        this.toggleValue = toggleValue;
     }
 
     public Integer getPriority() {

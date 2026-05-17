@@ -163,7 +163,11 @@ The keys must match the criterion keys configured in the rules. Any key not pres
 
 #### Algorithm
 
-Rules are sorted by priority (ascending). For each rule, all criteria are tested against the client context. If all criteria match, that rule's value is returned immediately. If no rule matches, `"off"` is returned.
+1. If the toggle is **disabled**, return `"off"` immediately.
+2. Rules are sorted by priority (ascending).
+3. For each rule, all criteria are tested against the client context.
+4. If all criteria match, the **toggleValue** from the Toggle-Stage-Rule assignment is returned immediately.
+5. If no rule matches, return `"off"`.
 
 #### AND vs OR Logic
 

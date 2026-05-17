@@ -80,7 +80,7 @@ class QueryToggleResourceTest {
             tsr.setStage(stage);
             tsr.setRule(rule);
             tsr.setPriority(1);
-            tsr.setRuleValue("on");
+            tsr.setToggleValue("on");
             em.persist(tsr);
         });
 
@@ -120,7 +120,7 @@ class QueryToggleResourceTest {
             tsr.setStage(stage);
             tsr.setRule(rule);
             tsr.setPriority(1);
-            tsr.setRuleValue("enabled");
+            tsr.setToggleValue("enabled");
             em.persist(tsr);
         });
 
@@ -359,7 +359,7 @@ class QueryToggleResourceTest {
             tsr.setStage(stage);
             tsr.setRule(rule);
             tsr.setPriority(1);
-            tsr.setRuleValue("enabled");
+            tsr.setToggleValue("enabled");
             em.persist(tsr);
         });
 
@@ -405,7 +405,7 @@ class QueryToggleResourceTest {
             tsr.setStage(parent);
             tsr.setRule(rule);
             tsr.setPriority(1);
-            tsr.setRuleValue("parent-value");
+            tsr.setToggleValue("parent-value");
             em.persist(tsr);
         });
 
@@ -487,7 +487,7 @@ class QueryToggleResourceTest {
             tsr.setStage(stage);
             tsr.setRule(rule);
             tsr.setPriority(1);
-            tsr.setRuleValue("on");
+            tsr.setToggleValue("on");
             em.persist(tsr);
         });
 
@@ -590,7 +590,7 @@ class QueryToggleResourceTest {
             tsr.setStage(stage);
             tsr.setRule(rule);
             tsr.setPriority(1);
-            tsr.setRuleValue("on");
+            tsr.setToggleValue("on");
             em.persist(tsr);
         });
 
@@ -641,7 +641,7 @@ class QueryToggleResourceTest {
             tsr.setStage(stage);
             tsr.setRule(rule);
             tsr.setPriority(1);
-            tsr.setRuleValue("on");
+            tsr.setToggleValue("on");
             em.persist(tsr);
         });
 
@@ -683,7 +683,7 @@ class QueryToggleResourceTest {
             tsr.setStage(stage);
             tsr.setRule(rule);
             tsr.setPriority(1);
-            tsr.setRuleValue("on");
+            tsr.setToggleValue("on");
             em.persist(tsr);
         });
 
@@ -757,7 +757,7 @@ class QueryToggleResourceTest {
             tsr.setStage(stage);
             tsr.setRule(rule);
             tsr.setPriority(1);
-            tsr.setRuleValue("on");
+            tsr.setToggleValue("on");
             em.persist(tsr);
         });
 
@@ -831,7 +831,7 @@ class QueryToggleResourceTest {
             tsr.setStage(stage);
             tsr.setRule(rule);
             tsr.setPriority(1);
-            tsr.setRuleValue("on");
+            tsr.setToggleValue("on");
             em.persist(tsr);
         });
 

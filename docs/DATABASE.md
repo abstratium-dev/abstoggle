@@ -98,7 +98,7 @@ The `T_toggle_stage_rule` table directly links a toggle, a stage, and a rule in 
 | `toggle_id` | VARCHAR(36) | NO | - | FK to `T_toggle.id` (cascade delete) |
 | `stage_id` | VARCHAR(36) | NO | - | FK to `T_stage.id` |
 | `rule_id` | VARCHAR(36) | NO | - | FK to `T_rule.id` |
-| `rule_value` | VARCHAR(255) | NO | 'off' | Toggle value returned when all criteria match |
+| `toggle_value` | VARCHAR(255) | NO | 'off' | Toggle value returned when all criteria match |
 | `priority` | INT | NO | 100 | Evaluation order within this toggle+stage (lower = first) |
 
 **Key Features:**
@@ -248,7 +248,7 @@ The database follows strict naming conventions for consistency and clarity:
 1. Admin creates toggle: Insert into `T_toggle`
 2. Create or pick an existing rule: Insert into `T_rule` (or reuse an existing rule id)
 3. Add criteria to the rule: Insert into `T_criterion` (if newly created)
-4. Assign rule to toggle+stage: Insert into `T_toggle_stage_rule` with desired `stage_id`, `priority`, and `rule_value`
+4. Assign rule to toggle+stage: Insert into `T_toggle_stage_rule` with desired `stage_id`, `priority`, and `toggle_value`
 5. All operations automatically audited via Envers
 
 ### Data Modification Flow
@@ -322,7 +322,7 @@ GROUP BY r.REV, r.REVTSTMP, r.username
 ORDER BY r.REV DESC;
 
 -- Rules with high priority (evaluated first) across all toggle+stage contexts
-SELECT t.name AS toggle_name, s.name AS stage_name, tsr.priority, tsr.rule_value, tr.name AS rule_name, tr.description
+SELECT t.name AS toggle_name, s.name AS stage_name, tsr.priority, tsr.toggle_value, tr.name AS rule_name, tr.description
 FROM T_toggle_stage_rule tsr
 JOIN T_rule tr ON tsr.rule_id = tr.id
 JOIN T_stage s ON tsr.stage_id = s.id
@@ -331,10 +331,10 @@ WHERE tsr.priority < 10
 ORDER BY tsr.priority;
 
 -- Rules shared across multiple toggle+stage contexts
-SELECT tr.name AS rule_name, tsr.rule_value, COUNT(tsr.id) AS assignment_count
+SELECT tr.name AS rule_name, tsr.toggle_value, COUNT(tsr.id) AS assignment_count
 FROM T_rule tr
 JOIN T_toggle_stage_rule tsr ON tr.id = tsr.rule_id
-GROUP BY tr.id, tr.name, tsr.rule_value
+GROUP BY tr.id, tr.name, tsr.toggle_value
 HAVING COUNT(tsr.id) > 1
 ORDER BY assignment_count DESC;
 ```

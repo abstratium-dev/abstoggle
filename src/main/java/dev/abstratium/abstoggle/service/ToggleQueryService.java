@@ -227,7 +227,7 @@ public class ToggleQueryService {
                 tsr.getRule().getDescription(),
                 criteriaDtos,
                 tsr.getPriority(),
-                tsr.getRuleValue()
+                tsr.getToggleValue()
             );
             tsrDtos.add(dto);
         }
