@@ -24,7 +24,7 @@ Abstoggle is a feature toggle service — a tool that lets teams enable or disab
 - **Rule** — a reusable criteria definition that can be assigned to any toggle+stage combination. Each rule has:
   - **Name** — a unique, human-readable identifier (e.g. `beta-testers`, `eu-premium`).
   - **Description** — what this rule targets.
-  - **Criteria** — a map of `key → pattern` pairs. The key names a client context attribute; the pattern is tested against the client's value for that attribute. If all criteria match, the rule matches. A rule with no criteria is a catch-all and always matches.
+  - **Criteria** — an ordered list of `{key, pattern}` pairs. The key names a client context attribute; the pattern is tested against the client's value for that attribute. If all criteria match, the rule matches. A rule with no criteria is a catch-all and always matches. The same key may appear more than once — all occurrences must match.
 - **Toggle Stage Rule Assignment** — links a rule to a toggle within a stage and controls evaluation. Each assignment has:
   - **Priority** (integer, lower = higher priority) — assignments are evaluated in ascending priority order; the first match wins.
   - **Value** — the string to return when the assigned rule matches (e.g. `on`, `off`, or any custom string like `variant-b`).
@@ -32,42 +32,49 @@ Abstoggle is a feature toggle service — a tool that lets teams enable or disab
 ```mermaid
 erDiagram
     STAGE ||--o{ STAGE : "inherits from (parent)"
-    TOGGLE ||--o{ TOGGLE_STAGE : "assigned to"
-    STAGE  ||--o{ TOGGLE_STAGE : "has"
-    TOGGLE_STAGE ||--o{ RULE : "has"
-    RULE ||--o{ CRITERION : "has"
+    TOGGLE ||--o{ TOGGLE_STAGE_RULE : "assigned via"
+    STAGE  ||--o{ TOGGLE_STAGE_RULE : "used in"
+    RULE   ||--o{ TOGGLE_STAGE_RULE : "applied by"
+    RULE   ||--o{ CRITERION : "has"
 
     TOGGLE {
+        uuid   id
         string name
         string description
         bool   enabled
     }
     STAGE {
+        uuid   id
         string name
-        string parentStage
+        string parentStageName
     }
-    TOGGLE_STAGE {
-        string toggleName
-        string stageName
+    TOGGLE_STAGE_RULE {
+        uuid   id
+        uuid   toggleId
+        uuid   stageId
+        uuid   ruleId
         int    priority
         string value
     }
     RULE {
+        uuid   id
         string name
         string description
     }
     CRITERION {
-        string key
-        string pattern
+        uuid   id
+        string criterionKey
+        string criterionValue
     }
 ```
 
 #### Typical workflow
 
 1. Create one or more **Stages** (e.g. `prod`, `test`, `dev` with `test` inheriting from `prod`).
-2. Create a **Toggle** and assign it to the relevant stages.
-3. Create reusable **Rules** with criteria, then assign them to toggle+stage combinations and set a value for each assignment.
-4. Your application calls the public endpoint, evaluates the assignments client-side, and gates behaviour on the resolved value.
+2. Create reusable **Rules** with criteria (e.g. `beta-testers` with `userId = ^(alice|bob)$`, or `default-off` with no criteria as a catch-all).
+3. Create a **Toggle** (e.g. `new-checkout-flow`).
+4. Open the toggle and create **Assignments** — link each stage+rule combination, set the priority and the value to return when the rule matches (e.g. `on`, `off`, `variant-b`).
+5. Your application calls the public endpoint, evaluates the assignments client-side, and gates behaviour on the resolved value.
 
 ---
 
@@ -94,41 +101,39 @@ Example response:
 {
   "toggles": [
     {
-      "name": "new-checkout-flow",
-      "stage": "prod",
-      "description": "Enables the redesigned checkout",
-      "enabled": true,
-      "rules": [
-        {
-          "id": "...",
-          "priority": 1,
-          "value": "on",
-          "description": "EU premium users",
-          "criteria": {
-            "country": "/^(DE|AT|CH)$/i",
-            "plan": "premium"
-          }
-        },
-        {
-          "id": "...",
-          "priority": 99,
-          "value": "off",
-          "description": "Default off",
-          "criteria": {}
-        }
+      "toggleName": "new-checkout-flow",
+      "toggleDescription": "Enables the redesigned checkout",
+      "toggleEnabled": true,
+      "stageName": "prod",
+      "ruleName": "eu-premium-users",
+      "priority": 1,
+      "value": "on",
+      "ruleCriteria": [
+        { "criterionKey": "country", "criterionValue": "/^(DE|AT|CH)$/i" },
+        { "criterionKey": "plan",    "criterionValue": "premium" }
       ]
+    },
+    {
+      "toggleName": "new-checkout-flow",
+      "toggleDescription": "Enables the redesigned checkout",
+      "toggleEnabled": true,
+      "stageName": "prod",
+      "ruleName": "default-off",
+      "priority": 99,
+      "value": "off",
+      "ruleCriteria": []
     }
   ],
   "queryMetadata": {
     "stage": "prod",
     "nameFilter": null,
-    "count": 1,
+    "count": 2,
     "cacheHit": false
   }
 }
 ```
 
-The `stage` field on each toggle indicates which stage actually provided the configuration — it may be a parent stage if the requested stage inherits configuration from it.
+The response is a **flat list** — each entry is one toggle+stage+rule assignment row. A single toggle with multiple assignments appears as multiple rows sorted by priority. The `stageName` field indicates which stage actually provided the configuration — it may be a parent stage if the requested stage inherits configuration from it.
 
 #### Pattern matching
 
@@ -170,13 +175,13 @@ Rules support two kinds of logical composition:
 | **OR** | Create **multiple rules** and assign them to the same toggle+stage | Rules are evaluated in priority order; the first matching rule wins. Each rule is independent. |
 
 **AND example** — DACH premium users only:
-```json
-{
-  "country": "/^(DE|AT|CH)$/i",
-  "plan": "premium"
-}
-```
-Both `country` AND `plan` must match.
+
+| criterionKey | criterionValue |
+|---|---|
+| `country` | `/^(DE|AT|CH)$/i` |
+| `plan` | `premium` |
+
+Both `country` AND `plan` must match (all criteria in one rule = AND logic).
 
 **OR example** — DACH users OR users aged 50+:
 
@@ -184,17 +189,17 @@ Create two reusable rules and assign them to the same toggle+stage with differen
 
 | Priority | Rule | Value | Criteria |
 |----------|------|-------|----------|
-| 1 | `dach-users` | `on` | `{"country": "/^(DE|AT|CH)$/i"}` |
-| 2 | `age-50-plus` | `on` | `{"age": "/^[5-9][0-9]$/"}` |
-| 99 | `default-off` | `off` | `{}` (catch-all) |
+| 1 | `dach-users` | `on` | `country` = `/^(DE|AT|CH)$/i` |
+| 2 | `age-50-plus` | `on` | `age` = `/^[5-9][0-9]$/` |
+| 99 | `default-off` | `off` | *(none — catch-all)* |
 
 A user from the DACH gets `on` via priority 1. A 55-year-old from the US gets `on` via priority 2. Everyone else falls through to the catch-all at priority 99.
 
-> **Note:** You cannot put the same criterion key twice in one rule — the second value would overwrite the first. Use a regular expression with alternation (e.g., `^(alice|bob)$`) for OR on a single key, or create a second rule.
+> **Note:** You can put the same criterion key more than once in a rule — all occurrences must match independently. For OR on a single key you can also use a regular expression with alternation (e.g., `^(alice|bob)$`), or create a second rule.
 
 #### Caching Considerations
 
-The backend caches toggle query results using an in-memory cache with a configurable TTL (default: 60 seconds). The `cacheHit` flag in the response metadata indicates whether the result was served from cache.
+The backend caches toggle query results using an in-memory cache with a configurable TTL (default: 60 seconds). The `cacheHit` flag in the response metadata indicates whether the result was served from the cache. The metadata also includes the TTL value.
 
 While you could add caching to your client code, it generally makes little sense to cache the *evaluated results* — the same toggle can resolve to different values for different users based on their context. Caching evaluated results per user would require complex invalidation logic and could lead to stale feature states.
 
@@ -208,6 +213,8 @@ However, caching the *server response* (the raw toggle configuration) can be ben
 
 **JavaScript / TypeScript**
 
+The response is a flat list of assignment rows. Filter by `toggleName`, sort by `priority`, then evaluate each row's `ruleCriteria` list in order:
+
 ```javascript
 function matchesPattern(value, pattern) {
   try {
@@ -219,53 +226,73 @@ function matchesPattern(value, pattern) {
   }
 }
 
-function evaluate(toggle, clientContext) {
-  if (!toggle.enabled) return 'off';
+function evaluate(rows, toggleName, clientContext) {
+  // rows is the flat toggles array from the response
+  const relevant = rows
+    .filter(r => r.toggleName === toggleName)
+    .sort((a, b) => a.priority - b.priority);
 
-  const rules = [...toggle.rules].sort((a, b) => a.priority - b.priority);
+  if (relevant.length === 0) return 'off';
+  if (!relevant[0].toggleEnabled) return 'off';
 
-  for (const rule of rules) {
-    const criteria = Object.entries(rule.criteria);
+  for (const row of relevant) {
+    const criteria = row.ruleCriteria ?? [];
     const matches = criteria.length === 0 ||
-      criteria.every(([key, pattern]) =>
-        matchesPattern(clientContext[key] ?? '', pattern));
+      criteria.every(c =>
+        matchesPattern(clientContext[c.criterionKey] ?? '', c.criterionValue));
 
-    if (matches) return rule.value;
+    if (matches) return row.value ?? 'off';
   }
   return 'off';
 }
 
 // Usage
-const response = await fetch('/public/toggles?stage=prod');
+const response = await fetch('/public/toggles?stage=prod&context=frontend');
 const { toggles } = await response.json();
 const context = { userId: '10042', country: 'DE', plan: 'premium' };
-const value = evaluate(toggles.find(t => t.name === 'new-checkout-flow'), context);
+const value = evaluate(toggles, 'new-checkout-flow', context);
 if (value === 'on') { /* feature active */ }
 ```
 
 **Java**
 
+The response is a flat list. Group by `toggleName`, sort by `priority`, evaluate `ruleCriteria` as a list of `{criterionKey, criterionValue}` pairs:
+
 ```java
-import java.util.Map;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
+import java.util.*;
+import java.util.regex.*;
+import java.util.stream.*;
 
 public class ToggleEvaluator {
 
-    public static String evaluate(ToggleDto toggle, Map<String, String> clientContext) {
-        if (!Boolean.TRUE.equals(toggle.getEnabled())) return "off";
+    /** Each row is one QueryTSRDto: toggleName, toggleEnabled, priority, value, ruleCriteria */
+    public static String evaluate(List<Map<String, Object>> rows, String toggleName,
+                                  Map<String, String> clientContext) {
+        List<Map<String, Object>> relevant = rows.stream()
+            .filter(r -> toggleName.equals(r.get("toggleName")))
+            .sorted(Comparator.comparingInt(r -> (int) r.get("priority")))
+            .collect(Collectors.toList());
 
-        return toggle.getRules().stream()
-            .sorted(Comparator.comparingInt(RuleDto::getPriority))
-            .filter(rule -> matchesAll(rule.getCriteria(), clientContext))
-            .map(RuleDto::getValue)
-            .findFirst()
-            .orElse("off");
+        if (relevant.isEmpty()) return "off";
+        if (!Boolean.TRUE.equals(relevant.get(0).get("toggleEnabled"))) return "off";
+
+        for (Map<String, Object> row : relevant) {
+            @SuppressWarnings("unchecked")
+            List<Map<String, String>> criteria =
+                (List<Map<String, String>>) row.getOrDefault("ruleCriteria", List.of());
+            if (matchesAll(criteria, clientContext)) {
+                return String.valueOf(row.getOrDefault("value", "off"));
+            }
+        }
+        return "off";
     }
 
-    private static boolean matchesAll(Map<String, String> criteria, Map<String, String> ctx) {
-        return criteria.entrySet().stream().allMatch(e ->
-            matchesPattern(ctx.getOrDefault(e.getKey(), ""), e.getValue()));
+    private static boolean matchesAll(List<Map<String, String>> criteria,
+                                      Map<String, String> ctx) {
+        return criteria.stream().allMatch(c ->
+            matchesPattern(
+                ctx.getOrDefault(c.get("criterionKey"), ""),
+                c.get("criterionValue")));
     }
 
     private static boolean matchesPattern(String value, String pattern) {
@@ -306,21 +333,29 @@ def matches_pattern(value: str, pattern: str) -> bool:
     except re.error:
         return value == pattern
 
-def evaluate(toggle: dict, client_context: dict) -> str:
-    if not toggle.get('enabled', False):
+def evaluate(rows: list, toggle_name: str, client_context: dict) -> str:
+    """rows is the flat toggles list from the response; each row is a QueryTSRDto dict."""
+    relevant = sorted(
+        [r for r in rows if r.get('toggleName') == toggle_name],
+        key=lambda r: r['priority']
+    )
+    if not relevant:
         return 'off'
-    rules = sorted(toggle.get('rules', []), key=lambda r: r['priority'])
-    for rule in rules:
-        criteria = rule.get('criteria', {})
-        if all(matches_pattern(client_context.get(k, ''), p) for k, p in criteria.items()):
-            return rule['value']
+    if not relevant[0].get('toggleEnabled', False):
+        return 'off'
+    for row in relevant:
+        criteria = row.get('ruleCriteria', [])  # list of {criterionKey, criterionValue}
+        if all(matches_pattern(client_context.get(c['criterionKey'], ''), c['criterionValue'])
+               for c in criteria):
+            return row.get('value', 'off')
     return 'off'
 
 # Usage
-response = requests.get('https://your-host/public/toggles', params={'stage': 'prod'})
-toggles = {t['name']: t for t in response.json()['toggles']}
+response = requests.get('https://your-host/public/toggles',
+                        params={'stage': 'prod', 'context': 'frontend'})
+rows = response.json()['toggles']
 context = {'userId': '10042', 'country': 'DE', 'plan': 'premium'}
-value = evaluate(toggles.get('new-checkout-flow', {}), context)
+value = evaluate(rows, 'new-checkout-flow', context)
 if value == 'on':
     pass  # feature active
 ```
@@ -329,23 +364,23 @@ if value == 'on':
 
 ```go
 import (
-    "encoding/json"
-    "net/http"
     "regexp"
     "sort"
     "strings"
 )
 
-type Rule struct {
-    Priority int               `json:"priority"`
-    Value    string            `json:"value"`
-    Criteria map[string]string `json:"criteria"`
+type Criterion struct {
+    CriterionKey   string `json:"criterionKey"`
+    CriterionValue string `json:"criterionValue"`
 }
 
-type Toggle struct {
-    Name    string `json:"name"`
-    Enabled bool   `json:"enabled"`
-    Rules   []Rule `json:"rules"`
+// Row is one QueryTSRDto entry from the flat toggles list
+type Row struct {
+    ToggleName        string      `json:"toggleName"`
+    ToggleEnabled     bool        `json:"toggleEnabled"`
+    Priority          int         `json:"priority"`
+    Value             string      `json:"value"`
+    RuleCriteria      []Criterion `json:"ruleCriteria"`
 }
 
 func matchesPattern(value, pattern string) bool {
@@ -368,25 +403,32 @@ func matchesPattern(value, pattern string) bool {
     return value == pattern
 }
 
-func Evaluate(toggle Toggle, clientContext map[string]string) string {
-    if !toggle.Enabled {
+func Evaluate(rows []Row, toggleName string, clientContext map[string]string) string {
+    var relevant []Row
+    for _, r := range rows {
+        if r.ToggleName == toggleName {
+            relevant = append(relevant, r)
+        }
+    }
+    if len(relevant) == 0 {
         return "off"
     }
-    rules := make([]Rule, len(toggle.Rules))
-    copy(rules, toggle.Rules)
-    sort.Slice(rules, func(i, j int) bool { return rules[i].Priority < rules[j].Priority })
+    sort.Slice(relevant, func(i, j int) bool { return relevant[i].Priority < relevant[j].Priority })
+    if !relevant[0].ToggleEnabled {
+        return "off"
+    }
 
-    for _, rule := range rules {
+    for _, row := range relevant {
         matched := true
-        for k, pattern := range rule.Criteria {
-            v, _ := clientContext[k]
-            if !matchesPattern(v, pattern) {
+        for _, c := range row.RuleCriteria {
+            v := clientContext[c.CriterionKey]
+            if !matchesPattern(v, c.CriterionValue) {
                 matched = false
                 break
             }
         }
         if matched {
-            return rule.Value
+            return row.Value
         }
     }
     return "off"
@@ -485,7 +527,7 @@ The built-in **Tester** page (accessible via the navigation bar) lets you simula
 - A rule with **no criteria** is a catch-all — it always matches. Place it at the lowest priority (highest number) to act as a default.
 - Rules are evaluated in **ascending priority order** — priority `1` is checked before priority `10`. The first matching rule wins.
 - **AND logic**: all criteria within a single rule must match. **OR logic**: create multiple rules with different criteria — each is evaluated independently and the first match wins.
-- If a toggle is configured on a **parent stage** only, it will still appear when querying a child stage — the `stage` field in the response shows which stage provided the configuration.
+- If a toggle is configured on a **parent stage** only, it will still appear when querying a child stage — the `stageName` field in the response row shows which stage actually provided the configuration.
 - The **cacheHit** flag in the response metadata indicates whether the result was served from cache. The cache TTL is configurable via the `toggle.cache.ttl-seconds` property.
 
 ---
@@ -498,15 +540,15 @@ This section shows how to configure rules for common real-world scenarios.
 
 Create two reusable rules with criteria, then assign them to toggle `new-feature-x` for stage `test` with different values and priorities.
 
-**Rule: `new-features-testers`** — criteria `{"userId": "^(alice|bob|charlie)$"}`  
-**Rule: `no-new-features-testers`** — criteria `{}` (catch-all)
+**Rule: `new-features-testers`** — criterion: `userId` = `^(alice|bob|charlie)$`  
+**Rule: `no-new-features-testers`** — no criteria (catch-all)
 
 Assignment table for toggle `new-feature-x`, stage `test`:
 
 | Priority | Rule | Value | Criteria |
 |----------|------|-------|----------|
-| 1 | `new-features-testers` | `on` | `{"userId": "^(alice|bob|charlie)$"}` |
-| 99 | `no-new-features-testers` | `off` | `{}` |
+| 1 | `new-features-testers` | `on` | `userId` = `^(alice|bob|charlie)$` |
+| 99 | `no-new-features-testers` | `off` | *(none — catch-all)* |
 
 Alice, Bob, and Charlie get `on`; everyone else falls through to the catch-all and gets `off`.
 
@@ -515,16 +557,16 @@ Alice, Bob, and Charlie get `on`; everyone else falls through to the catch-all a
 You can target a percentage of users by matching on a deterministic substring of their username.
 
 **~25% of users — first letter A–F**  
-Create a reusable rule with criteria `{"username": "^[a-fA-F]"}`, then assign it to a toggle+stage with value `variant-b`.
+Create a reusable rule with criterion `username` = `^[a-fA-F]`, then assign it to a toggle+stage with value `variant-b`.
 
 **~50% of users — first letter A–M**  
-Create a reusable rule with criteria `{"username": "^[a-mA-M]"}`, then assign it with value `variant-b`.
+Create a reusable rule with criterion `username` = `^[a-mA-M]`, then assign it with value `variant-b`.
 
 **~10% of users — last digit of userId 0**  
-Create a reusable rule with criteria `{"userId": "0$"}`, then assign it with value `variant-b`.
+Create a reusable rule with criterion `userId` = `0$`, then assign it with value `variant-b`.
 
 **~10% of users — last two digits of userId 00–09**  
-Create a reusable rule with criteria `{"userId": "(00|01|02|03|04|05|06|07|08|09)$"}`, then assign it with value `variant-b`.
+Create a reusable rule with criterion `userId` = `(00|01|02|03|04|05|06|07|08|09)$`, then assign it with value `variant-b`.
 
 > **Tip:** The match is against the string value supplied in the client context, so `userId` must be sent as a string (e.g. `"10042"`) even if it is a number in your database.
 
@@ -532,22 +574,21 @@ Example assignment for a 50/50 split on toggle `new-feature`, stage `prod`:
 
 | Priority | Rule | Value | Criteria |
 |----------|------|-------|----------|
-| 1 | `variant-b-users` | `variant-b` | `{"username": "^[a-mA-M]"}` |
-| 2 | `variant-a-users` | `variant-a` | `{}` |
+| 1 | `variant-b-users` | `variant-b` | `username` = `^[a-mA-M]` |
+| 2 | `variant-a-users` | `variant-a` | *(none — catch-all)* |
 
 #### 3. Country + plan targeting
 
 Enable a feature only for premium users in the EU.
 
-**Rule: `eu-premium`** — criteria:
-```json
-{
-  "country": "/^(DE|AT|CH|NL|BE|LU)$/i",
-  "plan": "premium"
-}
-```
+**Rule: `eu-premium`** — criteria (both must match — AND logic):
 
-**Rule: `default-off`** — criteria `{}`
+| criterionKey | criterionValue |
+|---|---|
+| `country` | `/^(DE|AT|CH|NL|BE|LU)$/i` |
+| `plan` | `premium` |
+
+**Rule: `default-off`** — no criteria (catch-all)
 
 Assignment for toggle `eu-premium-feature`, stage `prod`:
 
@@ -565,10 +606,10 @@ If your client context includes a `userIdHash` field (e.g. the first 4 hex chara
 Create a reusable rule with criteria, then assign it with the desired value:
 
 **~6% of users** — first hex digit `0` or `1`:  
-Rule: `{"userIdHash": "^[01]"}`, assign with value `canary`.
+Rule criterion: `userIdHash` = `^[01]`, assign with value `canary`.
 
 **~0.4% of users** — first two hex digits `00`–`0f`:  
-Rule: `{"userIdHash": "^0[0-9a-fA-F]"}`, assign with value `canary`.
+Rule criterion: `userIdHash` = `^0[0-9a-fA-F]`, assign with value `canary`.
 
 #### 5. Time-based or date-based targeting
 
@@ -577,10 +618,10 @@ If your client context includes a `currentDate` or `currentHour` field, you can 
 Create a reusable rule with time-based criteria, then assign it with value `on`:
 
 **Business hours only** (08:00–17:59):  
-Rule: `{"currentHour": "^(08|09|1[0-7])$"}`, assign with value `on`.
+Rule criterion: `currentHour` = `^(08|09|1[0-7])$`, assign with value `on`.
 
 **Weekdays only** (Mon–Fri, ISO day of week 1–5):  
-Rule: `{"dayOfWeek": "^[1-5]$"}`, assign with value `on`.
+Rule criterion: `dayOfWeek` = `^[1-5]$`, assign with value `on`.
 
 #### 6. Device or browser targeting
 
@@ -589,10 +630,10 @@ Enable a feature only for mobile users.
 Create reusable rules with device-based criteria, then assign them with the desired value:
 
 **Mobile browsers only**:  
-Rule: `{"userAgent": "/Mobile|Android|iPhone/i"}`, assign with value `on`.
+Rule criterion: `userAgent` = `/Mobile|Android|iPhone/i`, assign with value `on`.
 
 **Chrome only**:  
-Rule: `{"userAgent": "/Chrome/i"}`, assign with value `on`.
+Rule criterion: `userAgent` = `/Chrome/i`, assign with value `on`.
 
 > **Note:** Always place the most specific assignment at the lowest priority number (highest priority) and the catch-all default at the end. The first matching assignment wins.
 
@@ -701,13 +742,6 @@ _Replace all placeholder values with the values generated above.
 4. **Access the application**:
    - Main application: http://localhost:41087
    - Management interface: http://localhost:9009/m/info
-
-
-
-
-
-
-
 
 ## Monitoring and Health Checks
 

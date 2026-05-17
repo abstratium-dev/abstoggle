@@ -15,7 +15,7 @@
     <div class="form-row">
       <div class="form-group">
         <label for="stageSelect">Stage *</label>
-        <select id="stageSelect" [(ngModel)]="selectedStage" name="stageSelect">
+        <select id="stageSelect" [(ngModel)]="selectedStage" name="stageSelect" (ngModelChange)="updateUrlWithCurrentState()">
           <option value="">-- Select a stage --</option>
           <option *ngFor="let stage of stages()" [value]="stage.name">{{ stage.name }}</option>
         </select>
@@ -26,6 +26,7 @@
           id="contextInput"
           type="text"
           [(ngModel)]="selectedContext"
+          (ngModelChange)="updateUrlWithCurrentState()"
           name="contextInput"
           placeholder="e.g. frontend, payments"
         />
@@ -37,10 +38,47 @@
           id="nameFilter"
           type="text"
           [(ngModel)]="nameFilter"
+          (ngModelChange)="updateUrlWithCurrentState()"
           name="nameFilter"
           placeholder="Leave empty to fetch all toggles in this context"
         />
         <span class="form-hint">Optional — filters to a specific toggle name</span>
+      </div>
+    </div>
+
+    <!-- Configuration Management -->
+    <div class="config-section">
+      <button class="btn-toggle" (click)="toggleConfigExpanded()">
+        {{ configExpanded ? '▼' : '▶' }} Saved Configurations
+      </button>
+
+      <div *ngIf="configExpanded" class="config-content">
+        <div class="form-group config-select-group">
+          <label for="configSelect">Select Saved Config</label>
+          <select id="configSelect" (change)="onConfigSelect($event)">
+            <option value="">-- Choose a saved config --</option>
+            <option *ngFor="let name of savedConfigs" [value]="name" [selected]="name === configName">
+              {{ name }}
+            </option>
+          </select>
+          <span class="form-hint">Choose an existing config or enter a new name below</span>
+        </div>
+
+        <div class="form-group config-name-group">
+          <label for="configName">Config Name</label>
+          <input
+            id="configName"
+            type="text"
+            [(ngModel)]="configName"
+            name="configName"
+            placeholder="Enter name for saving (default if empty)"
+          />
+        </div>
+
+        <div class="config-actions">
+          <button class="btn-secondary" (click)="saveCurrentConfig()">Save</button>
+          <button class="btn-danger" (click)="deleteConfig()" [disabled]="!configName.trim()">Delete</button>
+        </div>
       </div>
     </div>
 
@@ -58,12 +96,14 @@
         <input
           type="text"
           [(ngModel)]="entry.key"
+          (ngModelChange)="updateUrlWithCurrentState()"
           [name]="'ctx-key-' + i"
           placeholder="Key"
         />
         <input
           type="text"
           [(ngModel)]="entry.value"
+          (ngModelChange)="updateUrlWithCurrentState()"
           [name]="'ctx-val-' + i"
           placeholder="Value"
         />

@@ -248,7 +248,7 @@ describe('StagesComponent', () => {
       await component.onSubmit();
 
       expect(controller.updateStage).toHaveBeenCalledWith(
-        'Development',
+        '1',
         'Updated Name',
         'Updated Description',
         1,
@@ -274,7 +274,7 @@ describe('StagesComponent', () => {
         cancelText: 'Cancel',
         confirmClass: 'btn-danger'
       });
-      expect(controller.deleteStage).toHaveBeenCalledWith('Development');
+      expect(controller.deleteStage).toHaveBeenCalledWith('1');
       expect(toastService.success).toHaveBeenCalledWith('Stage deleted successfully');
     });
 
@@ -296,7 +296,7 @@ describe('StagesComponent', () => {
 
       await component.deleteStage(mockStages[0]);
 
-      expect(controller.deleteStage).toHaveBeenCalledWith('Development');
+      expect(controller.deleteStage).toHaveBeenCalledWith('1');
       expect(toastService.error).toHaveBeenCalledWith('Cannot delete stage with children');
     });
   });

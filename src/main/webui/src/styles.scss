@@ -650,6 +650,16 @@ h2 {
   }
 }
 
+.table-link {
+  color: var(--color-link-primary);
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 /* ===== DIVIDER ===== */
 .divider {
   display: flex;
@@ -1088,6 +1098,41 @@ button {
 
 .clear-filters-btn {
   margin-bottom: 0.25rem;
+}
+
+.filter-display {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+
+  .filter-label {
+    font-weight: 500;
+    color: var(--color-text-secondary);
+  }
+
+  .filter-value {
+    font-weight: 600;
+    color: var(--color-primary);
+    padding: 0.25rem 0.75rem;
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border-secondary);
+    border-radius: 4px;
+  }
+}
+
+.btn-link {
+  background: transparent;
+  border: none;
+  color: var(--color-link-primary);
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  font-size: inherit;
+
+  &:hover {
+    color: var(--color-link-hover);
+  }
 }
 
 /* ===== TILE GRIDS ===== */
@@ -1615,6 +1660,7 @@ button {
 .button-group {
   display: flex;
   align-items: flex-end;
+  gap: 1rem;
 }
 
 /* ===== TOGGLE TESTER ===== */

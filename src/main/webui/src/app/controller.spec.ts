@@ -162,9 +162,9 @@ describe('Controller', () => {
       const updatedStage: Stage = { id: '123', name: 'Updated', displayOrder: 3 };
       const allStages: Stage[] = [updatedStage];
 
-      const updatePromise = controller.updateStage('Staging', 'Updated', 'Updated description', 3, undefined);
+      const updatePromise = controller.updateStage('123', 'Updated', 'Updated description', 3, undefined);
 
-      const updateReq = httpMock.expectOne('/api/stages/Staging');
+      const updateReq = httpMock.expectOne('/api/stages/123');
       expect(updateReq.request.method).toBe('PUT');
       expect(updateReq.request.body).toEqual({
         name: 'Updated',
@@ -186,18 +186,18 @@ describe('Controller', () => {
     });
 
     it('should throw error on failed update', async () => {
-      const updatePromise = controller.updateStage('Staging', 'Updated', '', 1, undefined);
+      const updatePromise = controller.updateStage('456', 'Updated', '', 1, undefined);
 
-      const req = httpMock.expectOne('/api/stages/Staging');
+      const req = httpMock.expectOne('/api/stages/456');
       req.error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
 
       await expectAsync(updatePromise).toBeRejected();
     });
 
     it('should handle validation error during update', async () => {
-      const updatePromise = controller.updateStage('Staging', 'Updated', '', 1, undefined);
+      const updatePromise = controller.updateStage('456', 'Updated', '', 1, undefined);
 
-      const req = httpMock.expectOne('/api/stages/Staging');
+      const req = httpMock.expectOne('/api/stages/456');
       req.error(new ProgressEvent('error'), { status: 400, statusText: 'Bad Request' });
 
       await expectAsync(updatePromise).toBeRejected();
@@ -206,12 +206,12 @@ describe('Controller', () => {
 
   describe('deleteStage', () => {
     it('should delete stage and reload list', async () => {
-      const stageName = 'Staging';
+      const stageId = 'abc-123';
       const remainingStages: Stage[] = [{ id: '456', name: 'Production', displayOrder: 2 }];
 
-      const deletePromise = controller.deleteStage(stageName);
+      const deletePromise = controller.deleteStage(stageId);
 
-      const deleteReq = httpMock.expectOne(`/api/stages/${stageName}`);
+      const deleteReq = httpMock.expectOne(`/api/stages/${stageId}`);
       expect(deleteReq.request.method).toBe('DELETE');
       deleteReq.flush(null);
 
@@ -226,30 +226,30 @@ describe('Controller', () => {
     });
 
     it('should throw error on failed deletion', async () => {
-      const stageName = 'Staging';
-      const deletePromise = controller.deleteStage(stageName);
+      const stageId = 'abc-123';
+      const deletePromise = controller.deleteStage(stageId);
 
-      const req = httpMock.expectOne(`/api/stages/${stageName}`);
+      const req = httpMock.expectOne(`/api/stages/${stageId}`);
       req.error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
 
       await expectAsync(deletePromise).toBeRejected();
     });
 
     it('should handle permission error during deletion', async () => {
-      const stageName = 'Staging';
-      const deletePromise = controller.deleteStage(stageName);
+      const stageId = 'abc-123';
+      const deletePromise = controller.deleteStage(stageId);
 
-      const req = httpMock.expectOne(`/api/stages/${stageName}`);
+      const req = httpMock.expectOne(`/api/stages/${stageId}`);
       req.error(new ProgressEvent('error'), { status: 403, statusText: 'Forbidden' });
 
       await expectAsync(deletePromise).toBeRejected();
     });
 
     it('should handle server error during deletion', async () => {
-      const stageName = 'Staging';
-      const deletePromise = controller.deleteStage(stageName);
+      const stageId = 'abc-123';
+      const deletePromise = controller.deleteStage(stageId);
 
-      const req = httpMock.expectOne(`/api/stages/${stageName}`);
+      const req = httpMock.expectOne(`/api/stages/${stageId}`);
       req.error(new ProgressEvent('error'), { status: 500, statusText: 'Server Error' });
 
       await expectAsync(deletePromise).toBeRejected();
@@ -304,9 +304,9 @@ describe('Controller', () => {
         { id: '2', name: 'Staging', displayOrder: 2 }
       ]);
 
-      // Delete stage
-      const deletePromise = controller.deleteStage('Dev');
-      const deleteReq = httpMock.expectOne('/api/stages/Dev');
+      // Delete stage (using ID '1')
+      const deletePromise = controller.deleteStage('1');
+      const deleteReq = httpMock.expectOne('/api/stages/1');
       deleteReq.flush(null);
       await deletePromise;
       const loadReq3 = httpMock.expectOne('/api/stages');

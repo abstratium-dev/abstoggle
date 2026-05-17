@@ -140,7 +140,9 @@ public class ToggleQueryService {
             stage,
             nameFilter,
             allTsrDtos.size(),
-            false // cache hit
+            false, // cache hit
+            cacheEnabled,
+            cacheTtlSeconds
         );
         
         return new QueryResponse(allTsrDtos, metadata);

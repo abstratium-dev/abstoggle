@@ -19,6 +19,18 @@ const DEFAULT_CONTEXT: { [key: string]: string } = {
   userAgent: 'Mozilla/5.0...'
 };
 
+const STORAGE_KEY = 'toggleTesterConfigs';
+const DEFAULT_CONFIG_NAME = 'default';
+
+interface StoredState {
+  selectedStage: string;
+  selectedContext: string;
+  nameFilter: string;
+  contextEntries: ContextEntry[];
+}
+
+type Configurations = Record<string, StoredState>;
+
 @Component({
   selector: 'app-toggle-tester',
   imports: [CommonModule, FormsModule, RouterModule, InfoButtonComponent],
@@ -39,6 +51,9 @@ export class ToggleTesterComponent implements OnInit {
   contextEntries: ContextEntry[] = [];
   newContextKey = '';
   newContextValue = '';
+  configName = '';
+  savedConfigs: string[] = [];
+  configExpanded = false;
 
   querying = false;
   queryError: string | null = null;
@@ -48,7 +63,7 @@ export class ToggleTesterComponent implements OnInit {
   ngOnInit(): void {
     this.controller.loadStages();
 
-    this.contextEntries = Object.entries(DEFAULT_CONTEXT).map(([key, value]) => ({ key, value }));
+    this.loadState();
 
     this.route.paramMap.subscribe(params => {
       const stage = params.get('stage');
@@ -60,6 +75,175 @@ export class ToggleTesterComponent implements OnInit {
         this.nameFilter = toggleName;
       }
     });
+
+    // Read query parameters (URL takes precedence over localStorage)
+    this.route.queryParamMap.subscribe(params => {
+      const stage = params.get('stage');
+      const context = params.get('context');
+      const nameFilter = params.get('filter');
+
+      if (stage) {
+        this.selectedStage = stage;
+      }
+      if (context) {
+        this.selectedContext = context;
+      }
+      if (nameFilter) {
+        this.nameFilter = nameFilter;
+      }
+
+      // Load context entries from query params (ctx.key=value format)
+      const entries: ContextEntry[] = [];
+      params.keys.forEach(key => {
+        if (key.startsWith('ctx.')) {
+          const ctxKey = key.substring(4);
+          const value = params.get(key) ?? '';
+          if (ctxKey) {
+            entries.push({ key: ctxKey, value });
+          }
+        }
+      });
+
+      if (entries.length > 0) {
+        this.contextEntries = entries;
+      }
+    });
+  }
+
+  private getAllConfigs(): Configurations {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  private loadConfig(name: string): void {
+    const configs = this.getAllConfigs();
+    const state = configs[name];
+
+    if (state) {
+      this.selectedStage = state.selectedStage ?? '';
+      this.selectedContext = state.selectedContext ?? '';
+      this.nameFilter = state.nameFilter ?? '';
+      this.contextEntries = state.contextEntries?.length
+        ? state.contextEntries
+        : Object.entries(DEFAULT_CONTEXT).map(([key, value]) => ({ key, value }));
+    } else {
+      // No saved config - use defaults
+      this.selectedStage = '';
+      this.selectedContext = '';
+      this.nameFilter = '';
+      this.contextEntries = Object.entries(DEFAULT_CONTEXT).map(([key, value]) => ({ key, value }));
+    }
+    this.configName = name;
+    this.updateUrlWithCurrentState();
+  }
+
+  updateUrlWithCurrentState(): void {
+    const queryParams: { [key: string]: string | null } = {
+      stage: this.selectedStage || null,
+      context: this.selectedContext.trim() || null,
+      filter: this.nameFilter.trim() || null
+    };
+
+    for (const entry of this.contextEntries) {
+      if (entry.key.trim()) {
+        queryParams[`ctx.${entry.key.trim()}`] = entry.value || null;
+      }
+    }
+
+    const name = this.nameFilter.trim();
+    if (name) {
+      this.router.navigate(['/toggle-tester', name, this.selectedStage], {
+        replaceUrl: true,
+        queryParams
+      });
+    } else {
+      this.router.navigate(['/toggle-tester'], {
+        replaceUrl: true,
+        queryParams
+      });
+    }
+
+    // Always save to default config when fields change
+    this.saveDefaultState();
+  }
+
+  private saveDefaultState(): void {
+    try {
+      this.saveConfig(DEFAULT_CONFIG_NAME);
+    } catch (error) {
+      console.error("Failed to save default state", error);
+    }
+  }
+
+  private saveConfig(name: string): void {
+    const configs = this.getAllConfigs();
+    configs[name] = {
+      selectedStage: this.selectedStage,
+      selectedContext: this.selectedContext,
+      nameFilter: this.nameFilter,
+      contextEntries: this.contextEntries
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(configs));
+    this.refreshSavedConfigs();
+  }
+
+  private refreshSavedConfigs(): void {
+    this.savedConfigs = Object.keys(this.getAllConfigs());
+  }
+
+  private loadState(): void {
+    this.refreshSavedConfigs();
+    this.loadConfig(this.configName || DEFAULT_CONFIG_NAME);
+  }
+
+  private saveState(): void {
+    try {
+      this.saveConfig(this.configName || DEFAULT_CONFIG_NAME);
+    } catch (error) {
+      console.error("Failed to save state", error);
+    }
+  }
+
+  saveCurrentConfig(): void {
+    const name = this.configName.trim() || DEFAULT_CONFIG_NAME;
+    this.saveConfig(name);
+    this.configName = name;
+  }
+
+  loadNamedConfig(): void {
+    const name = this.configName.trim() || DEFAULT_CONFIG_NAME;
+    this.loadConfig(name);
+    this.configName = name;
+  }
+
+  deleteConfig(): void {
+    const name = this.configName.trim() || DEFAULT_CONFIG_NAME;
+    if (!name) return;
+
+    const configs = this.getAllConfigs();
+    if (configs[name]) {
+      delete configs[name];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(configs));
+      this.refreshSavedConfigs();
+      // Reset to default config
+      this.loadConfig(DEFAULT_CONFIG_NAME);
+    }
+  }
+
+  toggleConfigExpanded(): void {
+    this.configExpanded = !this.configExpanded;
+  }
+
+  onConfigSelect(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    const name = select.value;
+    if (name) {
+      this.loadConfig(name);
+    }
   }
 
   addContextEntry(): void {
@@ -72,18 +256,29 @@ export class ToggleTesterComponent implements OnInit {
       }
       this.newContextKey = '';
       this.newContextValue = '';
+      this.saveState();
+      this.saveDefaultState();
+      this.updateUrlWithCurrentState();
     }
   }
 
   removeContextEntry(index: number): void {
     this.contextEntries.splice(index, 1);
+    this.saveState();
+    this.saveDefaultState();
+    this.updateUrlWithCurrentState();
   }
 
   resetContext(): void {
     this.contextEntries = Object.entries(DEFAULT_CONTEXT).map(([key, value]) => ({ key, value }));
+    this.saveState();
+    this.saveDefaultState();
+    this.updateUrlWithCurrentState();
   }
 
   async runQuery(): Promise<void> {
+    this.saveState();
+
     if (!this.selectedStage) {
       this.queryError = 'Please select a stage';
       return;
@@ -115,11 +310,31 @@ export class ToggleTesterComponent implements OnInit {
       this.queriedStage = this.selectedStage;
       this.results = response.toggles.map(toggle => evaluateToggle(toggle, clientContext));
 
+      // Build query params for sharing
+      const queryParams: { [key: string]: string | null } = {
+        stage: this.selectedStage || null,
+        context: this.selectedContext.trim() || null,
+        filter: this.nameFilter.trim() || null
+      };
+
+      // Add context entries as ctx.<key>=<value>
+      for (const entry of this.contextEntries) {
+        if (entry.key.trim()) {
+          queryParams[`ctx.${entry.key.trim()}`] = entry.value || null;
+        }
+      }
+
       const name = this.nameFilter.trim();
       if (name) {
-        this.router.navigate(['/toggle-tester', name, this.selectedStage], { replaceUrl: true });
+        this.router.navigate(['/toggle-tester', name, this.selectedStage], {
+          replaceUrl: true,
+          queryParams
+        });
       } else {
-        this.router.navigate(['/toggle-tester'], { replaceUrl: true });
+        this.router.navigate(['/toggle-tester'], {
+          replaceUrl: true,
+          queryParams
+        });
       }
     } catch (err: any) {
       const problem = err.error;

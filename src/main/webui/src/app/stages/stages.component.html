@@ -92,11 +92,23 @@
     </form>
   </div>
 
-  <div *ngIf="!loading() && !error() && stages().length === 0" class="info-message">
-    <p>No stages found. Click "Add Stage" to create your first stage.</p>
+  <div *ngIf="!loading() && !error() && filteredStages().length === 0" class="info-message">
+    <p *ngIf="filterName">No stages match the filter "{{ filterName }}". <button class="btn-link" (click)="clearFilter()">Clear filter</button></p>
+    <p *ngIf="!filterName">No stages found. Click "Add Stage" to create your first stage.</p>
   </div>
 
-  <div *ngIf="!loading() && !error() && stages().length > 0">
+  <!-- Filter display -->
+  <div *ngIf="filterName" class="filter-container">
+    <div class="filter-row">
+      <div class="filter-display">
+        <span class="filter-label">Filtered by:</span>
+        <span class="filter-value">{{ filterName }}</span>
+        <button class="btn-secondary" (click)="clearFilter()">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading() && !error() && filteredStages().length > 0">
     <table class="standard-table">
       <thead>
         <tr>
@@ -108,7 +120,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let stage of stages()">
+        <tr *ngFor="let stage of filteredStages()">
           <td><strong>{{ stage.name }}</strong></td>
           <td>{{ stage.description || '-' }}</td>
           <td>{{ stage.displayOrder }}</td>

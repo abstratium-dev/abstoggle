@@ -1,6 +1,6 @@
 <div class="container">
   <div class="page-header">
-    <h1>Rules <app-info-button tooltipText="Reusable rules define toggle values and criteria that can be assigned to any toggle+stage combination." /></h1>
+    <h1>Rules <app-info-button tooltipText="Reusable rules define criteria sets that can be assigned to any toggle+stage combination. The toggle value is configured on the assignment, not the rule." /></h1>
     <div class="header-actions">
       <button class="btn-add" (click)="toggleAddForm()" [disabled]="formSubmitting">
         {{ showAddForm ? 'Cancel' : '+ Add Rule' }}
@@ -26,32 +26,17 @@
         {{ formError }}
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label for="ruleName">Rule Name *</label>
-          <input
-            id="ruleName"
-            type="text"
-            [(ngModel)]="ruleName"
-            name="ruleName"
-            placeholder="e.g., beta-testers"
-            required
-            [disabled]="formSubmitting"
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="ruleValue">Rule Value *</label>
-          <input
-            id="ruleValue"
-            type="text"
-            [(ngModel)]="ruleValue"
-            name="ruleValue"
-            placeholder="e.g., on, off, variant-b"
-            required
-            [disabled]="formSubmitting"
-          />
-        </div>
+      <div class="form-group">
+        <label for="ruleName">Rule Name *</label>
+        <input
+          id="ruleName"
+          type="text"
+          [(ngModel)]="ruleName"
+          name="ruleName"
+          placeholder="e.g., beta-testers"
+          required
+          [disabled]="formSubmitting"
+        />
       </div>
 
       <div class="form-group">
@@ -95,9 +80,9 @@
         </div>
         <div *ngIf="criteriaEntries.length > 0" class="criteria-list">
           <div *ngFor="let entry of criteriaEntries; let i = index" class="criteria-tag">
-            <span class="criteria-key">{{ entry.key }}</span>
+            <span class="criteria-key">{{ entry.criterionKey }}</span>
             <span class="criteria-sep">=</span>
-            <span class="criteria-value">{{ entry.value }}</span>
+            <span class="criteria-value">{{ entry.criterionValue }}</span>
             <button type="button" class="btn-icon" (click)="removeCriterionEntry(i)" title="Remove criterion">
               ✕
             </button>
@@ -116,23 +101,34 @@
     </form>
   </div>
 
-  <div *ngIf="!loading() && !error() && rules().length === 0" class="info-message">
-    <p>No reusable rules found. Click "Add Rule" to create your first rule.</p>
+  <div *ngIf="!loading() && !error() && filteredRules().length === 0" class="info-message">
+    <p *ngIf="filterName">No rules match the filter "{{ filterName }}". <button class="btn-link" (click)="clearFilter()">Clear filter</button></p>
+    <p *ngIf="!filterName">No reusable rules found. Click "Add Rule" to create your first rule.</p>
   </div>
 
-  <div *ngIf="!loading() && !error() && rules().length > 0">
+  <!-- Filter display -->
+  <div *ngIf="filterName" class="filter-container">
+    <div class="filter-row">
+      <div class="filter-display">
+        <span class="filter-label">Filtered by:</span>
+        <span class="filter-value">{{ filterName }}</span>
+        <button class="btn-secondary" (click)="clearFilter()">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading() && !error() && filteredRules().length > 0">
     <table class="standard-table">
       <thead>
         <tr>
           <th>Name</th>
-          <th>Value</th>
           <th>Description</th>
           <th>Criteria</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let rule of rules()">
+        <tr *ngFor="let rule of filteredRules()">
           <td><strong>{{ rule.name || rule.id }}</strong></td>
           <td>{{ rule.description || '-' }}</td>
           <td>

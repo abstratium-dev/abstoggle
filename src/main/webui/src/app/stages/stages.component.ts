@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
 import { InfoButtonComponent } from '../core/info-button/info-button.component';
@@ -20,6 +20,7 @@ export class StagesComponent implements OnInit {
   private toastService = inject(ToastService);
   private confirmService = inject(ConfirmDialogService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   stages: Signal<Stage[]> = this.modelService.stages$;
   loading: Signal<boolean> = this.modelService.stagesLoading$;
@@ -37,8 +38,39 @@ export class StagesComponent implements OnInit {
   stageDisplayOrder = 0;
   stageParentName = '';
 
+  // Filter fields
+  filterName: string | null = null;
+
   ngOnInit(): void {
     this.controller.loadStages();
+
+    this.route.queryParamMap.subscribe(params => {
+      const filterName = params.get('filterName');
+      if (filterName) {
+        this.filterName = filterName;
+      }
+    });
+  }
+
+  /**
+   * Returns filtered stages based on the current filterName.
+   */
+  filteredStages(): Stage[] {
+    const allStages = this.stages();
+    if (!this.filterName) {
+      return allStages;
+    }
+    const term = this.filterName.toLowerCase();
+    return allStages.filter(stage => {
+      const name = stage.name.toLowerCase();
+      const desc = (stage.description || '').toLowerCase();
+      return name.includes(term) || desc.includes(term);
+    });
+  }
+
+  clearFilter(): void {
+    this.filterName = null;
+    this.router.navigate(['/stages']);
   }
 
   toggleAddForm(): void {
@@ -90,7 +122,7 @@ export class StagesComponent implements OnInit {
 
       if (this.editingStage) {
         await this.controller.updateStage(
-          this.editingStage.name,
+          this.editingStage.id,
           this.stageName.trim(),
           this.stageDescription.trim(),
           this.stageDisplayOrder,
@@ -131,7 +163,7 @@ export class StagesComponent implements OnInit {
     }
 
     try {
-      await this.controller.deleteStage(stage.name);
+      await this.controller.deleteStage(stage.id);
       this.toastService.success('Stage deleted successfully');
     } catch (err: any) {
       const problem = err.error;

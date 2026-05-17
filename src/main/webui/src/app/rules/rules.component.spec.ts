@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RulesComponent } from './rules.component';
-import { ModelService, Rule } from '../model.service';
+import { Criterion, ModelService, Rule } from '../model.service';
 import { Controller } from '../controller';
 import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
@@ -19,16 +19,14 @@ describe('RulesComponent', () => {
     {
       id: 'rule-1',
       name: 'beta-testers',
-      priority: 0,
       description: 'Beta testers rule',
-      criteria: { userId: '^(alice|bob)$' }
+      criteria: [{ criterionKey: 'userId', criterionValue: '^(alice|bob)$' }]
     },
     {
       id: 'rule-2',
       name: 'catch-all',
-      priority: 0,
       description: 'Default off rule',
-      criteria: {}
+      criteria: []
     }
   ];
 
@@ -116,7 +114,7 @@ describe('RulesComponent', () => {
     component.criteriaValue = '^alice$';
     component.addCriterionEntry();
     expect(component.criteriaEntries.length).toBe(1);
-    expect(component.criteriaEntries[0]).toEqual({ key: 'userId', value: '^alice$' });
+    expect(component.criteriaEntries[0]).toEqual({ criterionKey: 'userId', criterionValue: '^alice$' });
   });
 
   it('should not add empty criterion entry', () => {
@@ -127,10 +125,13 @@ describe('RulesComponent', () => {
   });
 
   it('should remove criterion entry', () => {
-    component.criteriaEntries = [{ key: 'a', value: 'b' }, { key: 'c', value: 'd' }];
+    component.criteriaEntries = [
+      { criterionKey: 'a', criterionValue: 'b' },
+      { criterionKey: 'c', criterionValue: 'd' }
+    ];
     component.removeCriterionEntry(0);
     expect(component.criteriaEntries.length).toBe(1);
-    expect(component.criteriaEntries[0]).toEqual({ key: 'c', value: 'd' });
+    expect(component.criteriaEntries[0]).toEqual({ criterionKey: 'c', criterionValue: 'd' });
   });
 
   it('should require name on submit', async () => {
@@ -150,7 +151,7 @@ describe('RulesComponent', () => {
     component.ruleDescription = 'A new rule';
     await component.onSubmit();
     expect(controller.createStandaloneRule).toHaveBeenCalledWith(
-      'new-rule', 'A new rule', {}
+      'new-rule', 'A new rule', []
     );
     expect(toastService.success).toHaveBeenCalledWith('Rule created successfully');
   });
@@ -162,7 +163,8 @@ describe('RulesComponent', () => {
     component.ruleName = 'updated-name';
     await component.onSubmit();
     expect(controller.updateStandaloneRule).toHaveBeenCalledWith(
-      'rule-1', 'updated-name', 'Beta testers rule', { userId: '^(alice|bob)$' }
+      'rule-1', 'updated-name', 'Beta testers rule',
+      [{ criterionKey: 'userId', criterionValue: '^(alice|bob)$' }]
     );
     expect(toastService.success).toHaveBeenCalledWith('Rule updated successfully');
   });
@@ -193,8 +195,12 @@ describe('RulesComponent', () => {
   });
 
   it('should format criteria correctly', () => {
-    expect(component.formatCriteria({ userId: '^alice$', env: 'prod' })).toBe('userId: ^alice$, env: prod');
-    expect(component.formatCriteria({})).toBe('None (catch-all)');
+    const criteria: Criterion[] = [
+      { criterionKey: 'userId', criterionValue: '^alice$' },
+      { criterionKey: 'env', criterionValue: 'prod' }
+    ];
+    expect(component.formatCriteria(criteria)).toBe('userId: ^alice$, env: prod');
+    expect(component.formatCriteria([])).toBe('None (catch-all)');
     expect(component.formatCriteria(null as any)).toBe('None (catch-all)');
   });
 });

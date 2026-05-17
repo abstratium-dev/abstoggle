@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
 import { InfoButtonComponent } from '../core/info-button/info-button.component';
@@ -23,6 +23,7 @@ export class TogglesComponent implements OnInit {
   private confirmService = inject(ConfirmDialogService);
   private authService = inject(AuthService);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
   toggles: Signal<Toggle[]> = this.modelService.toggles$;
   loading: Signal<boolean> = this.modelService.togglesLoading$;
@@ -49,8 +50,8 @@ export class TogglesComponent implements OnInit {
   showAddStageRuleForm = false;
   editingStageRule: ToggleStageRule | null = null;
 
-  // Add form fields
-  selectedStageName = '';
+  // Add form fields - stage and rule selected by ID
+  selectedStageId = '';
   selectedRuleId = '';
   newRulePriority = 100;
   newRuleValue = 'off';
@@ -70,9 +71,20 @@ export class TogglesComponent implements OnInit {
 
   fetchRuleOptions = async (searchTerm: string): Promise<AutocompleteOption[]> => {
     const term = searchTerm.toLowerCase();
+    return this.rules()
+      .filter(rule => {
+        const name = (rule.name || '').toLowerCase();
+        const desc = (rule.description || '').toLowerCase();
+        return name.includes(term) || desc.includes(term);
+      })
+      .map(rule => ({ value: rule.name || rule.id, label: rule.name || rule.id }));
+  };
+
+  fetchStageOptionsForAssignment = async (searchTerm: string): Promise<AutocompleteOption[]> => {
+    const term = searchTerm.toLowerCase();
     return this.stages()
       .filter(stage => stage.name.toLowerCase().includes(term))
-      .map(stage => ({ value: stage.name, label: stage.name }));
+      .map(stage => ({ value: stage.id, label: stage.name }));
   };
 
   fetchRuleOptionsForAssignment = async (searchTerm: string): Promise<AutocompleteOption[]> => {
@@ -195,6 +207,7 @@ export class TogglesComponent implements OnInit {
     try {
       if (this.editingToggle) {
         await this.controller.updateToggle(
+          this.editingToggle.id,
           this.editingToggle.name,
           this.toggleDescription.trim(),
           this.toggleEnabled,
@@ -235,7 +248,7 @@ export class TogglesComponent implements OnInit {
     }
 
     try {
-      await this.controller.deleteToggle(toggle.name);
+      await this.controller.deleteToggle(toggle.id);
       this.toastService.success('Toggle deleted successfully');
     } catch (err: any) {
       const problem = err.error;
@@ -252,7 +265,7 @@ export class TogglesComponent implements OnInit {
   async startManageStageRules(toggle: Toggle): Promise<void> {
     this.managingToggle = toggle;
     this.toggleStageRules = [];
-    this.selectedStageName = '';
+    this.selectedStageId = '';
     this.selectedRuleId = '';
     this.newRulePriority = 100;
     this.showAddStageRuleForm = false;
@@ -260,7 +273,7 @@ export class TogglesComponent implements OnInit {
     this.stageRulesLoading = true;
     this.controller.loadRules();
     try {
-      const rules = await this.controller.getToggleStageRules(toggle.name);
+      const rules = await this.controller.getToggleStageRules(toggle.id);
       this.toggleStageRules = rules;
     } catch (err: any) {
       const problem = err.error;
@@ -274,7 +287,7 @@ export class TogglesComponent implements OnInit {
   cancelManageStageRules(): void {
     this.managingToggle = null;
     this.toggleStageRules = [];
-    this.selectedStageName = '';
+    this.selectedStageId = '';
     this.selectedRuleId = '';
     this.showAddStageRuleForm = false;
     this.editingStageRule = null;
@@ -284,7 +297,7 @@ export class TogglesComponent implements OnInit {
     this.showAddStageRuleForm = !this.showAddStageRuleForm;
     if (this.showAddStageRuleForm) {
       this.editingStageRule = null;
-      this.selectedStageName = '';
+      this.selectedStageId = '';
       this.selectedRuleId = '';
       this.newRulePriority = 100;
       this.newRuleValue = 'off';
@@ -319,20 +332,19 @@ export class TogglesComponent implements OnInit {
     try {
       if (this.editingStageRule) {
         await this.controller.updateToggleStageRule(
-          this.managingToggle.name,
           this.editingStageRule.id,
-          this.editRulePriority,
-          this.editRuleValue
+          this.editRuleValue,
+          this.editRulePriority
         );
         this.toastService.success('Assignment updated successfully');
       } else {
-        if (!this.selectedStageName || !this.selectedRuleId) {
+        if (!this.selectedStageId || !this.selectedRuleId) {
           this.toastService.error('Stage and rule are required');
           return;
         }
         await this.controller.createToggleStageRule(
-          this.managingToggle.name,
-          this.selectedStageName,
+          this.managingToggle.id,
+          this.selectedStageId,
           this.selectedRuleId,
           this.newRulePriority,
           this.newRuleValue
@@ -341,7 +353,7 @@ export class TogglesComponent implements OnInit {
       }
       this.showAddStageRuleForm = false;
       this.editingStageRule = null;
-      this.selectedStageName = '';
+      this.selectedStageId = '';
       this.selectedRuleId = '';
       await this.reloadStageRules();
     } catch (err: any) {
@@ -356,9 +368,11 @@ export class TogglesComponent implements OnInit {
       return;
     }
 
+    const stageName = this.getStageName(stageRule.stageId);
+    const ruleName = this.getRuleName(stageRule.ruleId);
     const confirmed = await this.confirmService.confirm({
       title: 'Delete Assignment',
-      message: `Remove the assignment for stage "${stageRule.stageName}" and rule "${stageRule.ruleName}"?`,
+      message: `Remove the assignment for stage "${stageName}" and rule "${ruleName}"?`,
       confirmText: 'Delete',
       cancelText: 'Cancel',
       confirmClass: 'btn-danger'
@@ -369,7 +383,7 @@ export class TogglesComponent implements OnInit {
     }
 
     try {
-      await this.controller.deleteToggleStageRule(this.managingToggle.name, stageRule.id);
+      await this.controller.deleteToggleStageRule(stageRule.id);
       this.toastService.success('Assignment deleted successfully');
       await this.reloadStageRules();
     } catch (err: any) {
@@ -379,13 +393,44 @@ export class TogglesComponent implements OnInit {
     }
   }
 
+  getStageName(stageId: string): string {
+    return this.stages().find(s => s.id === stageId)?.name || stageId;
+  }
+
+  getRuleName(ruleId: string): string {
+    return this.rules().find(r => r.id === ruleId)?.name || ruleId;
+  }
+
+  getStage(stageId: string): Stage | undefined {
+    return this.stages().find(s => s.id === stageId);
+  }
+
+  getRule(ruleId: string): Rule | undefined {
+    return this.rules().find(r => r.id === ruleId);
+  }
+
+  goToStage(stageId: string): void {
+    const stage = this.getStage(stageId);
+    if (stage) {
+      this.router.navigate(['/stages'], { queryParams: { filterName: stage.name } });
+    }
+  }
+
+  goToRule(ruleId: string): void {
+    const rule = this.getRule(ruleId);
+    if (rule) {
+      const filterValue = rule.name || rule.id;
+      this.router.navigate(['/rules'], { queryParams: { filterName: filterValue } });
+    }
+  }
+
   private async reloadStageRules(): Promise<void> {
     if (!this.managingToggle) {
       return;
     }
     this.stageRulesLoading = true;
     try {
-      const rules = await this.controller.getToggleStageRules(this.managingToggle.name);
+      const rules = await this.controller.getToggleStageRules(this.managingToggle.id);
       this.toggleStageRules = rules;
     } catch (err: any) {
       const problem = err.error;

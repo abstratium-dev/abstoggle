@@ -23,9 +23,9 @@ describe('TogglesComponent', () => {
   let errorSignal: ReturnType<typeof signal<string | null>>;
 
   const mockToggles: Toggle[] = [
-    { name: 'feature-a', description: 'Feature A toggle', enabled: true },
-    { name: 'feature-b', description: 'Feature B toggle', enabled: false },
-    { name: 'feature-c', enabled: true }
+    { id: 'toggle-1', name: 'feature-a', description: 'Feature A toggle', enabled: true },
+    { id: 'toggle-2', name: 'feature-b', description: 'Feature B toggle', enabled: false },
+    { id: 'toggle-3', name: 'feature-c', enabled: true }
   ];
 
   beforeEach(async () => {
@@ -167,6 +167,7 @@ describe('TogglesComponent', () => {
 
     it('should create toggle successfully', async () => {
       const newToggle: Toggle = {
+        id: 'new-id',
         name: 'new-toggle',
         description: 'New Description',
         enabled: true
@@ -191,6 +192,7 @@ describe('TogglesComponent', () => {
 
     it('should create toggle without description', async () => {
       const newToggle: Toggle = {
+        id: 'min-id',
         name: 'minimal-toggle',
         enabled: true
       };
@@ -257,6 +259,7 @@ describe('TogglesComponent', () => {
       await component.onSubmit();
 
       expect(controller.updateToggle).toHaveBeenCalledWith(
+        'toggle-1',
         'feature-a',
         'Updated Description',
         false,
@@ -282,6 +285,7 @@ describe('TogglesComponent', () => {
       await component.onSubmit();
 
       expect(controller.updateToggle).toHaveBeenCalledWith(
+        'toggle-2',
         'feature-b',
         'Feature B toggle',
         true,
@@ -304,7 +308,7 @@ describe('TogglesComponent', () => {
         cancelText: 'Cancel',
         confirmClass: 'btn-danger'
       });
-      expect(controller.deleteToggle).toHaveBeenCalledWith('feature-a');
+      expect(controller.deleteToggle).toHaveBeenCalledWith('toggle-1');
       expect(toastService.success).toHaveBeenCalledWith('Toggle deleted successfully');
     });
 
@@ -326,7 +330,7 @@ describe('TogglesComponent', () => {
 
       await component.deleteToggle(mockToggles[0]);
 
-      expect(controller.deleteToggle).toHaveBeenCalledWith('feature-a');
+      expect(controller.deleteToggle).toHaveBeenCalledWith('toggle-1');
       expect(toastService.error).toHaveBeenCalledWith('Cannot delete toggle with active rules');
     });
   });
@@ -340,8 +344,8 @@ describe('TogglesComponent', () => {
       expect(component.getEnabledStatus(mockToggles[1])).toBe('No');
     });
 
-    it('should return Yes for toggle with undefined enabled (defaults to true)', () => {
-      const toggle: Toggle = { name: 'test' };
+    it('should return No for toggle with undefined enabled', () => {
+      const toggle: Toggle = { id: 'test-id', name: 'test' };
       expect(component.getEnabledStatus(toggle)).toBe('No');
     });
   });
@@ -362,8 +366,8 @@ describe('TogglesComponent', () => {
 
   describe('Toggle Stage Rule Management', () => {
     const mockStageRules = [
-      { id: 'sr-1', toggleName: 'feature-a', stageName: 'dev', ruleId: 'rule-1', ruleName: 'eu-rule', ruleValue: 'on', priority: 1, criteria: {} },
-      { id: 'sr-2', toggleName: 'feature-a', stageName: 'prod', ruleId: 'rule-2', ruleName: 'default-rule', ruleValue: 'off', priority: 100, criteria: {} }
+      { id: 'sr-1', toggleId: 'toggle-1', stageId: 'stage-dev', ruleId: 'rule-1', ruleValue: 'on', priority: 1 },
+      { id: 'sr-2', toggleId: 'toggle-1', stageId: 'stage-prod', ruleId: 'rule-2', ruleValue: 'off', priority: 100 }
     ];
 
     it('should load stage rules when starting management', async () => {
@@ -372,7 +376,7 @@ describe('TogglesComponent', () => {
       await component.startManageStageRules(mockToggles[0]);
 
       expect(component.managingToggle).toBe(mockToggles[0]);
-      expect(controller.getToggleStageRules).toHaveBeenCalledWith('feature-a');
+      expect(controller.getToggleStageRules).toHaveBeenCalledWith('toggle-1');
       expect(component.toggleStageRules).toEqual(mockStageRules);
       expect(component.stageRulesLoading).toBe(false);
     });
@@ -399,24 +403,25 @@ describe('TogglesComponent', () => {
     });
 
     it('should create stage rule successfully', async () => {
-      controller.createToggleStageRule.and.returnValue(Promise.resolve());
+      controller.createToggleStageRule.and.returnValue(Promise.resolve(mockStageRules[0]));
       controller.getToggleStageRules.and.returnValue(Promise.resolve(mockStageRules));
 
       component.managingToggle = mockToggles[0];
-      component.selectedStageName = 'dev';
+      component.selectedStageId = 'stage-dev';
       component.selectedRuleId = 'rule-1';
       component.newRulePriority = 5;
+      component.newRuleValue = 'on';
 
       await component.saveStageRule();
 
-      expect(controller.createToggleStageRule).toHaveBeenCalledWith('feature-a', 'dev', 'rule-1', 5);
+      expect(controller.createToggleStageRule).toHaveBeenCalledWith('toggle-1', 'stage-dev', 'rule-1', 5, 'on');
       expect(toastService.success).toHaveBeenCalledWith('Assignment created successfully');
       expect(component.showAddStageRuleForm).toBe(false);
     });
 
     it('should require stage and rule for creation', async () => {
       component.managingToggle = mockToggles[0];
-      component.selectedStageName = '';
+      component.selectedStageId = '';
       component.selectedRuleId = '';
 
       await component.saveStageRule();
@@ -436,7 +441,7 @@ describe('TogglesComponent', () => {
 
       await component.saveStageRule();
 
-      expect(controller.updateToggleStageRule).toHaveBeenCalledWith('feature-a', 'sr-1', 10, 'off');
+      expect(controller.updateToggleStageRule).toHaveBeenCalledWith('sr-1', 'off', 10);
       expect(toastService.success).toHaveBeenCalledWith('Assignment updated successfully');
     });
 
@@ -449,7 +454,7 @@ describe('TogglesComponent', () => {
       await component.deleteStageRule(mockStageRules[0]);
 
       expect(confirmService.confirm).toHaveBeenCalled();
-      expect(controller.deleteToggleStageRule).toHaveBeenCalledWith('feature-a', 'sr-1');
+      expect(controller.deleteToggleStageRule).toHaveBeenCalledWith('sr-1');
       expect(toastService.success).toHaveBeenCalledWith('Assignment deleted successfully');
     });
 
@@ -467,7 +472,7 @@ describe('TogglesComponent', () => {
 
       component.toggleAddStageRuleForm();
       expect(component.showAddStageRuleForm).toBe(true);
-      expect(component.selectedStageName).toBe('');
+      expect(component.selectedStageId).toBe('');
       expect(component.selectedRuleId).toBe('');
 
       component.toggleAddStageRuleForm();

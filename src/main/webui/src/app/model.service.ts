@@ -30,6 +30,8 @@ export interface Config {
  * Lightweight toggle metadata used in list views.
  */
 export interface Toggle {
+  /** v4 UUID. */
+  id: string;
   /** Toggle identifier. */
   name: string;
   /** Human-readable description. */
@@ -38,6 +40,20 @@ export interface Toggle {
   enabled?: boolean;
   /** Context string for this toggle. */
   context?: string;
+}
+
+/**
+ * A single criterion key/value pair, as returned by the backend CriterionDto.
+ */
+export interface Criterion {
+  /** v4 UUID. */
+  id?: string;
+  /** Key for matching (e.g., "userId", "country"). */
+  criterionKey: string;
+  /** Value or regex pattern to match. */
+  criterionValue: string;
+  /** v4 UUID of the parent rule. */
+  ruleId?: string;
 }
 
 /**
@@ -45,78 +61,71 @@ export interface Toggle {
  * including stage-specific rules ordered by priority.
  */
 export interface ToggleDto {
-  /** Toggle identifier. */
-  name: string;
-  /** Stage that matched the query. */
-  stage: string;
-  /** Human-readable description. */
-  description?: string;
-  /** Master switch to enable or disable this toggle. */
-  enabled?: boolean;
-  /** Context string for this toggle. */
-  context?: string;
-  /** List of rules ordered by evaluation priority. */
-  rules: ToggleQueryRule[];
+  /** Toggle name. */
+  toggleName: string;
+  /** Toggle description. */
+  toggleDescription?: string;
+  /** Toggle enabled flag. */
+  toggleEnabled?: boolean;
+  /** Toggle context. */
+  toggleContext?: string;
+  /** Stage name. */
+  stageName: string;
+  /** Rule name. */
+  ruleName?: string;
+  /** Rule description. */
+  ruleDescription?: string;
+  /** Rule criteria list. */
+  ruleCriteria: Criterion[];
+  /** Evaluation order (lower = first). */
+  priority: number;
+  /** Toggle value from the assignment. */
+  value: string;
 }
 
 /**
- * Response payload for toggle query endpoints.
+ * Response payload for toggle query endpoints (matches QueryResponse Java record).
  */
 export interface ToggleQueryResponse {
   /** Toggles matching the requested stage and optional name filter. */
   toggles: ToggleDto[];
-  /** Metadata about the query, such as stage, nameFilter, count, and cacheHit. */
-  queryMetadata?: { [key: string]: any };
+  /** Metadata about the query. */
+  queryMetadata?: { stage?: string; nameFilter?: string; count?: number; cacheHit?: boolean };
 }
 
 /**
  * Represents an assignment of a rule to a toggle within a specific stage.
+ * Matches ToggleStageRuleDto from the backend.
  */
 export interface ToggleStageRule {
   /** v4 UUID of the assignment. */
   id: string;
-  /** Name of the toggle this rule is assigned to. */
-  toggleName: string;
-  /** Name of the stage this rule is assigned within. */
-  stageName: string;
-  /** v4 UUID of the reusable rule being assigned. */
+  /** v4 UUID of the toggle. */
+  toggleId: string;
+  /** v4 UUID of the stage. */
+  stageId: string;
+  /** v4 UUID of the reusable rule. */
   ruleId: string;
-  /** Name of the reusable rule being assigned. */
-  ruleName: string;
   /** Toggle value if criteria match ("off" or custom). */
   ruleValue: string;
-  /** Human-readable description of the rule. */
-  description?: string;
   /** Evaluation order (lower = first). */
   priority: number;
-  /** Key/value pairs for client-side matching. */
-  criteria: { [key: string]: string };
 }
 
 /**
  * Represents a reusable rule definition (criteria template).
  * Returned by /api/rules; has no value because the value is set per-assignment.
+ * Matches RuleDto from the backend.
  */
 export interface Rule {
   /** v4 UUID of the rule. */
   id: string;
   /** Unique human-readable name for this rule. */
   name?: string;
-  /** Evaluation order (lower = first). */
-  priority: number;
   /** Human-readable description explaining the criteria. */
   description?: string;
-  /** Key/value pairs for client-side matching. Empty object means catch-all. */
-  criteria: { [key: string]: string };
-}
-
-/**
- * Represents a rule as it appears inside a toggle query response.
- * The value comes from the ToggleStageRule assignment, not the reusable rule definition.
- */
-export interface ToggleQueryRule extends Rule {
-  /** Toggle value if criteria match ("off" or custom). */
-  value: string;
+  /** List of criterion pairs for client-side matching. Empty list means catch-all. */
+  criteria: Criterion[];
 }
 
 @Injectable({

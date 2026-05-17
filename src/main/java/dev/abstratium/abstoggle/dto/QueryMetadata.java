@@ -8,14 +8,18 @@ public class QueryMetadata {
     private String nameFilter;
     private Integer count;
     private Boolean cacheHit;
+    private Boolean cacheEnabled;
+    private Integer cacheTtlSeconds;
 
     public QueryMetadata() {}
 
-    public QueryMetadata(String stage, String nameFilter, Integer count, Boolean cacheHit) {
+    public QueryMetadata(String stage, String nameFilter, Integer count, Boolean cacheHit, Boolean cacheEnabled, Integer cacheTtlSeconds) {
         this.stage = stage;
         this.nameFilter = nameFilter;
         this.count = count;
         this.cacheHit = cacheHit;
+        this.cacheEnabled = cacheEnabled;
+        this.cacheTtlSeconds = cacheTtlSeconds;
     }
 
     public String getStage() {
@@ -48,5 +52,21 @@ public class QueryMetadata {
 
     public void setCacheHit(Boolean cacheHit) {
         this.cacheHit = cacheHit;
+    }
+
+    public Boolean getCacheEnabled() {
+        return cacheEnabled;
+    }
+
+    public void setCacheEnabled(Boolean cacheEnabled) {
+        this.cacheEnabled = cacheEnabled;
+    }
+
+    public Integer getCacheTtlSeconds() {
+        return cacheTtlSeconds;
+    }
+
+    public void setCacheTtlSeconds(Integer cacheTtlSeconds) {
+        this.cacheTtlSeconds = cacheTtlSeconds;
     }
 }

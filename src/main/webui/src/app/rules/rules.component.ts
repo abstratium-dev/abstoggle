@@ -1,11 +1,11 @@
 import { Component, inject, OnInit, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
 import { InfoButtonComponent } from '../core/info-button/info-button.component';
-import { Rule, ModelService } from '../model.service';
+import { Criterion, Rule, ModelService } from '../model.service';
 import { Controller } from '../controller';
 
 @Component({
@@ -20,6 +20,7 @@ export class RulesComponent implements OnInit {
   private toastService = inject(ToastService);
   private confirmService = inject(ConfirmDialogService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   rules: Signal<Rule[]> = this.modelService.rules$;
   loading: Signal<boolean> = this.modelService.rulesLoading$;
@@ -37,10 +38,41 @@ export class RulesComponent implements OnInit {
   ruleDescription = '';
   criteriaKey = '';
   criteriaValue = '';
-  criteriaEntries: { key: string; value: string }[] = [];
+  criteriaEntries: { criterionKey: string; criterionValue: string }[] = [];
+
+  // Filter fields
+  filterName: string | null = null;
 
   ngOnInit(): void {
     this.controller.loadRules();
+
+    this.route.queryParamMap.subscribe(params => {
+      const filterName = params.get('filterName');
+      if (filterName) {
+        this.filterName = filterName;
+      }
+    });
+  }
+
+  /**
+   * Returns filtered rules based on the current filterName.
+   */
+  filteredRules(): Rule[] {
+    const allRules = this.rules();
+    if (!this.filterName) {
+      return allRules;
+    }
+    const term = this.filterName.toLowerCase();
+    return allRules.filter(rule => {
+      const name = (rule.name || '').toLowerCase();
+      const desc = (rule.description || '').toLowerCase();
+      return name.includes(term) || desc.includes(term);
+    });
+  }
+
+  clearFilter(): void {
+    this.filterName = null;
+    this.router.navigate(['/rules']);
   }
 
   toggleAddForm(): void {
@@ -54,7 +86,7 @@ export class RulesComponent implements OnInit {
     this.editingRule = rule;
     this.ruleName = rule.name || '';
     this.ruleDescription = rule.description || '';
-    this.criteriaEntries = Object.entries(rule.criteria || {}).map(([key, value]) => ({ key, value }));
+    this.criteriaEntries = (rule.criteria || []).map(c => ({ criterionKey: c.criterionKey, criterionValue: c.criterionValue }));
     this.showAddForm = true;
     this.formError = null;
     this.criteriaError = null;
@@ -76,22 +108,19 @@ export class RulesComponent implements OnInit {
     this.criteriaError = null;
   }
 
+
   onRetry(): void {
     this.controller.loadRules();
   }
 
   addCriterionEntry(): void {
-    const key = this.criteriaKey.trim();
-    const value = this.criteriaValue.trim();
-    if (!key || !value) {
-      return;
-    }
-    if (this.criteriaEntries.some(e => e.key === key)) {
-      this.criteriaError = `Criterion "${key}" is already defined. Use a regular expression that matches all required values (e.g., "^(value1|value2)$"), or create and assign a separate rule.`;
+    const criterionKey = this.criteriaKey.trim();
+    const criterionValue = this.criteriaValue.trim();
+    if (!criterionKey || !criterionValue) {
       return;
     }
     this.criteriaError = null;
-    this.criteriaEntries.push({ key, value });
+    this.criteriaEntries.push({ criterionKey, criterionValue });
     this.criteriaKey = '';
     this.criteriaValue = '';
   }
@@ -101,12 +130,11 @@ export class RulesComponent implements OnInit {
     this.criteriaError = null;
   }
 
-  private buildCriteriaMap(): { [key: string]: string } {
-    const map: { [key: string]: string } = {};
-    for (const entry of this.criteriaEntries) {
-      map[entry.key] = entry.value;
-    }
-    return map;
+  private buildCriteriaList(): Criterion[] {
+    return this.criteriaEntries.map(entry => ({
+      criterionKey: entry.criterionKey,
+      criterionValue: entry.criterionValue
+    }));
   }
 
   async onSubmit(): Promise<void> {
@@ -119,7 +147,7 @@ export class RulesComponent implements OnInit {
     this.formError = null;
 
     try {
-      const criteria = this.buildCriteriaMap();
+      const criteria = this.buildCriteriaList();
 
       if (this.editingRule) {
         await this.controller.updateStandaloneRule(
@@ -171,12 +199,12 @@ export class RulesComponent implements OnInit {
     }
   }
 
-  formatCriteria(criteria: { [key: string]: string }): string {
-    if (!criteria || Object.keys(criteria).length === 0) {
+  formatCriteria(criteria: Criterion[]): string {
+    if (!criteria || criteria.length === 0) {
       return 'None (catch-all)';
     }
-    return Object.entries(criteria)
-      .map(([key, value]) => `${key}: ${value}`)
+    return criteria
+      .map(c => `${c.criterionKey}: ${c.criterionValue}`)
       .join(', ');
   }
 

@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { Config, ModelService, Rule, Stage, Toggle, ToggleDto, ToggleQueryResponse, ToggleStageRule } from './model.service';
+import { Config, Criterion, ModelService, Rule, Stage, Toggle, ToggleDto, ToggleQueryResponse, ToggleStageRule } from './model.service';
 
 /**
  * Service that coordinates HTTP requests to the backend toggle API
@@ -76,10 +76,10 @@ export class Controller {
   /**
    * Updates an existing stage and refreshes the stage list.
    */
-  async updateStage(name: string, newName: string, description: string, displayOrder: number, parentStageName?: string): Promise<Stage> {
+  async updateStage(id: string, newName: string, description: string, displayOrder: number, parentStageName?: string): Promise<Stage> {
     try {
       const response = await firstValueFrom(
-        this.http.put<Stage>(`/api/stages/${name}`, {
+        this.http.put<Stage>(`/api/stages/${id}`, {
           name: newName,
           description,
           displayOrder,
@@ -95,12 +95,12 @@ export class Controller {
   }
 
   /**
-   * Deletes a stage by name and refreshes the stage list.
+   * Deletes a stage by ID and refreshes the stage list.
    */
-  async deleteStage(name: string): Promise<void> {
+  async deleteStage(id: string): Promise<void> {
     try {
       await firstValueFrom(
-        this.http.delete<void>(`/api/stages/${name}`)
+        this.http.delete<void>(`/api/stages/${id}`)
       );
       this.loadStages();
     } catch (error) {
@@ -163,10 +163,11 @@ export class Controller {
   /**
    * Updates toggle metadata and refreshes the toggle list.
    */
-  async updateToggle(name: string, description: string, enabled: boolean, context: string): Promise<Toggle> {
+  async updateToggle(id: string, name: string, description: string, enabled: boolean, context: string): Promise<Toggle> {
     try {
       const response = await firstValueFrom(
-        this.http.put<Toggle>(`/api/toggles/${name}`, {
+        this.http.put<Toggle>(`/api/toggles/${id}`, {
+          name,
           description,
           enabled,
           context
@@ -181,12 +182,12 @@ export class Controller {
   }
 
   /**
-   * Deletes a toggle by name and refreshes the toggle list.
+   * Deletes a toggle by ID and refreshes the toggle list.
    */
-  async deleteToggle(name: string): Promise<void> {
+  async deleteToggle(id: string): Promise<void> {
     try {
       await firstValueFrom(
-        this.http.delete<void>(`/api/toggles/${name}`)
+        this.http.delete<void>(`/api/toggles/${id}`)
       );
       this.loadToggles();
     } catch (error) {
@@ -208,133 +209,6 @@ export class Controller {
       return await firstValueFrom(this.http.get<ToggleQueryResponse>(url));
     } catch (error) {
       console.error('Error querying toggles:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Returns the list of stage names assigned to a toggle.
-   */
-  async getStagesForToggle(toggleName: string): Promise<string[]> {
-    try {
-      const response = await firstValueFrom(
-        this.http.get<string[]>(`/api/toggles/${toggleName}/stages`)
-      );
-      return response;
-    } catch (error) {
-      console.error('Error loading stages for toggle:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Assigns a stage to a toggle.
-   */
-  async addStageToToggle(toggleName: string, stageName: string): Promise<void> {
-    try {
-      await firstValueFrom(
-        this.http.post<void>(`/api/toggles/${toggleName}/stages/${stageName}`, {})
-      );
-    } catch (error) {
-      console.error('Error adding stage to toggle:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Removes a stage assignment from a toggle.
-   */
-  async removeStageFromToggle(toggleName: string, stageName: string): Promise<void> {
-    try {
-      await firstValueFrom(
-        this.http.delete<void>(`/api/toggles/${toggleName}/stages/${stageName}`)
-      );
-    } catch (error) {
-      console.error('Error removing stage from toggle:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Loads the rules assigned to a toggle within a specific stage.
-   */
-  async getRulesForToggle(toggleName: string, stageName: string): Promise<Rule[]> {
-    try {
-      const response = await firstValueFrom(
-        this.http.get<Rule[]>(`/api/toggles/${toggleName}/stages/${stageName}/rules`)
-      );
-      return response;
-    } catch (error) {
-      console.error('Error loading rules:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Creates a new rule and assigns it to a toggle+stage.
-   */
-  async createRule(
-    toggleName: string,
-    stageName: string,
-    ruleValue: string,
-    priority: number,
-    description: string,
-    criteria: { [key: string]: string }
-  ): Promise<Rule> {
-    try {
-      const response = await firstValueFrom(
-        this.http.post<Rule>(`/api/toggles/${toggleName}/stages/${stageName}/rules`, {
-          ruleValue,
-          priority,
-          description,
-          criteria
-        })
-      );
-      return response;
-    } catch (error) {
-      console.error('Error creating rule:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Updates an existing rule's value, priority, description, and criteria.
-   */
-  async updateRule(
-    toggleName: string,
-    stageName: string,
-    ruleId: string,
-    ruleValue: string,
-    priority: number,
-    description: string,
-    criteria: { [key: string]: string }
-  ): Promise<Rule> {
-    try {
-      const response = await firstValueFrom(
-        this.http.put<Rule>(`/api/toggles/${toggleName}/stages/${stageName}/rules/${ruleId}`, {
-          ruleValue,
-          priority,
-          description,
-          criteria
-        })
-      );
-      return response;
-    } catch (error) {
-      console.error('Error updating rule:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Deletes a rule from a toggle+stage.
-   */
-  async deleteRule(toggleName: string, stageName: string, ruleId: string): Promise<void> {
-    try {
-      await firstValueFrom(
-        this.http.delete<void>(`/api/toggles/${toggleName}/stages/${stageName}/rules/${ruleId}`)
-      );
-    } catch (error) {
-      console.error('Error deleting rule:', error);
       throw error;
     }
   }
@@ -365,7 +239,7 @@ export class Controller {
   /**
    * Creates a new reusable rule and refreshes the rule list.
    */
-  async createStandaloneRule(name: string, description: string, criteria: { [key: string]: string }): Promise<Rule> {
+  async createStandaloneRule(name: string, description: string, criteria: Criterion[]): Promise<Rule> {
     try {
       const response = await firstValueFrom(
         this.http.post<Rule>('/api/rules', {
@@ -385,7 +259,7 @@ export class Controller {
   /**
    * Updates an existing reusable rule and refreshes the rule list.
    */
-  async updateStandaloneRule(id: string, name: string, description: string, criteria: { [key: string]: string }): Promise<Rule> {
+  async updateStandaloneRule(id: string, name: string, description: string, criteria: Criterion[]): Promise<Rule> {
     try {
       const response = await firstValueFrom(
         this.http.put<Rule>(`/api/rules/${id}`, {
@@ -420,12 +294,14 @@ export class Controller {
   // Toggle Stage Rule Management
 
   /**
-   * Loads all ToggleStageRule assignments for a toggle.
+   * Loads all ToggleStageRule assignments for a toggle (by toggle UUID).
    */
-  async getToggleStageRules(toggleName: string): Promise<ToggleStageRule[]> {
+  async getToggleStageRules(toggleId: string): Promise<ToggleStageRule[]> {
     try {
       const response = await firstValueFrom(
-        this.http.get<ToggleStageRule[]>(`/api/toggles/${toggleName}/stage-rules`)
+        this.http.get<ToggleStageRule[]>('/api/toggle-stage-rules', {
+          params: { toggleId }
+        })
       );
       return response;
     } catch (error) {
@@ -435,24 +311,26 @@ export class Controller {
   }
 
   /**
-   * Creates a new ToggleStageRule assignment (stage + rule + priority).
+   * Creates a new ToggleStageRule assignment (toggleId + stageId + ruleId + priority + ruleValue).
    */
   async createToggleStageRule(
-    toggleName: string,
-    stageName: string,
+    toggleId: string,
+    stageId: string,
     ruleId: string,
     priority: number,
     ruleValue: string
-  ): Promise<void> {
+  ): Promise<ToggleStageRule> {
     try {
-      await firstValueFrom(
-        this.http.post<void>(`/api/toggles/${toggleName}/stage-rules`, {
-          stageName,
+      const response = await firstValueFrom(
+        this.http.post<ToggleStageRule>('/api/toggle-stage-rules', {
+          toggleId,
+          stageId,
           ruleId,
           priority,
           ruleValue
         })
       );
+      return response;
     } catch (error) {
       console.error('Error creating toggle stage rule:', error);
       throw error;
@@ -460,19 +338,18 @@ export class Controller {
   }
 
   /**
-   * Updates the priority of an existing ToggleStageRule assignment.
+   * Updates the ruleValue and priority of an existing ToggleStageRule assignment.
    */
   async updateToggleStageRule(
-    toggleName: string,
     id: string,
-    priority: number,
-    ruleValue: string
+    ruleValue: string,
+    priority: number
   ): Promise<ToggleStageRule> {
     try {
       const response = await firstValueFrom(
-        this.http.put<ToggleStageRule>(`/api/toggles/${toggleName}/stage-rules/${id}`, {
-          priority,
-          ruleValue
+        this.http.put<ToggleStageRule>(`/api/toggle-stage-rules/${id}`, {
+          ruleValue,
+          priority
         })
       );
       return response;
@@ -485,10 +362,10 @@ export class Controller {
   /**
    * Deletes a ToggleStageRule assignment by ID.
    */
-  async deleteToggleStageRule(toggleName: string, id: string): Promise<void> {
+  async deleteToggleStageRule(id: string): Promise<void> {
     try {
       await firstValueFrom(
-        this.http.delete<void>(`/api/toggles/${toggleName}/stage-rules/${id}`)
+        this.http.delete<void>(`/api/toggle-stage-rules/${id}`)
       );
     } catch (error) {
       console.error('Error deleting toggle stage rule:', error);

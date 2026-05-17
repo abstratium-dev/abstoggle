@@ -9,12 +9,9 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 ## Today
 
-- criteria is now a list not a map
-- move the value from the rule to the assignment
-  - fix the UIs use of those endpoints
-  - check remaining classes do not start with Toggle if not necessary
-- compile the backend and check for errors that need fixing. remember: rules have no value, toggle-stage-rules have a value. if you find something where you need to implement something else, stop and ask for help.
+
 - add tests!
+- rename "rule_value" in TSR to just "value" or "toggle_value"? "rule" is not right, "value" is a mare in terms of refactoring later because its a very generic term.
 - is @Transactional implemented properly? there seem to be a lot and is it right on the level of service or better on boundary? or does that start a default tx anyway?
 
 - **`e2e-tests/pages/TODO.page.ts`** — This file should be renamed and populated with actual page objects for abstoggle's UI once the feature toggle pages exist.

@@ -104,10 +104,10 @@
           <label for="stageName">Stage</label>
           <abs-autocomplete
             id="stageName"
-            [fetchOptions]="fetchStageOptions"
+            [fetchOptions]="fetchStageOptionsForAssignment"
             placeholder="Search stage..."
             [minSearchLength]="1"
-            [(ngModel)]="selectedStageName"
+            [(ngModel)]="selectedStageId"
             name="stageName"
           ></abs-autocomplete>
         </div>
@@ -123,7 +123,7 @@
           ></abs-autocomplete>
         </div>
         <div class="form-group">
-          <label for="priority">Priority</label>
+          <label for="priority">Priority <app-info-button tooltipText="Controls evaluation order within a stage. Lower values are checked first. The first matching rule wins." /></label>
           <input
             id="priority"
             type="number"
@@ -139,7 +139,8 @@
           <input
             id="ruleValue"
             type="text"
-            [(ngModel)]="editingStageRule ? editRuleValue : newRuleValue"
+            [ngModel]="editingStageRule ? editRuleValue : newRuleValue"
+            (ngModelChange)="editingStageRule ? (editRuleValue = $event) : (newRuleValue = $event)"
             name="ruleValue"
             placeholder="off"
             [disabled]="stageRulesLoading"
@@ -149,7 +150,7 @@
           <button
             class="btn-add"
             (click)="saveStageRule()"
-            [disabled]="stageRulesLoading || (!editingStageRule && (!selectedStageName || !selectedRuleId))"
+            [disabled]="stageRulesLoading || (!editingStageRule && (!selectedStageId || !selectedRuleId))"
           >
             {{ editingStageRule ? 'Update' : 'Add Assignment' }}
           </button>
@@ -174,8 +175,16 @@
         </thead>
         <tbody>
           <tr *ngFor="let stageRule of toggleStageRules">
-            <td><strong>{{ stageRule.stageName }}</strong></td>
-            <td>{{ stageRule.ruleName }}</td>
+            <td>
+              <a class="table-link" (click)="goToStage(stageRule.stageId)" title="View stage details">
+                <strong>{{ getStageName(stageRule.stageId) }}</strong>
+              </a>
+            </td>
+            <td>
+              <a class="table-link" (click)="goToRule(stageRule.ruleId)" title="View rule details">
+                {{ getRuleName(stageRule.ruleId) }}
+              </a>
+            </td>
             <td><code>{{ stageRule.ruleValue }}</code></td>
             <td>{{ stageRule.priority }}</td>
             <td>
