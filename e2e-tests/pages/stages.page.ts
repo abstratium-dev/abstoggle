@@ -37,8 +37,13 @@ function formErrorBox(page: Page) {
     return page.locator('.form-container .error-box');
 }
 
-/** Returns the table row locator for a stage by its name (exact match). */
+/** Returns the table row locator for a stage by its name (substring match). */
 function stageRowByName(page: Page, stageName: string) {
+    return page.locator('table.standard-table tbody tr').filter({ has: page.locator('td strong', { hasText: stageName }) });
+}
+
+/** Returns the table row locator for a stage by its exact name only. */
+function stageRowByNameExact(page: Page, stageName: string) {
     return page.locator('table.standard-table tbody tr').filter({
         has: page.locator('td strong').getByText(stageName, { exact: true })
     });
@@ -118,7 +123,7 @@ export async function tryDeleteStageAndAssertError(
 ): Promise<void> {
     console.log(`Stages: attempting to delete "${stageName}" (expecting error)`);
     await waitForStagesPageReady(page);
-    const row = stageRowByName(page, stageName);
+    const row = stageRowByNameExact(page, stageName);
     await expect(row).toBeVisible({ timeout: 10000 });
     await deleteButtonInRow(row).click();
     await confirmDialog(page, 'Delete');

@@ -9,7 +9,7 @@ function stageSelect(page: Page) {
 }
 
 function contextInput(page: Page) {
-    return page.locator('input#contextInput');
+    return page.locator('abs-autocomplete#contextInput input.autocomplete-input');
 }
 
 function nameFilterInput(page: Page) {

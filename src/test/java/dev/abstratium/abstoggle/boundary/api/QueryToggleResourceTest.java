@@ -554,4 +554,398 @@ class QueryToggleResourceTest {
             .then()
             .statusCode(org.hamcrest.Matchers.anyOf(equalTo(400), equalTo(403)));
     }
+
+    // =========================================================================
+    // Evaluator Endpoint Tests
+    // =========================================================================
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testEvaluateToggles_returnsResolvedValues() throws Exception {
+        commitData(() -> {
+            Stage stage = new Stage();
+            stage.setName("api-eval-stage");
+            stage.setDisplayOrder(1);
+            em.persist(stage);
+
+            Toggle toggle = new Toggle();
+            toggle.setName("api-eval-toggle");
+            toggle.setDescription("Test toggle");
+            toggle.setEnabled(true);
+            toggle.setContext("global");
+            em.persist(toggle);
+
+            Rule rule = new Rule();
+            rule.setName("api-eval-rule");
+            em.persist(rule);
+
+            Criterion criterion = new Criterion();
+            criterion.setRule(rule);
+            criterion.setCriterionKey("country");
+            criterion.setCriterionValue("US");
+            em.persist(criterion);
+
+            ToggleStageRule tsr = new ToggleStageRule();
+            tsr.setToggle(toggle);
+            tsr.setStage(stage);
+            tsr.setRule(rule);
+            tsr.setPriority(1);
+            tsr.setRuleValue("on");
+            em.persist(tsr);
+        });
+
+        given()
+            .queryParam("stage", "api-eval-stage")
+            .queryParam("context", "global")
+            .contentType("application/json")
+            .body("[{\"key\": \"country\", \"value\": \"US\"}]")
+            .when()
+            .post("/api/query/toggles/evaluate")
+            .then()
+            .statusCode(200)
+            .body("results", notNullValue())
+            .body("results.size()", equalTo(1))
+            .body("results[0].toggleName", equalTo("api-eval-toggle"))
+            .body("results[0].resolvedValue", equalTo("on"))
+            .body("results[0].debug", notNullValue())
+            .body("cacheHit", equalTo(false));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testEvaluateToggles_criteriaNoMatch_returnsOff() throws Exception {
+        commitData(() -> {
+            Stage stage = new Stage();
+            stage.setName("api-eval-nomatch-stage");
+            stage.setDisplayOrder(1);
+            em.persist(stage);
+
+            Toggle toggle = new Toggle();
+            toggle.setName("api-eval-nomatch-toggle");
+            toggle.setEnabled(true);
+            toggle.setContext("global");
+            em.persist(toggle);
+
+            Rule rule = new Rule();
+            rule.setName("api-eval-nomatch-rule");
+            em.persist(rule);
+
+            Criterion criterion = new Criterion();
+            criterion.setRule(rule);
+            criterion.setCriterionKey("country");
+            criterion.setCriterionValue("US");
+            em.persist(criterion);
+
+            ToggleStageRule tsr = new ToggleStageRule();
+            tsr.setToggle(toggle);
+            tsr.setStage(stage);
+            tsr.setRule(rule);
+            tsr.setPriority(1);
+            tsr.setRuleValue("on");
+            em.persist(tsr);
+        });
+
+        given()
+            .queryParam("stage", "api-eval-nomatch-stage")
+            .queryParam("context", "global")
+            .contentType("application/json")
+            .body("[{\"key\": \"country\", \"value\": \"DE\"}]")
+            .when()
+            .post("/api/query/toggles/evaluate")
+            .then()
+            .statusCode(200)
+            .body("results[0].toggleName", equalTo("api-eval-nomatch-toggle"))
+            .body("results[0].resolvedValue", equalTo("off"))
+            .body("results[0].debug", containsString("No matching"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testEvaluateToggles_disabledToggle_returnsOff() throws Exception {
+        commitData(() -> {
+            Stage stage = new Stage();
+            stage.setName("api-eval-disabled-stage");
+            stage.setDisplayOrder(1);
+            em.persist(stage);
+
+            Toggle toggle = new Toggle();
+            toggle.setName("api-eval-disabled-toggle");
+            toggle.setEnabled(false);
+            toggle.setContext("global");
+            em.persist(toggle);
+
+            Rule rule = new Rule();
+            rule.setName("api-eval-disabled-rule");
+            em.persist(rule);
+
+            ToggleStageRule tsr = new ToggleStageRule();
+            tsr.setToggle(toggle);
+            tsr.setStage(stage);
+            tsr.setRule(rule);
+            tsr.setPriority(1);
+            tsr.setRuleValue("on");
+            em.persist(tsr);
+        });
+
+        given()
+            .queryParam("stage", "api-eval-disabled-stage")
+            .queryParam("context", "global")
+            .contentType("application/json")
+            .body("[]")
+            .when()
+            .post("/api/query/toggles/evaluate")
+            .then()
+            .statusCode(200)
+            .body("results[0].toggleName", equalTo("api-eval-disabled-toggle"))
+            .body("results[0].resolvedValue", equalTo("off"))
+            .body("results[0].debug", equalTo("Toggle is disabled"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testEvaluateToggles_missingStage_returns400() {
+        given()
+            .contentType("application/json")
+            .body("[]")
+            .when()
+            .post("/api/query/toggles/evaluate")
+            .then()
+            .statusCode(400)
+            .body("detail", containsString("Stage parameter is required"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testEvaluateToggles_stageNotFound_returns400() throws Exception {
+        commitData(() -> {
+            // No stages created
+        });
+
+        given()
+            .queryParam("stage", "nonexistent-stage-xyz")
+            .queryParam("context", "global")
+            .contentType("application/json")
+            .body("[]")
+            .when()
+            .post("/api/query/toggles/evaluate")
+            .then()
+            .statusCode(400)
+            .body("detail", containsString("Stage not found"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testEvaluateToggles_caching_works() throws Exception {
+        commitData(() -> {
+            Stage stage = new Stage();
+            stage.setName("api-eval-cache-stage");
+            stage.setDisplayOrder(1);
+            em.persist(stage);
+
+            Toggle toggle = new Toggle();
+            toggle.setName("api-eval-cache-toggle");
+            toggle.setEnabled(true);
+            toggle.setContext("global");
+            em.persist(toggle);
+
+            Rule rule = new Rule();
+            rule.setName("api-eval-cache-rule");
+            em.persist(rule);
+
+            ToggleStageRule tsr = new ToggleStageRule();
+            tsr.setToggle(toggle);
+            tsr.setStage(stage);
+            tsr.setRule(rule);
+            tsr.setPriority(1);
+            tsr.setRuleValue("on");
+            em.persist(tsr);
+        });
+
+        // First call - cache miss
+        given()
+            .queryParam("stage", "api-eval-cache-stage")
+            .queryParam("context", "global")
+            .contentType("application/json")
+            .body("[{\"key\": \"userId\", \"value\": \"123\"}]")
+            .when()
+            .post("/api/query/toggles/evaluate")
+            .then()
+            .statusCode(200)
+            .body("cacheHit", equalTo(false));
+
+        // Second call - cache hit
+        given()
+            .queryParam("stage", "api-eval-cache-stage")
+            .queryParam("context", "global")
+            .contentType("application/json")
+            .body("[{\"key\": \"userId\", \"value\": \"123\"}]")
+            .when()
+            .post("/api/query/toggles/evaluate")
+            .then()
+            .statusCode(200)
+            .body("cacheHit", equalTo(true));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testEvictEvaluatorCache_returns204() throws Exception {
+        commitData(() -> {
+            Stage stage = new Stage();
+            stage.setName("api-eval-evict-stage");
+            stage.setDisplayOrder(1);
+            em.persist(stage);
+        });
+
+        given()
+            .queryParam("stage", "api-eval-evict-stage")
+            .queryParam("context", "global")
+            .contentType("application/json")
+            .body("[]")
+            .when()
+            .delete("/api/query/toggles/evaluate/cache")
+            .then()
+            .statusCode(204);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testEvictEvaluatorCache_removesFromCache() throws Exception {
+        commitData(() -> {
+            Stage stage = new Stage();
+            stage.setName("api-eval-evict-cache-stage");
+            stage.setDisplayOrder(1);
+            em.persist(stage);
+
+            Toggle toggle = new Toggle();
+            toggle.setName("api-eval-evict-cache-toggle");
+            toggle.setEnabled(true);
+            toggle.setContext("global");
+            em.persist(toggle);
+
+            Rule rule = new Rule();
+            rule.setName("api-eval-evict-cache-rule");
+            em.persist(rule);
+
+            ToggleStageRule tsr = new ToggleStageRule();
+            tsr.setToggle(toggle);
+            tsr.setStage(stage);
+            tsr.setRule(rule);
+            tsr.setPriority(1);
+            tsr.setRuleValue("on");
+            em.persist(tsr);
+        });
+
+        // First call - cache miss
+        given()
+            .queryParam("stage", "api-eval-evict-cache-stage")
+            .queryParam("context", "global")
+            .contentType("application/json")
+            .body("[{\"key\": \"test\", \"value\": \"value\"}]")
+            .when()
+            .post("/api/query/toggles/evaluate")
+            .then()
+            .statusCode(200)
+            .body("cacheHit", equalTo(false));
+
+        // Second call - cache hit
+        given()
+            .queryParam("stage", "api-eval-evict-cache-stage")
+            .queryParam("context", "global")
+            .contentType("application/json")
+            .body("[{\"key\": \"test\", \"value\": \"value\"}]")
+            .when()
+            .post("/api/query/toggles/evaluate")
+            .then()
+            .statusCode(200)
+            .body("cacheHit", equalTo(true));
+
+        // Evict cache
+        given()
+            .queryParam("stage", "api-eval-evict-cache-stage")
+            .queryParam("context", "global")
+            .contentType("application/json")
+            .body("[{\"key\": \"test\", \"value\": \"value\"}]")
+            .when()
+            .delete("/api/query/toggles/evaluate/cache")
+            .then()
+            .statusCode(204);
+
+        // Third call - cache miss again
+        given()
+            .queryParam("stage", "api-eval-evict-cache-stage")
+            .queryParam("context", "global")
+            .contentType("application/json")
+            .body("[{\"key\": \"test\", \"value\": \"value\"}]")
+            .when()
+            .post("/api/query/toggles/evaluate")
+            .then()
+            .statusCode(200)
+            .body("cacheHit", equalTo(false));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testEvaluateToggles_withNameFilter() throws Exception {
+        commitData(() -> {
+            Stage stage = new Stage();
+            stage.setName("api-eval-filter-stage");
+            stage.setDisplayOrder(1);
+            em.persist(stage);
+
+            Toggle toggle1 = new Toggle();
+            toggle1.setName("api-eval-feature-alpha");
+            toggle1.setEnabled(true);
+            toggle1.setContext("global");
+            em.persist(toggle1);
+
+            Toggle toggle2 = new Toggle();
+            toggle2.setName("api-eval-feature-beta");
+            toggle2.setEnabled(true);
+            toggle2.setContext("global");
+            em.persist(toggle2);
+
+            Rule rule = new Rule();
+            rule.setName("api-eval-filter-rule");
+            em.persist(rule);
+
+            ToggleStageRule tsr1 = new ToggleStageRule();
+            tsr1.setToggle(toggle1);
+            tsr1.setStage(stage);
+            tsr1.setRule(rule);
+            tsr1.setPriority(1);
+            em.persist(tsr1);
+
+            ToggleStageRule tsr2 = new ToggleStageRule();
+            tsr2.setToggle(toggle2);
+            tsr2.setStage(stage);
+            tsr2.setRule(rule);
+            tsr2.setPriority(2);
+            em.persist(tsr2);
+        });
+
+        given()
+            .queryParam("stage", "api-eval-filter-stage")
+            .queryParam("context", "global")
+            .queryParam("nameFilter", "%alpha%")
+            .contentType("application/json")
+            .body("[]")
+            .when()
+            .post("/api/query/toggles/evaluate")
+            .then()
+            .statusCode(200)
+            .body("results.size()", equalTo(1))
+            .body("results[0].toggleName", equalTo("api-eval-feature-alpha"));
+    }
+
+    @Test
+    void testEvaluateToggles_withoutAuth_returns401or302() {
+        given()
+            .queryParam("stage", "test-stage")
+            .contentType("application/json")
+            .body("[]")
+            .when()
+            .post("/api/query/toggles/evaluate")
+            .then()
+            .statusCode(org.hamcrest.Matchers.anyOf(equalTo(302), equalTo(401)));
+    }
 }

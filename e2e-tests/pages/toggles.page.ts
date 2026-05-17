@@ -17,8 +17,8 @@ function toggleDescriptionInput(page: Page) {
     return page.locator('textarea#toggleDescription');
 }
 
-function toggleContextInput(page: Page) {
-    return page.locator('input#toggleContext');
+function toggleContextAutocomplete(page: Page) {
+    return page.locator('abs-autocomplete#toggleContext input.autocomplete-input');
 }
 
 function toggleEnabledCheckbox(page: Page) {
@@ -150,7 +150,9 @@ export async function createToggle(
     }
 
     if (options.context !== undefined) {
-        await toggleContextInput(page).fill(options.context);
+        const contextInput = toggleContextAutocomplete(page);
+        await contextInput.waitFor({ state: 'visible', timeout: 10000 });
+        await contextInput.fill(options.context);
     }
 
     if (options.enabled === false) {

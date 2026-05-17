@@ -15,7 +15,10 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
+import dev.abstratium.abstoggle.dto.ClientContextEntry;
 import dev.abstratium.abstoggle.dto.CriterionDto;
+import dev.abstratium.abstoggle.dto.EvaluatorResponse;
+import dev.abstratium.abstoggle.dto.EvaluatorResultDto;
 import dev.abstratium.abstoggle.dto.QueryMetadata;
 import dev.abstratium.abstoggle.dto.QueryResponse;
 import dev.abstratium.abstoggle.dto.QueryTSRDto;
@@ -53,6 +56,7 @@ public class ToggleQueryService {
     int cacheMaxSizeMb;
 
     private Cache<String, QueryResponse> toggleCache;
+    private Cache<String, EvaluatorResponse> evaluatorCache;
 
     @PostConstruct
     private void initCache() {
@@ -60,6 +64,16 @@ public class ToggleQueryService {
             toggleCache = CacheBuilder.newBuilder()
                 .maximumWeight(cacheMaxSizeMb * 1024 * 1024L)
                 .weigher((String key, QueryResponse value) -> {
+                    // Rough estimate of size in bytes
+                    return key.length() * 2 + value.toString().length() * 2;
+                })
+                .expireAfterWrite(Duration.ofSeconds(cacheTtlSeconds))
+                .recordStats()
+                .build();
+
+            evaluatorCache = CacheBuilder.newBuilder()
+                .maximumWeight(cacheMaxSizeMb * 1024 * 1024L)
+                .weigher((String key, EvaluatorResponse value) -> {
                     // Rough estimate of size in bytes
                     return key.length() * 2 + value.toString().length() * 2;
                 })
@@ -361,5 +375,262 @@ public class ToggleQueryService {
             toggle.getEnabled(),
             toggle.getContext()
         );
+    }
+
+    /**
+     * Evaluate toggles against a client context dictionary with caching.
+     * Returns the resolved values for each toggle based on rule matching.
+     */
+    @Transactional
+    public EvaluatorResponse evaluateToggles(String stage, String context, String nameFilter,
+                                              List<ClientContextEntry> clientContext, boolean includeDebug) {
+        // Build cache key that includes all query inputs and client context
+        String cacheKey = buildEvaluatorCacheKey(stage, context, nameFilter, clientContext);
+
+        // Check cache first
+        if (cacheEnabled) {
+            EvaluatorResponse cached = evaluatorCache.getIfPresent(cacheKey);
+            if (cached != null) {
+                // Return cached result with cacheHit flag
+                return new EvaluatorResponse(
+                    cached.results(),
+                    cached.stage(),
+                    cached.nameFilter(),
+                    cached.context(),
+                    true,
+                    cacheEnabled,
+                    cacheTtlSeconds
+                );
+            }
+        }
+
+        // Perform actual evaluation
+        EvaluatorResponse response = performEvaluation(stage, context, nameFilter, clientContext, includeDebug);
+
+        // Cache the result
+        if (cacheEnabled && response != null) {
+            evaluatorCache.put(cacheKey, response);
+        }
+
+        return response;
+    }
+
+    /**
+     * Evaluate toggles without caching (for management endpoints).
+     */
+    @Transactional
+    public EvaluatorResponse evaluateTogglesWithoutCache(String stage, String context, String nameFilter,
+                                                         List<ClientContextEntry> clientContext, boolean includeDebug) {
+        EvaluatorResponse response = performEvaluation(stage, context, nameFilter, clientContext, includeDebug);
+        // Return with cacheHit=false
+        return new EvaluatorResponse(
+            response.results(),
+            response.stage(),
+            response.nameFilter(),
+            response.context(),
+            false,
+            cacheEnabled,
+            cacheTtlSeconds
+        );
+    }
+
+    private EvaluatorResponse performEvaluation(String stage, String context, String nameFilter,
+                                                 List<ClientContextEntry> clientContext, boolean includeDebug) {
+        // Validate stage exists
+        Optional<Stage> stageOpt = stageService.findByName(stage);
+        if (stageOpt.isEmpty()) {
+            throw new IllegalArgumentException("Stage not found: " + stage);
+        }
+
+        // Get inheritance chain for stage fallback
+        List<String> stageChain = stageService.getInheritanceChainNames(stage);
+
+        // Find toggles matching the criteria (include disabled toggles so they show as "off")
+        List<Toggle> toggles = findToggles(context, nameFilter, true);
+
+        // Build and evaluate results
+        List<EvaluatorResultDto> results = new ArrayList<>();
+
+        for (Toggle toggle : toggles) {
+            EvaluatorResultDto result = evaluateToggle(toggle, stage, stageChain, clientContext, includeDebug);
+            if (result != null) {
+                results.add(result);
+            }
+        }
+
+        return new EvaluatorResponse(
+            results,
+            stage,
+            nameFilter,
+            clientContext,
+            false,
+            cacheEnabled,
+            cacheTtlSeconds
+        );
+    }
+
+    private EvaluatorResultDto evaluateToggle(Toggle toggle, String stage, List<String> stageChain,
+                                               List<ClientContextEntry> clientContext, boolean includeDebug) {
+        // Get assignments for this toggle
+        List<QueryTSRDto> assignments = buildQueryResults(toggle, stage, stageChain);
+        if (assignments == null || assignments.isEmpty()) {
+            return null;
+        }
+
+        // If toggle is disabled, return "off" immediately
+        if (!toggle.getEnabled()) {
+            String debug = includeDebug ? "Toggle is disabled" : null;
+            return new EvaluatorResultDto(toggle.getName(), "off", debug);
+        }
+
+        // Sort by priority (ascending)
+        List<QueryTSRDto> sorted = assignments.stream()
+            .sorted(Comparator.comparingInt(QueryTSRDto::priority))
+            .toList();
+
+        // Evaluate each assignment in priority order
+        for (QueryTSRDto assignment : sorted) {
+            List<CriterionDto> criteria = assignment.ruleCriteria();
+
+            if (criteria == null || criteria.isEmpty()) {
+                // Catch-all rule matches unconditionally
+                String debug = includeDebug ? "Priority " + assignment.priority() + " (catch-all)" : null;
+                return new EvaluatorResultDto(
+                    toggle.getName(),
+                    assignment.value() != null ? assignment.value() : "off",
+                    debug
+                );
+            }
+
+            // Check if all criteria match
+            boolean allMatch = true;
+            for (CriterionDto criterion : criteria) {
+                String clientValue = getClientContextValue(clientContext, criterion.getCriterionKey());
+                if (!matchesPattern(clientValue, criterion.getCriterionValue())) {
+                    allMatch = false;
+                    break;
+                }
+            }
+
+            if (allMatch) {
+                String debug = null;
+                if (includeDebug) {
+                    String criteriaDesc = criteria.stream()
+                        .map(c -> c.getCriterionKey() + "=" + c.getCriterionValue())
+                        .reduce((a, b) -> a + ", " + b)
+                        .orElse("");
+                    debug = "Priority " + assignment.priority() + " (criteria: " + criteriaDesc + ")";
+                }
+                return new EvaluatorResultDto(
+                    toggle.getName(),
+                    assignment.value() != null ? assignment.value() : "off",
+                    debug
+                );
+            }
+        }
+
+        // No rule matched - return default "off"
+        String debug = includeDebug ? "No matching rule - default" : null;
+        return new EvaluatorResultDto(toggle.getName(), "off", debug);
+    }
+
+    /**
+     * Get a value from the client context list by key.
+     * Returns empty string if key not found (first match wins for duplicate keys).
+     */
+    private String getClientContextValue(List<ClientContextEntry> clientContext, String key) {
+        if (clientContext == null || key == null) {
+            return "";
+        }
+        for (ClientContextEntry entry : clientContext) {
+            if (key.equals(entry.key())) {
+                return entry.value() != null ? entry.value() : "";
+            }
+        }
+        return "";
+    }
+
+    /**
+     * Match a value against a pattern using regex.
+     * Supports /pattern/flags syntax (e.g., /US/i) for case-insensitive matching.
+     * Falls back to exact string equality if regex is invalid.
+     */
+    private boolean matchesPattern(String value, String pattern) {
+        if (pattern == null || pattern.isEmpty()) {
+            return value == null || value.isEmpty();
+        }
+
+        try {
+            // Check for /pattern/flags syntax
+            if (pattern.startsWith("/")) {
+                int lastSlash = pattern.lastIndexOf('/');
+                if (lastSlash > 0) {
+                    String regex = pattern.substring(1, lastSlash);
+                    String flags = pattern.substring(lastSlash + 1);
+                    int regexFlags = 0;
+                    if (flags.contains("i")) {
+                        regexFlags |= Pattern.CASE_INSENSITIVE;
+                    }
+                    return Pattern.compile(regex, regexFlags).matcher(value).find();
+                }
+            }
+            // Standard regex
+            return Pattern.compile(pattern).matcher(value).find();
+        } catch (PatternSyntaxException e) {
+            // Fall back to exact equality
+            return value.equals(pattern);
+        }
+    }
+
+    private String buildEvaluatorCacheKey(String stage, String context, String nameFilter,
+                                           List<ClientContextEntry> clientContext) {
+        StringBuilder key = new StringBuilder();
+        key.append("eval:stage:").append(stage != null ? stage : "");
+        key.append(":context:").append(context != null ? context : "");
+        key.append(":filter:").append(nameFilter != null ? nameFilter : "");
+
+        // Include client context in key (sorted by key for consistency)
+        if (clientContext != null && !clientContext.isEmpty()) {
+            key.append(":ctx:");
+            clientContext.stream()
+                .sorted(Comparator.comparing(ClientContextEntry::key, Comparator.nullsFirst(String::compareTo)))
+                .forEach(e -> key.append(e.key()).append("=").append(e.value()).append(";"));
+        }
+        return key.toString();
+    }
+
+    /**
+     * Evict a single entry from the evaluator cache.
+     */
+    public void evictFromEvaluatorCache(String stage, String context, String nameFilter,
+                                       List<ClientContextEntry> clientContext) {
+        if (cacheEnabled && evaluatorCache != null) {
+            String key = buildEvaluatorCacheKey(stage, context, nameFilter, clientContext);
+            evaluatorCache.invalidate(key);
+        }
+    }
+
+    /**
+     * Get evaluator cache statistics for monitoring
+     */
+    public Map<String, Object> getEvaluatorCacheStats() {
+        if (!cacheEnabled || evaluatorCache == null) {
+            Map<String, Object> stats = new HashMap<>();
+            stats.put("enabled", false);
+            return stats;
+        }
+
+        com.google.common.cache.CacheStats stats = evaluatorCache.stats();
+        Map<String, Object> result = new HashMap<>();
+        result.put("enabled", true);
+        result.put("hitCount", stats.hitCount());
+        result.put("missCount", stats.missCount());
+        result.put("hitRate", stats.hitRate());
+        result.put("requestCount", stats.requestCount());
+        result.put("size", evaluatorCache.size());
+        result.put("maxSize", cacheMaxSizeMb * 1024 * 1024L);
+        result.put("ttlSeconds", cacheTtlSeconds);
+
+        return result;
     }
 }

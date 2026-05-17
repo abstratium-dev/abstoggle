@@ -437,6 +437,100 @@ func Evaluate(rows []Row, toggleName string, clientContext map[string]string) st
 
 ---
 
+### Server-Side Evaluator Endpoint
+
+The evaluator endpoints perform toggle rule evaluation on the server side, returning the resolved value directly without requiring client-side evaluation logic. This simplifies client implementations but introduces different trade-offs regarding resilience and coupling.
+
+#### Public Evaluator Endpoint
+
+```
+POST /public/toggles/evaluate?stage=<stageName>&context=<contextName>[&nameFilter=<toggleName>]
+```
+
+| Parameter | Required | Description |
+|---|---|---|
+| `stage` | Yes | The stage name your application is running in |
+| `context` | Yes | Only toggles whose context matches this value are evaluated |
+| `nameFilter` | No | Evaluate only the named toggle (exact match) |
+
+Request body: Client context as a JSON array of key-value entries (allows duplicate keys):
+
+```json
+[
+  {"key": "userId", "value": "10042"},
+  {"key": "country", "value": "DE"},
+  {"key": "plan", "value": "premium"}
+]
+```
+
+Example response (public endpoint):
+
+```json
+{
+  "results": [
+    {
+      "toggleName": "new-checkout-flow",
+      "resolvedValue": "on"
+    },
+    {
+      "toggleName": "legacy-ui",
+      "resolvedValue": "off"
+    }
+  ],
+  "stage": "prod",
+  "nameFilter": null,
+  "context": [
+    {"key": "userId", "value": "10042"},
+    {"key": "country", "value": "DE"},
+    {"key": "plan", "value": "premium"}
+  ],
+  "cacheHit": false,
+  "cacheEnabled": true,
+  "cacheTtlSeconds": 60
+}
+```
+
+The authenticated endpoint (see below) also includes a `debug` field with the matched rule details:
+
+```json
+{
+  "toggleName": "new-checkout-flow",
+  "resolvedValue": "on",
+  "debug": "Priority 1 (criteria: country=/^(DE|AT|CH)$/i, plan=premium)"
+}
+```
+
+#### Authenticated Evaluator Endpoint
+
+For sensitive toggles, use the authenticated endpoint:
+
+```
+POST /api/query/toggles/evaluate?stage=<stageName>[&context=<contextName>][&nameFilter=<toggleName>]
+Authorization: Bearer <token>
+```
+
+Cache eviction:
+
+```
+DELETE /api/query/toggles/evaluate/cache?stage=<stageName>[&context=<contextName>][&nameFilter=<toggleName>]
+Authorization: Bearer <token>
+```
+
+#### Important Considerations
+
+> ⚠️ **Trade-off Warning**: The server-side evaluator has different resilience characteristics compared to client-side evaluation:
+>
+> - **Increased coupling**: Your application has a much stronger reliance on Abstoggle being available. If the service is down, you cannot evaluate toggles.
+> - **Network latency**: Every toggle check requires a network round-trip.
+> - **Cache complexity**: The cache key includes all context values, so different users with different contexts will rarely share cached results.
+>
+> For maximum resilience, prefer client-side evaluation using the `GET /public/toggles` endpoint. With client-side evaluation, you can:
+> - Cache the toggle configuration locally
+> - Evaluate toggles even if Abstoggle is temporarily unavailable
+> - Reduce network dependencies
+
+---
+
 ### Public API Security Considerations
 
 The `/public/toggles` endpoint is unauthenticated and **enabled by default**. Every response exposes toggle names, rule priorities, values, descriptions, and all criteria patterns. An attacker can use this to enumerate features under development, reverse-engineer targeting logic, forge context attributes to unlock features client-side, or identify which security controls exist.
@@ -492,7 +586,7 @@ Cache the token until its `expires_in` elapses to avoid a round-trip on every fe
 
 #### Strategy 3 — Disable the public endpoint entirely
 
-Set `PUBLIC_API_ENABLED=false` to make `/public/toggles` return `404`. All queries must then go through `/api/query/toggles` with a valid token. Use this when you cannot guarantee that your context grouping is sufficient.
+Set `PUBLIC_API_ENABLED=false` to make both `/public/toggles` and `/public/toggles/evaluate` return `404`. All queries must then go through the authenticated endpoints (`/api/query/toggles` and `/api/query/toggles/evaluate`) with a valid token. Use this when you cannot guarantee that your context grouping is sufficient.
 
 #### Decision guide
 
@@ -725,9 +819,9 @@ _Replace all placeholder values with the values generated above.
    - `ABSTRATIUM_CLIENT_ID`: OIDC client ID for OAuth authentication (defaults to `abstratium-abstoggle`)
    - `OTEL_EXPORTER_OTLP_ENDPOINT`: OpenTelemetry OTLP endpoint for traces and logs (e.g., `http://localhost:4317`, only used in production profile)
    - `DEPLOYMENT_ENV`: Deployment environment label for telemetry resource attributes (defaults to `dev`)
-   - `PUBLIC_API_ENABLED`: Enable or disable the unauthenticated `/public/toggles` endpoint (defaults to `true`). Set to `false` to require all toggle queries to use the authenticated `/api/query/toggles` endpoint instead — see [Public API Security Considerations](#public-api-security-considerations).
-   - `TOGGLE_CACHE_ENABLED`: Enable/disable caching for public toggle queries (defaults to `true`)
-   - `TOGGLE_CACHE_TTL_SECONDS`: Cache TTL in seconds for toggle query results (defaults to `60`)
+   - `PUBLIC_API_ENABLED`: Enable or disable the unauthenticated public endpoints (`/public/toggles` and `/public/toggles/evaluate`) (defaults to `true`). Set to `false` to require all toggle queries to use the authenticated endpoints instead — see [Public API Security Considerations](#public-api-security-considerations).
+   - `TOGGLE_CACHE_ENABLED`: Enable/disable caching for toggle query and evaluator results on both public and authenticated endpoints (defaults to `true`)
+   - `TOGGLE_CACHE_TTL_SECONDS`: Cache TTL in seconds for query and evaluator results (defaults to `60`)
    - `TOGGLE_CACHE_MAX_SIZE_MB`: Maximum cache size in MB (defaults to `5`)
    
 
