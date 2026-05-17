@@ -10,6 +10,7 @@ import org.hibernate.envers.RevisionTimestamp;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.enterprise.inject.spi.CDI;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -33,6 +34,12 @@ public class RevisionInfo {
     private Long revtstmp;
 
     private String username;
+
+    @Column(name = "correlation_id")
+    private String correlationId;
+
+    @Column(name = "change_note")
+    private String changeNote;
 
     public Long getRev() {
         return rev;
@@ -58,6 +65,22 @@ public class RevisionInfo {
         this.username = username;
     }
 
+    public String getCorrelationId() {
+        return correlationId;
+    }
+
+    public void setCorrelationId(String correlationId) {
+        this.correlationId = correlationId;
+    }
+
+    public String getChangeNote() {
+        return changeNote;
+    }
+
+    public void setChangeNote(String changeNote) {
+        this.changeNote = changeNote;
+    }
+
     /**
      * RevisionListener that captures the current username from the security context.
      */
@@ -69,6 +92,7 @@ public class RevisionInfo {
             RevisionInfo revisionInfo = (RevisionInfo) revisionEntity;
             revisionInfo.setRevtstmp(Instant.now().toEpochMilli());
             revisionInfo.setUsername(getCurrentUsername());
+            revisionInfo.setChangeNote(getCurrentChangeNote());
         }
 
         private String getCurrentUsername() {
@@ -81,6 +105,19 @@ public class RevisionInfo {
                 // No security context available (e.g., during startup/data loading)
             }
             return "system";
+        }
+
+        private String getCurrentChangeNote() {
+            try {
+                dev.abstratium.abstoggle.boundary.interceptor.ChangeNoteContext ctx =
+                    CDI.current().select(dev.abstratium.abstoggle.boundary.interceptor.ChangeNoteContext.class).get();
+                if (ctx != null && ctx.hasChangeNote()) {
+                    return ctx.getChangeNote();
+                }
+            } catch (Exception e) {
+                // No request context available
+            }
+            return null;
         }
     }
 }

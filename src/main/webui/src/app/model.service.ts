@@ -24,6 +24,8 @@ export interface Config {
   logLevel: string;
   /** Warning message to display, or "-" to suppress. */
   warningMessage: string;
+  /** Whether change notes are mandatory for audited operations. */
+  changeNoteMandatory: boolean;
 }
 
 /**
@@ -126,6 +128,50 @@ export interface Rule {
   description?: string;
   /** List of criterion pairs for client-side matching. Empty list means catch-all. */
   criteria: Criterion[];
+}
+
+/**
+ * Summary of a single revision from REVINFO, for the history list view.
+ */
+export interface HistoryEntry {
+  /** Revision number. */
+  rev: number;
+  /** Unix timestamp in milliseconds. */
+  timestamp: number;
+  /** Username of the person who made the change. */
+  username: string;
+  /** Optional human-readable reason for the change. */
+  changeNote?: string;
+  /** Correlation / trace ID for the request. */
+  correlationId?: string;
+}
+
+/**
+ * A single entity change within a revision, for the history detail view.
+ * revtype: 0 = ADD, 1 = MOD, 2 = DEL
+ */
+export interface HistoryChange {
+  /** Logical entity table name (e.g. "Toggle", "Stage"). */
+  table: string;
+  /** UUID of the changed entity. */
+  entityId: string;
+  /** 0 = ADD, 1 = MOD, 2 = DEL */
+  revtype: number;
+  /** Human-readable summary of the entity state at this revision. */
+  data: string;
+}
+
+/**
+ * A single revision of a specific entity, for the entity audit history view.
+ * revtype: 0 = ADD, 1 = MOD, 2 = DEL
+ */
+export interface EntityRevision {
+  rev: number;
+  timestamp: number;
+  username: string;
+  changeNote?: string;
+  revtype: number;
+  data: string;
 }
 
 @Injectable({

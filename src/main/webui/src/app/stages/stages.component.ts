@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
+import { ChangeNoteDialogService } from '../core/change-note-dialog/change-note-dialog.service';
 import { InfoButtonComponent } from '../core/info-button/info-button.component';
 import { Stage, ModelService } from '../model.service';
 import { Controller } from '../controller';
@@ -19,6 +20,7 @@ export class StagesComponent implements OnInit {
   private controller = inject(Controller);
   private toastService = inject(ToastService);
   private confirmService = inject(ConfirmDialogService);
+  private changeNoteDialog = inject(ChangeNoteDialogService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
@@ -121,12 +123,25 @@ export class StagesComponent implements OnInit {
       const parentName = this.stageParentName.trim() || undefined;
 
       if (this.editingStage) {
+        const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
+        const changeNote = await this.changeNoteDialog.prompt({
+          title: 'Update Stage',
+          message: isMandatory
+            ? `Enter a change note for updating stage "${this.editingStage.name}":`
+            : `Enter a change note for updating stage "${this.editingStage.name}" (optional):`,
+          confirmText: 'Update',
+          confirmClass: 'btn-primary',
+          optional: !isMandatory
+        });
+        if (changeNote === null) return;
+
         await this.controller.updateStage(
           this.editingStage.id,
           this.stageName.trim(),
           this.stageDescription.trim(),
           this.stageDisplayOrder,
-          parentName
+          parentName,
+          changeNote
         );
         this.toastService.success('Stage updated successfully');
       } else {
@@ -162,8 +177,20 @@ export class StagesComponent implements OnInit {
       return;
     }
 
+    const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
+    const changeNote = await this.changeNoteDialog.prompt({
+      title: 'Delete Stage',
+      message: isMandatory
+        ? `Enter a change note for deleting stage "${stage.name}":`
+        : `Enter a change note for deleting stage "${stage.name}" (optional):`,
+      confirmText: 'Delete',
+      confirmClass: 'btn-danger',
+      optional: !isMandatory
+    });
+    if (changeNote === null) return;
+
     try {
-      await this.controller.deleteStage(stage.id);
+      await this.controller.deleteStage(stage.id, changeNote);
       this.toastService.success('Stage deleted successfully');
     } catch (err: any) {
       const problem = err.error;

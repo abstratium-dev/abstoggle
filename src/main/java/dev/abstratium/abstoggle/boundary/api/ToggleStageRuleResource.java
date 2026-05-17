@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import dev.abstratium.abstoggle.Roles;
+import dev.abstratium.abstoggle.boundary.interceptor.RequiresChangeNote;
 import dev.abstratium.abstoggle.dto.ToggleStageRuleDto;
 import dev.abstratium.abstoggle.entity.Stage;
 import dev.abstratium.abstoggle.entity.Toggle;
@@ -68,6 +69,7 @@ public class ToggleStageRuleResource {
     @POST
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
+    @RequiresChangeNote
     public ToggleStageRuleDto createAssignment(ToggleStageRuleDto request) {
         if (request.getToggleId() == null || request.getToggleId().trim().isEmpty()) {
             throw new IllegalArgumentException("Toggle ID is required");
@@ -94,6 +96,7 @@ public class ToggleStageRuleResource {
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
+    @RequiresChangeNote
     public ToggleStageRuleDto updateAssignment(@PathParam("id") String id, ToggleStageRuleDto request) {
         if (id == null || id.trim().isEmpty()) {
             throw new IllegalArgumentException("Assignment ID is required");
@@ -112,6 +115,7 @@ public class ToggleStageRuleResource {
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
+    @RequiresChangeNote
     public Response deleteAssignment(@PathParam("id") String id) {
         if (id == null || id.trim().isEmpty()) {
             throw new IllegalArgumentException("Assignment ID is required");

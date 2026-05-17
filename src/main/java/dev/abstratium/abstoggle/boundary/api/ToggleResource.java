@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import dev.abstratium.abstoggle.Roles;
+import dev.abstratium.abstoggle.boundary.interceptor.RequiresChangeNote;
 import dev.abstratium.abstoggle.dto.QueryResponse;
 import dev.abstratium.abstoggle.dto.ToggleDto;
 import dev.abstratium.abstoggle.entity.Toggle;
@@ -95,6 +96,7 @@ public class ToggleResource {
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
+    @RequiresChangeNote
     public ToggleDto updateToggle(@PathParam("id") String id, ToggleDto request) {
         if (id == null || id.trim().isEmpty()) {
             throw new IllegalArgumentException("Toggle id is required");
@@ -114,6 +116,7 @@ public class ToggleResource {
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
+    @RequiresChangeNote
     public Response deleteToggle(@PathParam("id") String id) {
         if (id == null || id.trim().isEmpty()) {
             throw new IllegalArgumentException("Toggle id is required");

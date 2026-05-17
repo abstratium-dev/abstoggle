@@ -518,9 +518,6 @@ h2 {
 }
 
 .detail-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
 
   .label {
     font-weight: 600;
@@ -973,6 +970,37 @@ button {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+/* ===== EMPTY STATE ===== */
+.empty-state {
+  color: var(--color-text-tertiary);
+  font-style: italic;
+}
+
+/* ===== REVTYPE BADGES (audit history) ===== */
+.revtype-badge {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &.badge-add {
+    background: var(--color-success-bg);
+    color: var(--color-success-text);
+  }
+
+  &.badge-mod {
+    background: var(--color-warning-bg);
+    color: var(--color-warning);
+  }
+
+  &.badge-del {
+    background: var(--color-error-bg);
+    color: var(--color-error-text);
+  }
 }
 
 /* ===== BADGE VARIANTS ===== */

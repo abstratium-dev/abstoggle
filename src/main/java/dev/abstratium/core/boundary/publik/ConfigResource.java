@@ -23,10 +23,13 @@ public class ConfigResource {
     @ConfigProperty(name = "abstratium.stage", defaultValue = "dev")
     String stage;
 
+    @ConfigProperty(name = "toggle.change-note.mandatory", defaultValue = "true")
+    boolean changeNoteMandatory;
+
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public SuccessResponse config() {
-        return new SuccessResponse(clientLogLevel, BuildInfo.BUILD_TIMESTAMP, warningMessage, stage);
+        return new SuccessResponse(clientLogLevel, BuildInfo.BUILD_TIMESTAMP, warningMessage, stage, changeNoteMandatory);
     }
 
     @RegisterForReflection
@@ -35,12 +38,14 @@ public class ConfigResource {
         public String baselineBuildTimestamp;
         public String warningMessage;
         public String stage;
+        public boolean changeNoteMandatory;
 
-        public SuccessResponse(String logLevel, String baselineBuildTimestamp, String warningMessage, String stage) {
+        public SuccessResponse(String logLevel, String baselineBuildTimestamp, String warningMessage, String stage, boolean changeNoteMandatory) {
             this.logLevel = logLevel;
             this.baselineBuildTimestamp = baselineBuildTimestamp;
             this.warningMessage = warningMessage;
             this.stage = stage;
+            this.changeNoteMandatory = changeNoteMandatory;
         }
     }
 }

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
+import { ChangeNoteDialogService } from '../core/change-note-dialog/change-note-dialog.service';
 import { InfoButtonComponent } from '../core/info-button/info-button.component';
 import { AutocompleteComponent, AutocompleteOption } from '../core/autocomplete/autocomplete.component';
 import { Toggle, ModelService, Stage, Rule, ToggleStageRule } from '../model.service';
@@ -21,6 +22,7 @@ export class TogglesComponent implements OnInit {
   private controller = inject(Controller);
   private toastService = inject(ToastService);
   private confirmService = inject(ConfirmDialogService);
+  private changeNoteDialog = inject(ChangeNoteDialogService);
   private authService = inject(AuthService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -219,12 +221,28 @@ export class TogglesComponent implements OnInit {
     try {
       const context = (this.contextAutocomplete?.searchTerm() ?? this.toggleContext).trim();
       if (this.editingToggle) {
+        const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
+        const changeNote = await this.changeNoteDialog.prompt({
+          title: 'Update Toggle',
+          message: isMandatory
+            ? `Enter a change note for updating toggle "${this.editingToggle.name}":`
+            : `Enter a change note for updating toggle "${this.editingToggle.name}" (optional):`,
+          confirmText: 'Update',
+          confirmClass: 'btn-primary',
+          optional: !isMandatory
+        });
+        if (changeNote === null) {
+          this.formSubmitting = false;
+          return;
+        }
+
         await this.controller.updateToggle(
           this.editingToggle.id,
           this.toggleName.trim(),
           this.toggleDescription.trim(),
           this.toggleEnabled,
-          context
+          context,
+          changeNote
         );
         this.toastService.success('Toggle updated successfully');
       } else {
@@ -260,8 +278,20 @@ export class TogglesComponent implements OnInit {
       return;
     }
 
+    const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
+    const changeNote = await this.changeNoteDialog.prompt({
+      title: 'Delete Toggle',
+      message: isMandatory
+        ? `Enter a change note for deleting toggle "${toggle.name}":`
+        : `Enter a change note for deleting toggle "${toggle.name}" (optional):`,
+      confirmText: 'Delete',
+      confirmClass: 'btn-danger',
+      optional: !isMandatory
+    });
+    if (changeNote === null) return;
+
     try {
-      await this.controller.deleteToggle(toggle.id);
+      await this.controller.deleteToggle(toggle.id, changeNote);
       this.toastService.success('Toggle deleted successfully');
     } catch (err: any) {
       const problem = err.error;
@@ -344,10 +374,23 @@ export class TogglesComponent implements OnInit {
 
     try {
       if (this.editingStageRule) {
+        const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
+        const changeNote = await this.changeNoteDialog.prompt({
+          title: 'Update Assignment',
+          message: isMandatory
+            ? `Enter a change note for updating this assignment:`
+            : `Enter a change note for updating this assignment (optional):`,
+          confirmText: 'Update',
+          confirmClass: 'btn-primary',
+          optional: !isMandatory
+        });
+        if (changeNote === null) return;
+
         await this.controller.updateToggleStageRule(
           this.editingStageRule.id,
           this.editToggleValue,
-          this.editRulePriority
+          this.editRulePriority,
+          changeNote
         );
         this.toastService.success('Assignment updated successfully');
       } else {
@@ -355,12 +398,25 @@ export class TogglesComponent implements OnInit {
           this.toastService.error('Stage and rule are required');
           return;
         }
+        const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
+        const changeNote = await this.changeNoteDialog.prompt({
+          title: 'Create Assignment',
+          message: isMandatory
+            ? `Enter a change note for creating this assignment:`
+            : `Enter a change note for creating this assignment (optional):`,
+          confirmText: 'Create',
+          confirmClass: 'btn-primary',
+          optional: !isMandatory
+        });
+        if (changeNote === null) return;
+
         await this.controller.createToggleStageRule(
           this.managingToggle.id,
           this.selectedStageId,
           this.selectedRuleId,
           this.newRulePriority,
-          this.newToggleValue
+          this.newToggleValue,
+          changeNote
         );
         this.toastService.success('Assignment created successfully');
       }
@@ -395,8 +451,20 @@ export class TogglesComponent implements OnInit {
       return;
     }
 
+    const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
+    const changeNote = await this.changeNoteDialog.prompt({
+      title: 'Delete Assignment',
+      message: isMandatory
+        ? `Enter a change note for deleting this assignment:`
+        : `Enter a change note for deleting this assignment (optional):`,
+      confirmText: 'Delete',
+      confirmClass: 'btn-danger',
+      optional: !isMandatory
+    });
+    if (changeNote === null) return;
+
     try {
-      await this.controller.deleteToggleStageRule(stageRule.id);
+      await this.controller.deleteToggleStageRule(stageRule.id, changeNote);
       this.toastService.success('Assignment deleted successfully');
       await this.reloadStageRules();
     } catch (err: any) {

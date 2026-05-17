@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import dev.abstratium.abstoggle.Roles;
+import dev.abstratium.abstoggle.boundary.interceptor.RequiresChangeNote;
 import dev.abstratium.abstoggle.dto.StageDto;
 import dev.abstratium.abstoggle.entity.Stage;
 import dev.abstratium.abstoggle.service.StageService;
@@ -60,6 +61,7 @@ public class StageResource {
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
+    @RequiresChangeNote
     public StageDto updateStage(@PathParam("id") String id, StageDto request) {
         if (id == null || id.trim().isEmpty()) {
             throw new IllegalArgumentException("Stage ID is required");
@@ -83,6 +85,7 @@ public class StageResource {
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
+    @RequiresChangeNote
     public Response deleteStage(@PathParam("id") String id) {
         if (id == null || id.trim().isEmpty()) {
             throw new IllegalArgumentException("Stage ID is required");

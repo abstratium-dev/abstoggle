@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
+import { ChangeNoteDialogService } from '../core/change-note-dialog/change-note-dialog.service';
 import { InfoButtonComponent } from '../core/info-button/info-button.component';
 import { Criterion, Rule, ModelService } from '../model.service';
 import { Controller } from '../controller';
@@ -19,6 +20,7 @@ export class RulesComponent implements OnInit {
   private controller = inject(Controller);
   private toastService = inject(ToastService);
   private confirmService = inject(ConfirmDialogService);
+  private changeNoteDialog = inject(ChangeNoteDialogService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
@@ -150,11 +152,24 @@ export class RulesComponent implements OnInit {
       const criteria = this.buildCriteriaList();
 
       if (this.editingRule) {
+        const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
+        const changeNote = await this.changeNoteDialog.prompt({
+          title: 'Update Rule',
+          message: isMandatory
+            ? `Enter a change note for updating rule "${this.editingRule.name || this.editingRule.id}":`
+            : `Enter a change note for updating rule "${this.editingRule.name || this.editingRule.id}" (optional):`,
+          confirmText: 'Update',
+          confirmClass: 'btn-primary',
+          optional: !isMandatory
+        });
+        if (changeNote === null) return;
+
         await this.controller.updateStandaloneRule(
           this.editingRule.id,
           this.ruleName.trim(),
           this.ruleDescription.trim(),
-          criteria
+          criteria,
+          changeNote
         );
         this.toastService.success('Rule updated successfully');
       } else {
@@ -189,8 +204,20 @@ export class RulesComponent implements OnInit {
       return;
     }
 
+    const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
+    const changeNote = await this.changeNoteDialog.prompt({
+      title: 'Delete Rule',
+      message: isMandatory
+        ? `Enter a change note for deleting rule "${rule.name || rule.id}":`
+        : `Enter a change note for deleting rule "${rule.name || rule.id}" (optional):`,
+      confirmText: 'Delete',
+      confirmClass: 'btn-danger',
+      optional: !isMandatory
+    });
+    if (changeNote === null) return;
+
     try {
-      await this.controller.deleteStandaloneRule(rule.id);
+      await this.controller.deleteStandaloneRule(rule.id, changeNote);
       this.toastService.success('Rule deleted successfully');
     } catch (err: any) {
       const problem = err.error;

@@ -1,0 +1,142 @@
+<div class="container">
+  <div class="page-header">
+    <h1>History</h1>
+  </div>
+
+  <!-- Search bar -->
+  <div class="search-bar">
+    <input
+      id="history-search"
+      type="text"
+      [(ngModel)]="searchTerm"
+      name="historySearch"
+      placeholder="Filter by username or change note..."
+      (keyup.enter)="onSearch()"
+    />
+    <button class="btn-search" (click)="onSearch()" [disabled]="loading">Search</button>
+  </div>
+
+  <div *ngIf="loading" class="loading">
+    <p>Loading history...</p>
+  </div>
+
+  <div *ngIf="error" class="error-box">
+    <p>{{ error }}</p>
+    <button (click)="loadHistory()">Retry</button>
+  </div>
+
+  <!-- History list -->
+  <div *ngIf="!loading && !error">
+    <div *ngIf="entries.length === 0" class="empty-state">
+      <p>No history entries found.</p>
+    </div>
+
+    <table *ngIf="entries.length > 0" class="history-table">
+      <thead>
+        <tr>
+          <th>Rev</th>
+          <th>Timestamp</th>
+          <th>User</th>
+          <th>Change Note</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (entry of entries; track entry.rev) {
+          <tr
+            class="history-row"
+            [class.selected]="selectedEntry?.rev === entry.rev"
+            (click)="selectEntry(entry)"
+          >
+            <td class="rev-cell">{{ entry.rev }}</td>
+            <td>{{ formatTimestamp(entry.timestamp) }}</td>
+            <td>{{ entry.username }}</td>
+            <td class="change-note-cell">{{ entry.changeNote || '—' }}</td>
+            <td class="expand-cell">{{ selectedEntry?.rev === entry.rev ? '▲' : '▼' }}</td>
+          </tr>
+          @if (selectedEntry?.rev === entry.rev) {
+            <tr class="detail-row">
+              <td colspan="5">
+                <div class="detail-panel">
+                  <div *ngIf="detailLoading" class="loading"><p>Loading changes...</p></div>
+                  <div *ngIf="detailError" class="error-box"><p>{{ detailError }}</p></div>
+                  <div *ngIf="!detailLoading && !detailError">
+                    <p *ngIf="detailChanges.length === 0" class="empty-state">No entity changes recorded for this revision.</p>
+                    <table *ngIf="detailChanges.length > 0" class="detail-table">
+                      <thead>
+                        <tr>
+                          <th>Entity</th>
+                          <th>Type</th>
+                          <th>ID</th>
+                          <th>Details</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (change of detailChanges; track change.entityId + change.table) {
+                          <tr>
+                            <td><span class="entity-badge">{{ change.table }}</span></td>
+                            <td><span class="revtype-badge" [ngClass]="revtypeCssClass(change.revtype)">{{ revtypeLabel(change.revtype) }}</span></td>
+                            <td class="id-cell">
+                              <a class="client-link" (click)="toggleEntityHistory(change.table, change.entityId); $event.stopPropagation()">
+                                {{ change.entityId }}
+                              </a>
+                            </td>
+                            <td class="data-cell">{{ change.data }}</td>
+                          </tr>
+                          @if (selectedEntityKey === change.table + ':' + change.entityId) {
+                            <tr class="entity-history-row">
+                              <td colspan="4">
+                                <div class="entity-history-panel">
+                                  <div *ngIf="entityHistoryLoading" class="loading"><p>Loading entity history...</p></div>
+                                  <div *ngIf="entityHistoryError" class="error-box"><p>{{ entityHistoryError }}</p></div>
+                                  <div *ngIf="!entityHistoryLoading && !entityHistoryError">
+                                    <p *ngIf="entityHistory.length === 0" class="empty-state">No history found for this entity.</p>
+                                    <table *ngIf="entityHistory.length > 0" class="entity-history-table">
+                                      <thead>
+                                        <tr>
+                                          <th>Rev</th>
+                                          <th>Timestamp</th>
+                                          <th>User</th>
+                                          <th>Type</th>
+                                          <th>Change Note</th>
+                                          <th>Details</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        @for (eh of entityHistory; track eh.rev) {
+                                          <tr>
+                                            <td class="rev-cell">{{ eh.rev }}</td>
+                                            <td>{{ formatTimestamp(eh.timestamp) }}</td>
+                                            <td>{{ eh.username }}</td>
+                                            <td><span class="revtype-badge" [ngClass]="revtypeCssClass(eh.revtype)">{{ revtypeLabel(eh.revtype) }}</span></td>
+                                            <td>{{ eh.changeNote || '—' }}</td>
+                                            <td class="data-cell">{{ eh.data }}</td>
+                                          </tr>
+                                        }
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          }
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div *ngIf="entries.length > 0" class="pagination">
+      <button [disabled]="offset === 0" (click)="onPrevPage()">&#8592; Prev</button>
+      <span>Page {{ (offset / limit) + 1 }}</span>
+      <button [disabled]="entries.length < limit" (click)="onNextPage()">Next &#8594;</button>
+    </div>
+  </div>
+</div>

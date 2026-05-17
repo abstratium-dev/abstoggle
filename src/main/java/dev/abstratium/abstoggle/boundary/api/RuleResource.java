@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import dev.abstratium.abstoggle.Roles;
+import dev.abstratium.abstoggle.boundary.interceptor.RequiresChangeNote;
 import dev.abstratium.abstoggle.dto.CriterionDto;
 import dev.abstratium.abstoggle.dto.RuleDto;
 import dev.abstratium.abstoggle.entity.Criterion;
@@ -59,6 +60,7 @@ public class RuleResource {
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
+    @RequiresChangeNote
     public RuleDto updateRule(@PathParam("id") String id, RuleDto request) {
         if (id == null || id.trim().isEmpty()) {
             throw new IllegalArgumentException("Rule ID is required");
@@ -79,6 +81,7 @@ public class RuleResource {
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
+    @RequiresChangeNote
     public Response deleteRule(@PathParam("id") String id) {
         if (id == null || id.trim().isEmpty()) {
             throw new IllegalArgumentException("Rule ID is required");

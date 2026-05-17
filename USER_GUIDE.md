@@ -78,7 +78,7 @@ erDiagram
 
 ---
 
-### Toggle Evaluation
+### Toggle Evaluation - Client Side
 
 #### Public endpoint
 
@@ -535,6 +535,51 @@ Authorization: Bearer <token>
 
 ---
 
+### Auditing and Change History
+ 
+Abstoggle provides comprehensive auditing capabilities to track all administrative changes for accountability and compliance.
+ 
+#### What Is Recorded
+ 
+Every **create**, **update**, and **delete** operation on the following entities is automatically recorded:
+- **Toggles** — modification, deletion
+- **Stages** — modification, deletion  
+- **Rules** — modification, deletion
+- **Toggle-Stage-Rule Assignments** — creation, modification, deletion
+ 
+Each audit record includes:
+- **Timestamp** — when the change occurred
+- **Username** — who made the change
+- **Change Note** — user-provided explanation (see below)
+- **Entity State** — the data before and after the change
+- **Revision Number** — a sequential identifier for the change
+ 
+#### Viewing History
+ 
+Click the **History** link in the page header to access the history view. The history view allows you to:
+- Browse all changes chronologically
+- Search by username or change note content
+- View detailed entity-level changes for any revision
+- See what was added, modified, or deleted at each step
+ 
+#### Change Notes
+ 
+By default, the application requires users to provide a **change note** for relevant create, update, and delete operations. This ensures that all changes are documented with context such as:
+- Ticket or issue numbers (e.g., "JIRA-1234")
+- Descriptions of why the change is being made
+- References to requirements or documentation
+ 
+**Configuration:** The `CHANGE_NOTE_MANDATORY` environment variable controls this behavior:
+- When `true` (default): Change notes are required — the UI will prompt for a note and operations cannot proceed without one
+- When `false`: Change notes are optional — users can skip the prompt or provide notes at their discretion
+ 
+See [Environment Variables](#optional-environment-variables) for configuration details.
+ 
+
+
+
+---
+
 ### Public API Security Considerations
 
 The `/public/toggles` endpoint is unauthenticated and **enabled by default**. Every response exposes toggle names, rule priorities, values, descriptions, and all criteria patterns. An attacker can use this to enumerate features under development, reverse-engineer targeting logic, forge context attributes to unlock features client-side, or identify which security controls exist.
@@ -827,7 +872,7 @@ _Replace all placeholder values with the values generated above.
    - `TOGGLE_CACHE_ENABLED`: Enable/disable caching for toggle query and evaluator results on both public and authenticated endpoints (defaults to `true`)
    - `TOGGLE_CACHE_TTL_SECONDS`: Cache TTL in seconds for query and evaluator results (defaults to `60`)
    - `TOGGLE_CACHE_MAX_SIZE_MB`: Maximum cache size in MB (defaults to `5`)
-   
+   - `CHANGE_NOTE_MANDATORY`: When `true` (default), some create and all update/delete operations require a change note for audit trail purposes. When `false`, change notes are optional and users can skip them in the UI.
 
 3. **Verify the container is running**:
    ```bash

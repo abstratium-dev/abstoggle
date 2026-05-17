@@ -1,0 +1,47 @@
+@if (state().isOpen) {
+  <div class="dialog-overlay" (click)="cancel()">
+    <div class="dialog-container" (click)="$event.stopPropagation()">
+      <div class="dialog-header">
+        <h3>{{ state().config!.title }}</h3>
+      </div>
+      <div class="dialog-body">
+        <p class="dialog-message">{{ state().config!.message }}</p>
+        <div class="form-group">
+          <label for="changeNote">
+            Change Note
+            @if (!state().isOptional) {
+              <span class="required">*</span>
+            }
+          </label>
+          <input
+            type="text"
+            id="changeNote"
+            class="form-control"
+            [placeholder]="state().config!.placeholder"
+            [value]="state().changeNote"
+            (input)="onInputChange($event)"
+            autocomplete="off"
+          />
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button type="button" class="btn btn-secondary" (click)="cancel()">
+          {{ state().config!.cancelText }}
+        </button>
+        @if (state().isOptional) {
+          <button type="button" class="btn btn-secondary" (click)="skip()">
+            {{ state().config!.skipText }}
+          </button>
+        }
+        <button
+          type="button"
+          [ngClass]="state().config!.confirmClass"
+          (click)="confirm()"
+          [disabled]="!state().isOptional && !state().changeNote.trim()"
+        >
+          {{ state().config!.confirmText }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

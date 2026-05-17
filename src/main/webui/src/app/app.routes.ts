@@ -7,6 +7,7 @@ import { ToggleTesterComponent } from './toggle-tester/toggle-tester.component';
 import { SignedOutComponent } from './core/signed-out/signed-out.component';
 import { HelpComponent } from './help/help.component';
 import { RulesComponent } from './rules/rules.component';
+import { HistoryComponent } from './history/history.component';
 
 export const routes: Routes = [
   { path: '',    component: TogglesComponent, canActivate: [authGuard] },
@@ -17,6 +18,7 @@ export const routes: Routes = [
   { path: 'toggle-tester', component: ToggleTesterComponent, canActivate: [authGuard] },
   { path: 'toggle-tester/:toggleName/:stage', component: ToggleTesterComponent, canActivate: [authGuard] },
   { path: 'help', component: HelpComponent, canActivate: [authGuard] },
+  { path: 'history', component: HistoryComponent, canActivate: [authGuard] },
   { path: 'signed-out', component: SignedOutComponent },
   { path: '**',         component: NotFoundComponent }
 ];
