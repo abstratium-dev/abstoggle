@@ -275,6 +275,7 @@ class StageResourceTest {
         given()
             .contentType("application/json")
             .body(request)
+            .queryParam("changeNote", "Updating stage via API")
             .when()
             .put("/api/stages/" + existing.getId())
             .then()
@@ -295,6 +296,7 @@ class StageResourceTest {
         given()
             .contentType("application/json")
             .body(request)
+            .queryParam("changeNote", "Update nonexistent stage")
             .when()
             .put("/api/stages/nonexistent-id-xyz")
             .then()
@@ -335,6 +337,7 @@ class StageResourceTest {
         given()
             .contentType("application/json")
             .body(request)
+            .queryParam("changeNote", "Changing parent stage")
             .when()
             .put("/api/stages/" + child.getId())
             .then()
@@ -370,6 +373,7 @@ class StageResourceTest {
         given()
             .contentType("application/json")
             .body(request)
+            .queryParam("changeNote", "Removing parent stage")
             .when()
             .put("/api/stages/" + child.getId())
             .then()
@@ -405,6 +409,7 @@ class StageResourceTest {
         given()
             .contentType("application/json")
             .body(request)
+            .queryParam("changeNote", "Test circular reference")
             .when()
             .put("/api/stages/" + parent.getId())
             .then()
@@ -429,6 +434,7 @@ class StageResourceTest {
             .getSingleResult();
 
         given()
+            .queryParam("changeNote", "Deleting stage via API")
             .when()
             .delete("/api/stages/" + existing.getId())
             .then()
@@ -474,6 +480,7 @@ class StageResourceTest {
             .getSingleResult();
 
         given()
+            .queryParam("changeNote", "Attempt to delete assigned stage")
             .when()
             .delete("/api/stages/" + existing.getId())
             .then()
@@ -502,6 +509,7 @@ class StageResourceTest {
             .getSingleResult();
 
         given()
+            .queryParam("changeNote", "Attempt to delete parent stage")
             .when()
             .delete("/api/stages/" + parent.getId())
             .then()
@@ -513,6 +521,7 @@ class StageResourceTest {
     @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
     void testDeleteStage_nonexistent_returns200() {
         given()
+            .queryParam("changeNote", "Delete nonexistent stage")
             .when()
             .delete("/api/stages/nonexistent-stage-xyz")
             .then()

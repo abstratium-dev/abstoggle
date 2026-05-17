@@ -369,6 +369,7 @@ class ToggleResourceTest {
         given()
             .contentType("application/json")
             .body(request)
+            .queryParam("changeNote", "Updating toggle via API")
             .when()
             .put("/api/toggles/" + existing.getId())
             .then()
@@ -389,6 +390,7 @@ class ToggleResourceTest {
         given()
             .contentType("application/json")
             .body(request)
+            .queryParam("changeNote", "Update nonexistent toggle")
             .when()
             .put("/api/toggles/nonexistent-id-12345")
             .then()
@@ -422,6 +424,7 @@ class ToggleResourceTest {
         given()
             .contentType("application/json")
             .body(request)
+            .queryParam("changeNote", "Test duplicate name")
             .when()
             .put("/api/toggles/" + target.getId())
             .then()
@@ -453,6 +456,7 @@ class ToggleResourceTest {
         given()
             .contentType("application/json")
             .body(request)
+            .queryParam("changeNote", "Keep same name during update")
             .when()
             .put("/api/toggles/" + existing.getId())
             .then()
@@ -485,6 +489,7 @@ class ToggleResourceTest {
         given()
             .contentType("application/json")
             .body(request)
+            .queryParam("changeNote", "Partial update of toggle")
             .when()
             .put("/api/toggles/" + existing.getId())
             .then()
@@ -512,6 +517,7 @@ class ToggleResourceTest {
             .getSingleResult();
 
         given()
+            .queryParam("changeNote", "Deleting toggle via API")
             .when()
             .delete("/api/toggles/" + existing.getId())
             .then()
@@ -556,6 +562,7 @@ class ToggleResourceTest {
             .getSingleResult();
 
         given()
+            .queryParam("changeNote", "Attempt to delete toggle with rules")
             .when()
             .delete("/api/toggles/" + existing.getId())
             .then()
@@ -567,6 +574,7 @@ class ToggleResourceTest {
     @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
     void testDeleteToggle_nonexistent_returns200() {
         given()
+            .queryParam("changeNote", "Delete nonexistent toggle")
             .when()
             .delete("/api/toggles/nonexistent-toggle-xyz")
             .then()

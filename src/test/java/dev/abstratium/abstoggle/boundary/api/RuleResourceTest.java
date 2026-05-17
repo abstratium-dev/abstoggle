@@ -210,6 +210,7 @@ class RuleResourceTest {
         given()
             .contentType("application/json")
             .body(request)
+            .queryParam("changeNote", "Updating rule with new criteria")
             .when()
             .put("/api/rules/" + existing.getId())
             .then()
@@ -231,6 +232,7 @@ class RuleResourceTest {
         given()
             .contentType("application/json")
             .body(request)
+            .queryParam("changeNote", "Test whitespace ID")
             .when()
             .put("/api/rules/  ")
             .then()
@@ -252,6 +254,7 @@ class RuleResourceTest {
 
         given()
             .contentType("application/json")
+            .queryParam("changeNote", "Test null request body")
             .when()
             .put("/api/rules/" + existing.getId())
             .then()
@@ -268,6 +271,7 @@ class RuleResourceTest {
         given()
             .contentType("application/json")
             .body(request)
+            .queryParam("changeNote", "Update nonexistent rule")
             .when()
             .put("/api/rules/nonexistent-id-xyz")
             .then()
@@ -289,6 +293,7 @@ class RuleResourceTest {
             .getSingleResult();
 
         given()
+            .queryParam("changeNote", "Deleting rule via API")
             .when()
             .delete("/api/rules/" + existing.getId())
             .then()
@@ -335,6 +340,7 @@ class RuleResourceTest {
             .getSingleResult();
 
         given()
+            .queryParam("changeNote", "Attempt to delete assigned rule")
             .when()
             .delete("/api/rules/" + existing.getId())
             .then()
@@ -347,6 +353,7 @@ class RuleResourceTest {
     void testDeleteRule_nonexistent_returns200() {
         // Deleting non-existent rule returns 200 (no-op)
         given()
+            .queryParam("changeNote", "Delete nonexistent rule")
             .when()
             .delete("/api/rules/nonexistent-id-xyz")
             .then()
@@ -400,6 +407,7 @@ class RuleResourceTest {
         given()
             .contentType("application/json")
             .body(request)
+            .queryParam("changeNote", "Clearing rule criteria")
             .when()
             .put("/api/rules/" + existing.getId())
             .then()
