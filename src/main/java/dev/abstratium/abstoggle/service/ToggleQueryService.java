@@ -270,6 +270,17 @@ public class ToggleQueryService {
     }
 
     /**
+     * Evict a single entry from the cache using the same key parameters as queryToggles.
+     * If caching is disabled or the key is not present, this is a no-op.
+     */
+    public void evictFromCache(String stage, String context, String nameFilter, Boolean includeDisabled) {
+        if (cacheEnabled && toggleCache != null) {
+            String key = buildCacheKey(stage, context, nameFilter, includeDisabled);
+            toggleCache.invalidate(key);
+        }
+    }
+
+    /**
      * Get cache statistics for monitoring
      */
     public Map<String, Object> getCacheStats() {

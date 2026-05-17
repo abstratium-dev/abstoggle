@@ -1,0 +1,71 @@
+- generic [ref=e2]:
+  - strong [ref=e4]: ⚠️ This is the dev environment
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - img "Abstratium Logo" [ref=e8]
+        - generic [ref=e9]: ABSTRATIUM
+      - generic [ref=e10]:
+        - button "Switch to dark mode" [ref=e11] [cursor=pointer]: 🌙
+        - link "Legal" [ref=e12] [cursor=pointer]:
+          - /url: https://abstratium.dev/docs/legal
+        - text: "|"
+        - link "📚" [ref=e13] [cursor=pointer]:
+          - /url: /help
+        - text: "|"
+        - link "🏠" [ref=e14]:
+          - /url: /
+        - text: "|"
+        - link "Stages" [ref=e15] [cursor=pointer]:
+          - /url: /stages
+        - text: "|"
+        - link "Rules" [ref=e16] [cursor=pointer]:
+          - /url: /rules
+        - text: "|"
+        - link "Toggles" [ref=e17] [cursor=pointer]:
+          - /url: /toggles
+        - text: "|"
+        - link "Tester" [ref=e18] [cursor=pointer]:
+          - /url: /toggle-tester
+        - text: "|"
+        - generic [ref=e19] [cursor=pointer]: Sign out
+  - generic [ref=e21]:
+    - generic [ref=e22]:
+      - heading "Toggles A toggle is a named feature flag. You can enable or disable it globally, assign it to stages, and define rules that control what value is returned for different client attributes." [level=1] [ref=e23]:
+        - text: Toggles
+        - button "A toggle is a named feature flag. You can enable or disable it globally, assign it to stages, and define rules that control what value is returned for different client attributes." [ref=e25]: ℹ️
+      - button "+ Add Toggle" [ref=e27] [cursor=pointer]
+    - generic [ref=e29]:
+      - generic [ref=e30]:
+        - generic [ref=e31]: Assigned to Stage
+        - textbox "Search stage..." [ref=e35]
+      - generic [ref=e36]:
+        - generic [ref=e37]: Assigned to Rule
+        - textbox "Search rule..." [ref=e41]
+    - table [ref=e43]:
+      - rowgroup [ref=e44]:
+        - row "Name Context Description Enabled Actions" [ref=e45]:
+          - columnheader "Name" [ref=e46]
+          - columnheader "Context" [ref=e47]
+          - columnheader "Description" [ref=e48]
+          - columnheader "Enabled" [ref=e49]
+          - columnheader "Actions" [ref=e50]
+      - rowgroup [ref=e51]:
+        - row "artm-123 public - Yes ✏️ ⚙️ 🗑️" [ref=e52]:
+          - cell "artm-123" [ref=e53]:
+            - strong [ref=e54]: artm-123
+          - cell "public" [ref=e55]:
+            - code [ref=e56]: public
+          - cell "-" [ref=e57]
+          - cell "Yes" [ref=e58]
+          - cell "✏️ ⚙️ 🗑️" [ref=e59]:
+            - generic [ref=e60]:
+              - button "✏️" [ref=e61] [cursor=pointer]
+              - button "⚙️" [ref=e62] [cursor=pointer]
+              - button "🗑️" [ref=e63] [cursor=pointer]
+  - separator [ref=e64]
+  - paragraph [ref=e65]:
+    - text: abstoggle is a product made with 🩷 by
+    - link "abstratium informatique sàrl" [ref=e66] [cursor=pointer]:
+      - /url: https://abstratium.dev
+    - text: copyright © 2026 all rights reserved

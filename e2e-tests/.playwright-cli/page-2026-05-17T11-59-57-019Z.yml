@@ -1,0 +1,74 @@
+- generic [ref=e2]:
+  - strong [ref=e4]: ⚠️ This is the dev environment
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - img "Abstratium Logo" [ref=e8]
+        - generic [ref=e9]: ABSTRATIUM
+      - generic [ref=e10]:
+        - button "Switch to dark mode" [ref=e11] [cursor=pointer]: 🌙
+        - link "Legal" [ref=e12] [cursor=pointer]:
+          - /url: https://abstratium.dev/docs/legal
+        - text: "|"
+        - link "📚" [ref=e13] [cursor=pointer]:
+          - /url: /help
+        - text: "|"
+        - link "🏠" [ref=e14]:
+          - /url: /
+        - text: "|"
+        - link "Stages" [active] [ref=e15]:
+          - /url: /stages
+        - text: "|"
+        - link "Rules" [ref=e16] [cursor=pointer]:
+          - /url: /rules
+        - text: "|"
+        - link "Toggles" [ref=e17] [cursor=pointer]:
+          - /url: /toggles
+        - text: "|"
+        - link "Tester" [ref=e18] [cursor=pointer]:
+          - /url: /toggle-tester
+        - text: "|"
+        - generic [ref=e19] [cursor=pointer]: Sign out
+  - generic [ref=e68]:
+    - generic [ref=e69]:
+      - heading "Stages Stages are environments (e.g. dev, test, prod). A stage can inherit from a parent stage, so a toggle configured only for prod is automatically available to any child stage." [level=1] [ref=e70]:
+        - text: Stages
+        - button "Stages are environments (e.g. dev, test, prod). A stage can inherit from a parent stage, so a toggle configured only for prod is automatically available to any child stage." [ref=e72]: ℹ️
+      - button "+ Add Stage" [ref=e74] [cursor=pointer]
+    - table [ref=e76]:
+      - rowgroup [ref=e77]:
+        - row "Name Description Display Order Parent Stage Actions" [ref=e78]:
+          - columnheader "Name" [ref=e79]
+          - columnheader "Description" [ref=e80]
+          - columnheader "Display Order" [ref=e81]
+          - columnheader "Parent Stage" [ref=e82]
+          - columnheader "Actions" [ref=e83]
+      - rowgroup [ref=e84]:
+        - row "temp - 0 - 🔗 ✏️ 🗑️" [ref=e85]:
+          - cell "temp" [ref=e86]:
+            - strong [ref=e87]: temp
+          - cell "-" [ref=e88]
+          - cell "0" [ref=e89]
+          - cell "-" [ref=e90]
+          - cell "🔗 ✏️ 🗑️" [ref=e91]:
+            - generic [ref=e92]:
+              - button "🔗" [ref=e93] [cursor=pointer]
+              - button "✏️" [ref=e94] [cursor=pointer]
+              - button "🗑️" [ref=e95] [cursor=pointer]
+        - row "temp-child - 0 temp 🔗 ✏️ 🗑️" [ref=e96]:
+          - cell "temp-child" [ref=e97]:
+            - strong [ref=e98]: temp-child
+          - cell "-" [ref=e99]
+          - cell "0" [ref=e100]
+          - cell "temp" [ref=e101]
+          - cell "🔗 ✏️ 🗑️" [ref=e102]:
+            - generic [ref=e103]:
+              - button "🔗" [ref=e104] [cursor=pointer]
+              - button "✏️" [ref=e105] [cursor=pointer]
+              - button "🗑️" [ref=e106] [cursor=pointer]
+  - separator [ref=e64]
+  - paragraph [ref=e65]:
+    - text: abstoggle is a product made with 🩷 by
+    - link "abstratium informatique sàrl" [ref=e66] [cursor=pointer]:
+      - /url: https://abstratium.dev
+    - text: copyright © 2026 all rights reserved

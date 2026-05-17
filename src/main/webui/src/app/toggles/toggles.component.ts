@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, Signal } from '@angular/core';
+import { Component, inject, OnInit, Signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -30,6 +30,9 @@ export class TogglesComponent implements OnInit {
   error: Signal<string | null> = this.modelService.togglesError$;
   stages: Signal<Stage[]> = this.modelService.stages$;
   rules: Signal<Rule[]> = this.modelService.rules$;
+  toggleContexts: Signal<string[]> = this.modelService.toggleContexts$;
+
+  @ViewChild('contextAutocomplete') contextAutocomplete?: AutocompleteComponent;
 
   // Form state
   showAddForm = false;
@@ -61,6 +64,13 @@ export class TogglesComponent implements OnInit {
   // Filter fields
   filterStageName: string | null = null;
   filterRuleName: string | null = null;
+
+  fetchContextOptions = async (searchTerm: string): Promise<AutocompleteOption[]> => {
+    const term = searchTerm.toLowerCase();
+    return this.toggleContexts()
+      .filter(ctx => ctx.toLowerCase().includes(term))
+      .map(ctx => ({ value: ctx, label: ctx }));
+  };
 
   fetchStageOptions = async (searchTerm: string): Promise<AutocompleteOption[]> => {
     const term = searchTerm.toLowerCase();
@@ -105,6 +115,7 @@ export class TogglesComponent implements OnInit {
     this.controller.loadToggles();
     this.controller.loadStages();
     this.controller.loadRules();
+    this.controller.loadToggleContexts();
 
     this.route.paramMap.subscribe(params => {
       const toggleName = params.get('toggleName');
@@ -153,6 +164,7 @@ export class TogglesComponent implements OnInit {
     this.showAddForm = !this.showAddForm;
     if (this.showAddForm) {
       this.resetForm();
+      this.cancelManageStageRules();
     }
   }
 
@@ -205,13 +217,14 @@ export class TogglesComponent implements OnInit {
     this.formError = null;
 
     try {
+      const context = (this.contextAutocomplete?.searchTerm() ?? this.toggleContext).trim();
       if (this.editingToggle) {
         await this.controller.updateToggle(
           this.editingToggle.id,
-          this.editingToggle.name,
+          this.toggleName.trim(),
           this.toggleDescription.trim(),
           this.toggleEnabled,
-          this.toggleContext.trim()
+          context
         );
         this.toastService.success('Toggle updated successfully');
       } else {
@@ -219,7 +232,7 @@ export class TogglesComponent implements OnInit {
           this.toggleName.trim(),
           this.toggleDescription.trim(),
           this.toggleEnabled,
-          this.toggleContext.trim()
+          context
         );
         this.toastService.success('Toggle created successfully');
       }

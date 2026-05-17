@@ -445,6 +445,93 @@ class QueryToggleResourceTest {
     }
 
     @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testEvictCache_returns204() throws Exception {
+        commitData(() -> {
+            Stage stage = new Stage();
+            stage.setName("api-evict-stage");
+            stage.setDisplayOrder(1);
+            em.persist(stage);
+        });
+
+        given()
+            .queryParam("stage", "api-evict-stage")
+            .queryParam("context", "global")
+            .when()
+            .delete("/api/query/toggles/cache")
+            .then()
+            .statusCode(204);
+    }
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testEvictCache_removesEntryFromCache_soNextQueryIsNotCacheHit() throws Exception {
+        commitData(() -> {
+            Stage stage = new Stage();
+            stage.setName("api-evict-cache-stage");
+            stage.setDisplayOrder(1);
+            em.persist(stage);
+
+            Toggle toggle = new Toggle();
+            toggle.setName("api-evict-cache-toggle");
+            toggle.setEnabled(true);
+            toggle.setContext("global");
+            em.persist(toggle);
+
+            Rule rule = new Rule();
+            rule.setName("api-evict-cache-rule");
+            em.persist(rule);
+
+            ToggleStageRule tsr = new ToggleStageRule();
+            tsr.setToggle(toggle);
+            tsr.setStage(stage);
+            tsr.setRule(rule);
+            tsr.setPriority(1);
+            tsr.setRuleValue("on");
+            em.persist(tsr);
+        });
+
+        // First query — populates cache; metadata.cacheHit must be false
+        given()
+            .queryParam("stage", "api-evict-cache-stage")
+            .queryParam("context", "global")
+            .when()
+            .get("/api/query/toggles")
+            .then()
+            .statusCode(200)
+            .body("queryMetadata.cacheHit", equalTo(false));
+
+        // Second query — should now be served from cache; cacheHit must be true
+        given()
+            .queryParam("stage", "api-evict-cache-stage")
+            .queryParam("context", "global")
+            .when()
+            .get("/api/query/toggles")
+            .then()
+            .statusCode(200)
+            .body("queryMetadata.cacheHit", equalTo(true));
+
+        // Evict the cache entry
+        given()
+            .queryParam("stage", "api-evict-cache-stage")
+            .queryParam("context", "global")
+            .when()
+            .delete("/api/query/toggles/cache")
+            .then()
+            .statusCode(204);
+
+        // Third query — cache was evicted, must be a fresh miss again
+        given()
+            .queryParam("stage", "api-evict-cache-stage")
+            .queryParam("context", "global")
+            .when()
+            .get("/api/query/toggles")
+            .then()
+            .statusCode(200)
+            .body("queryMetadata.cacheHit", equalTo(false));
+    }
+
+    @Test
     void testQueryToggles_withoutAuth_stageNotFound_returns401or400() {
         // In test environment without auth, the request either returns 401 (auth) or
         // validation fails first. We just verify it doesn't succeed.

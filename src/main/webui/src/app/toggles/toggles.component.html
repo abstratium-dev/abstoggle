@@ -35,7 +35,7 @@
           name="toggleName"
           placeholder="Enter toggle name"
           required
-          [disabled]="formSubmitting || !!editingToggle"
+          [disabled]="formSubmitting"
         />
       </div>
 
@@ -53,14 +53,16 @@
 
       <div class="form-group">
         <label for="toggleContext">Context <app-info-button tooltipText="Context is an optional category tag. It groups toggles so client applications can query only the toggles relevant to their domain (e.g. 'frontend' or 'payments')." /></label>
-        <input
+        <abs-autocomplete
+          #contextAutocomplete
           id="toggleContext"
-          type="text"
+          [fetchOptions]="fetchContextOptions"
+          placeholder="e.g. frontend, payments, internal"
+          [minSearchLength]="0"
           [(ngModel)]="toggleContext"
           name="toggleContext"
-          placeholder="e.g. frontend, payments, internal"
-          [disabled]="formSubmitting"
-        />
+          [required]="false"
+        ></abs-autocomplete>
         <span class="form-hint">Groups this toggle for context-filtered public API queries</span>
       </div>
 

@@ -96,6 +96,14 @@ public class ToggleService {
     }
 
     @Transactional
+    public List<String> getDistinctContexts() {
+        return em.createQuery(
+            "SELECT DISTINCT t.context FROM Toggle t WHERE t.context IS NOT NULL AND t.context <> '' ORDER BY t.context",
+            String.class)
+            .getResultList();
+    }
+
+    @Transactional
     public List<Toggle> findAll(String assignedToStage, String assignedToRule) {
         boolean hasStage = assignedToStage != null && !assignedToStage.isBlank();
         boolean hasRule = assignedToRule != null && !assignedToRule.isBlank();

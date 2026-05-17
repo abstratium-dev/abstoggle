@@ -1,0 +1,23 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - img "Abstratium Logo" [ref=e6]
+        - generic [ref=e7]: ABSTRATIUM
+      - generic [ref=e8]:
+        - button "Switch to dark mode" [ref=e9] [cursor=pointer]: 🌙
+        - link "Legal" [ref=e10] [cursor=pointer]:
+          - /url: https://abstratium.dev/docs/legal
+  - generic [ref=e11]:
+    - strong [ref=e12]: ⚠️ You are in the TEST environment!
+    - button "×" [ref=e13] [cursor=pointer]
+  - generic [ref=e16]:
+    - heading "Sign in" [level=1] [ref=e17]
+    - generic [ref=e18]:
+      - textbox "Email" [active] [ref=e20]
+      - textbox "Password" [ref=e22]
+      - button "Sign in" [ref=e23] [cursor=pointer]
+    - generic [ref=e25]: OR
+    - button "Sign in with Google" [ref=e26] [cursor=pointer]:
+      - img [ref=e27]
+      - text: Sign in with Google

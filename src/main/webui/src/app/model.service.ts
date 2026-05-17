@@ -144,6 +144,7 @@ export class ModelService {
   private rules = signal<Rule[]>([]);
   private rulesLoading = signal<boolean>(false);
   private rulesError = signal<string | null>(null);
+  private toggleContexts = signal<string[]>([]);
 
   config$: Signal<Config | null> = this.config.asReadonly();
   warningMessage$: Signal<string> = this.warningMessage.asReadonly();
@@ -156,6 +157,7 @@ export class ModelService {
   rules$: Signal<Rule[]> = this.rules.asReadonly();
   rulesLoading$: Signal<boolean> = this.rulesLoading.asReadonly();
   rulesError$: Signal<string | null> = this.rulesError.asReadonly();
+  toggleContexts$: Signal<string[]> = this.toggleContexts.asReadonly();
 
   setConfig(config: Config) {
     this.config.set(config);
@@ -200,5 +202,9 @@ export class ModelService {
 
   setRulesError(error: string | null) {
     this.rulesError.set(error);
+  }
+
+  setToggleContexts(contexts: string[]) {
+    this.toggleContexts.set(contexts);
   }
 }

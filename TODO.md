@@ -10,19 +10,15 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 ## Today
 
 
-- add tests!
+- TEST THIS: add e2e that ensure you cannot delete stages, toggles or rules if they are in assignments.
+
 - rename "rule_value" in TSR to just "value" or "toggle_value"? "rule" is not right, "value" is a mare in terms of refactoring later because its a very generic term.
-- is @Transactional implemented properly? there seem to be a lot and is it right on the level of service or better on boundary? or does that start a default tx anyway?
 
-- **`e2e-tests/pages/TODO.page.ts`** — This file should be renamed and populated with actual page objects for abstoggle's UI once the feature toggle pages exist.
-- **`e2e-tests/tests/happy.spec.ts`** — The test body is empty. Write actual e2e tests once feature toggle UI is implemented.
-
+- add an evaluator endpoint for people who want that - i.e. it simply takes the context and outputs the toggle value. add a quarkus test for it. give it a configurable cache.
 
 
 
 ## Tomorrow
-
-- add an evaluator endpoint for people who want that. add a quarkus test for it. give it a configurable cache.
 
 - performance: rather than loading all toggles with all their content, load only the names and descriptions and let the user load details when needed
 

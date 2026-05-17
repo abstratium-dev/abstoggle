@@ -140,6 +140,20 @@ export class Controller {
   }
 
   /**
+   * Loads the list of distinct toggle context values from the server.
+   */
+  loadToggleContexts() {
+    this.http.get<string[]>('/api/toggles/contexts').subscribe({
+      next: (contexts) => {
+        this.modelService.setToggleContexts(contexts);
+      },
+      error: (err) => {
+        console.error('Error loading toggle contexts:', err);
+      }
+    });
+  }
+
+  /**
    * Creates a new toggle and refreshes the toggle list.
    */
   async createToggle(name: string, description: string, enabled: boolean, context: string): Promise<Toggle> {
@@ -153,6 +167,7 @@ export class Controller {
         })
       );
       this.loadToggles();
+      this.loadToggleContexts();
       return response;
     } catch (error) {
       console.error('Error creating toggle:', error);
@@ -174,6 +189,7 @@ export class Controller {
         })
       );
       this.loadToggles();
+      this.loadToggleContexts();
       return response;
     } catch (error) {
       console.error('Error updating toggle:', error);
@@ -190,6 +206,7 @@ export class Controller {
         this.http.delete<void>(`/api/toggles/${id}`)
       );
       this.loadToggles();
+      this.loadToggleContexts();
     } catch (error) {
       console.error('Error deleting toggle:', error);
       throw error;
@@ -197,18 +214,40 @@ export class Controller {
   }
 
   /**
-   * Queries toggles for a given stage and optional name filter.
-   * This endpoint is public and does not require authentication.
+   * Evicts a specific entry from the server-side toggle query cache.
+   * Uses the same parameters as queryToggles to reconstruct the cache key.
    */
-  async queryToggles(stage: string, context: string, nameFilter?: string): Promise<ToggleQueryResponse> {
+  async evictCache(stage: string, context: string, nameFilter?: string): Promise<void> {
     try {
-      let url = `/public/toggles?stage=${encodeURIComponent(stage)}&context=${encodeURIComponent(context)}`;
+      let params = new HttpParams()
+        .set('stage', stage)
+        .set('context', context);
+      if (nameFilter) {
+        params = params.set('nameFilter', nameFilter);
+      }
+      await firstValueFrom(
+        this.http.delete<void>('/api/query/toggles/cache', { params })
+      );
+    } catch (error) {
+      console.error('Error evicting cache:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Queries toggles using the management API (authenticated).
+   * Uses ToggleQueryService directly without caching for fresh results.
+   * This works even when the public API is disabled.
+   */
+  async queryTogglesManagement(stage: string, context: string, nameFilter?: string): Promise<ToggleQueryResponse> {
+    try {
+      let url = `/api/toggles?stage=${encodeURIComponent(stage)}&context=${encodeURIComponent(context)}`;
       if (nameFilter) {
         url += `&nameFilter=${encodeURIComponent(nameFilter)}`;
       }
       return await firstValueFrom(this.http.get<ToggleQueryResponse>(url));
     } catch (error) {
-      console.error('Error querying toggles:', error);
+      console.error('Error querying toggles via management API:', error);
       throw error;
     }
   }

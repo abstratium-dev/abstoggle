@@ -1,0 +1,71 @@
+- generic [ref=e2]:
+  - strong [ref=e4]: ⚠️ This is the dev environment
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - img "Abstratium Logo" [ref=e8]
+        - generic [ref=e9]: ABSTRATIUM
+      - generic [ref=e10]:
+        - button "Switch to dark mode" [ref=e11] [cursor=pointer]: 🌙
+        - link "Legal" [ref=e12] [cursor=pointer]:
+          - /url: https://abstratium.dev/docs/legal
+        - text: "|"
+        - link "📚" [ref=e13] [cursor=pointer]:
+          - /url: /help
+        - text: "|"
+        - link "🏠" [ref=e14]:
+          - /url: /
+        - text: "|"
+        - link "Stages" [ref=e15] [cursor=pointer]:
+          - /url: /stages
+        - text: "|"
+        - link "Rules" [active] [ref=e16]:
+          - /url: /rules
+        - text: "|"
+        - link "Toggles" [ref=e17] [cursor=pointer]:
+          - /url: /toggles
+        - text: "|"
+        - link "Tester" [ref=e18] [cursor=pointer]:
+          - /url: /toggle-tester
+        - text: "|"
+        - generic [ref=e19] [cursor=pointer]: Sign out
+  - generic [ref=e120]:
+    - generic [ref=e121]:
+      - heading "Rules Reusable rules define criteria sets that can be assigned to any toggle+stage combination. The toggle value is configured on the assignment, not the rule." [level=1] [ref=e122]:
+        - text: Rules
+        - button "Reusable rules define criteria sets that can be assigned to any toggle+stage combination. The toggle value is configured on the assignment, not the rule." [ref=e124]: ℹ️
+      - button "+ Add Rule" [ref=e126] [cursor=pointer]
+    - table [ref=e128]:
+      - rowgroup [ref=e129]:
+        - row "Name Description Criteria Actions" [ref=e130]:
+          - columnheader "Name" [ref=e131]
+          - columnheader "Description" [ref=e132]
+          - columnheader "Criteria" [ref=e133]
+          - columnheader "Actions" [ref=e134]
+      - rowgroup [ref=e135]:
+        - row "catch-all - None (catch-all) 🔗 ✏️ 🗑️" [ref=e136]:
+          - cell "catch-all" [ref=e137]:
+            - strong [ref=e138]: catch-all
+          - cell "-" [ref=e139]
+          - cell "None (catch-all)" [ref=e140]
+          - cell "🔗 ✏️ 🗑️" [ref=e141]:
+            - generic [ref=e142]:
+              - button "🔗" [ref=e143] [cursor=pointer]
+              - button "✏️" [ref=e144] [cursor=pointer]
+              - button "🗑️" [ref=e145] [cursor=pointer]
+        - 'row "feature-testers - userId: (alice|bob) 🔗 ✏️ 🗑️" [ref=e146]':
+          - cell "feature-testers" [ref=e147]:
+            - strong [ref=e148]: feature-testers
+          - cell "-" [ref=e149]
+          - 'cell "userId: (alice|bob)" [ref=e150]'
+          - cell "🔗 ✏️ 🗑️" [ref=e151]:
+            - generic [ref=e152]:
+              - button "🔗" [ref=e153] [cursor=pointer]
+              - button "✏️" [ref=e154] [cursor=pointer]
+              - button "🗑️" [ref=e155] [cursor=pointer]
+  - separator [ref=e76]
+  - paragraph [ref=e77]:
+    - text: abstoggle is a product made with 🩷 by
+    - link "abstratium informatique sàrl" [ref=e78] [cursor=pointer]:
+      - /url: https://abstratium.dev
+    - text: copyright © 2026 all rights reserved

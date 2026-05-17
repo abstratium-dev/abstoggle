@@ -1,8 +1,9 @@
-import { Component, inject, OnInit, Signal } from '@angular/core';
+import { Component, inject, OnInit, Signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { InfoButtonComponent } from '../core/info-button/info-button.component';
+import { AutocompleteComponent, AutocompleteOption } from '../core/autocomplete/autocomplete.component';
 import { Controller } from '../controller';
 import { ModelService, Stage, ToggleDto } from '../model.service';
 import { ToggleResult, evaluateToggle } from './toggle-evaluator';
@@ -33,7 +34,7 @@ type Configurations = Record<string, StoredState>;
 
 @Component({
   selector: 'app-toggle-tester',
-  imports: [CommonModule, FormsModule, RouterModule, InfoButtonComponent],
+  imports: [CommonModule, FormsModule, RouterModule, InfoButtonComponent, AutocompleteComponent],
   templateUrl: './toggle-tester.component.html',
   styleUrl: './toggle-tester.component.scss'
 })
@@ -44,6 +45,16 @@ export class ToggleTesterComponent implements OnInit {
   private modelService = inject(ModelService);
 
   stages: Signal<Stage[]> = this.modelService.stages$;
+  toggleContexts: Signal<string[]> = this.modelService.toggleContexts$;
+
+  @ViewChild('contextAutocomplete') contextAutocomplete?: AutocompleteComponent;
+
+  fetchContextOptions = async (searchTerm: string): Promise<AutocompleteOption[]> => {
+    const term = searchTerm.toLowerCase();
+    return this.toggleContexts()
+      .filter(ctx => ctx.toLowerCase().includes(term))
+      .map(ctx => ({ value: ctx, label: ctx }));
+  };
 
   selectedStage = '';
   selectedContext = '';
@@ -56,12 +67,14 @@ export class ToggleTesterComponent implements OnInit {
   configExpanded = false;
 
   querying = false;
+  clearingCache = false;
   queryError: string | null = null;
   results: ToggleResult[] | null = null;
   queriedStage = '';
 
   ngOnInit(): void {
     this.controller.loadStages();
+    this.controller.loadToggleContexts();
 
     this.loadState();
 
@@ -144,7 +157,7 @@ export class ToggleTesterComponent implements OnInit {
   updateUrlWithCurrentState(): void {
     const queryParams: { [key: string]: string | null } = {
       stage: this.selectedStage || null,
-      context: this.selectedContext.trim() || null,
+      context: (this.contextAutocomplete?.searchTerm() ?? this.selectedContext) || null,
       filter: this.nameFilter.trim() || null
     };
 
@@ -284,7 +297,8 @@ export class ToggleTesterComponent implements OnInit {
       return;
     }
 
-    if (!this.selectedContext.trim()) {
+    const resolvedContext = (this.contextAutocomplete?.searchTerm() ?? this.selectedContext).trim();
+    if (!resolvedContext) {
       this.queryError = 'Context is required';
       return;
     }
@@ -301,9 +315,9 @@ export class ToggleTesterComponent implements OnInit {
     }
 
     try {
-      const response = await this.controller.queryToggles(
+      const response = await this.controller.queryTogglesManagement(
         this.selectedStage,
-        this.selectedContext.trim(),
+        resolvedContext,
         this.nameFilter.trim() || undefined
       );
 
@@ -341,6 +355,26 @@ export class ToggleTesterComponent implements OnInit {
       this.queryError = problem?.detail || problem?.title || 'Failed to query toggles';
     } finally {
       this.querying = false;
+    }
+  }
+
+  async clearCache(): Promise<void> {
+    const resolvedContext = (this.contextAutocomplete?.searchTerm() ?? this.selectedContext).trim();
+    if (!this.selectedStage || !resolvedContext) {
+      return;
+    }
+    this.clearingCache = true;
+    try {
+      await this.controller.evictCache(
+        this.selectedStage,
+        resolvedContext,
+        this.nameFilter.trim() || undefined
+      );
+    } catch (err: any) {
+      const problem = err.error;
+      this.queryError = problem?.detail || problem?.title || 'Failed to clear cache';
+    } finally {
+      this.clearingCache = false;
     }
   }
 

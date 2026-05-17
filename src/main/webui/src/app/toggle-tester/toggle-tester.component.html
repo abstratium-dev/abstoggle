@@ -22,14 +22,16 @@
       </div>
       <div class="form-group">
         <label for="contextInput">Context *</label>
-        <input
+        <abs-autocomplete
+          #contextAutocomplete
           id="contextInput"
-          type="text"
+          [fetchOptions]="fetchContextOptions"
+          placeholder="e.g. frontend, payments"
+          [minSearchLength]="0"
           [(ngModel)]="selectedContext"
           (ngModelChange)="updateUrlWithCurrentState()"
           name="contextInput"
-          placeholder="e.g. frontend, payments"
-        />
+        ></abs-autocomplete>
         <span class="form-hint">Required — only toggles with this context are returned</span>
       </div>
       <div class="form-group">
@@ -127,8 +129,11 @@
     </div>
 
     <div class="form-actions">
-      <button class="btn-primary" (click)="runQuery()" [disabled]="querying || !selectedStage">
+      <button class="btn-primary" id="run-query-btn" (click)="runQuery()" [disabled]="querying || !selectedStage">
         {{ querying ? 'Querying...' : 'Run Query' }}
+      </button>
+      <button class="btn-secondary" id="clear-cache-btn" (click)="clearCache()" [disabled]="clearingCache || !selectedStage || !selectedContext.trim()" title="Evict this query's result from the server-side cache">
+        {{ clearingCache ? 'Clearing...' : 'Clear Cache' }}
       </button>
       <button class="btn-secondary" (click)="resetContext()">Reset Context</button>
     </div>

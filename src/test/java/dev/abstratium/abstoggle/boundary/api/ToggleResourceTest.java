@@ -573,7 +573,94 @@ class ToggleResourceTest {
             .statusCode(200);
     }
 
+    // ==================== DISTINCT CONTEXTS ====================
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testGetDistinctContexts_returnsUniqueContextsSorted() throws Exception {
+        commitData(() -> {
+            Toggle toggle1 = new Toggle();
+            toggle1.setName("ctx-toggle-1");
+            toggle1.setContext("payments");
+            em.persist(toggle1);
+
+            Toggle toggle2 = new Toggle();
+            toggle2.setName("ctx-toggle-2");
+            toggle2.setContext("frontend");
+            em.persist(toggle2);
+
+            Toggle toggle3 = new Toggle();
+            toggle3.setName("ctx-toggle-3");
+            toggle3.setContext("payments");
+            em.persist(toggle3);
+        });
+
+        given()
+            .when()
+            .get("/api/toggles/contexts")
+            .then()
+            .statusCode(200)
+            .body("size()", equalTo(2))
+            .body("get(0)", equalTo("frontend"))
+            .body("get(1)", equalTo("payments"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testGetDistinctContexts_excludesBlankContexts() throws Exception {
+        commitData(() -> {
+            Toggle toggle1 = new Toggle();
+            toggle1.setName("ctx-blank-toggle-1");
+            toggle1.setContext("");
+            em.persist(toggle1);
+
+            Toggle toggle2 = new Toggle();
+            toggle2.setName("ctx-blank-toggle-2");
+            toggle2.setContext("internal");
+            em.persist(toggle2);
+        });
+
+        given()
+            .when()
+            .get("/api/toggles/contexts")
+            .then()
+            .statusCode(200)
+            .body("size()", equalTo(1))
+            .body("get(0)", equalTo("internal"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testGetDistinctContexts_emptyWhenNoToggles() {
+        given()
+            .when()
+            .get("/api/toggles/contexts")
+            .then()
+            .statusCode(200)
+            .body("size()", equalTo(0));
+    }
+
     // ==================== SECURITY ====================
+
+    @Test
+    void testGetDistinctContexts_withoutAuth_returns401or400or302() {
+        given()
+            .redirects().follow(false)
+            .when()
+            .get("/api/toggles/contexts")
+            .then()
+            .statusCode(org.hamcrest.Matchers.anyOf(equalTo(302), equalTo(400), equalTo(401)));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "some_other_role" })
+    void testGetDistinctContexts_withoutProperRole_returns403() {
+        given()
+            .when()
+            .get("/api/toggles/contexts")
+            .then()
+            .statusCode(403);
+    }
 
     @Test
     void testQueryToggles_withoutAuth_returns401or400or302() {

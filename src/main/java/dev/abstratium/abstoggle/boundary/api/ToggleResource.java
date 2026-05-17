@@ -39,6 +39,7 @@ public class ToggleResource {
     @RolesAllowed({Roles.USER})
     public QueryResponse queryToggles(
             @QueryParam("stage") String stage,
+            @QueryParam("context") String context,
             @QueryParam("nameFilter") String nameFilter,
             @QueryParam("includeDisabled") Boolean includeDisabled) {
 
@@ -48,7 +49,7 @@ public class ToggleResource {
         }
 
         // Use non-cached query for management endpoints to ensure fresh data
-        return toggleQueryService.queryTogglesWithoutCache(stage, null, nameFilter, includeDisabled);
+        return toggleQueryService.queryTogglesWithoutCache(stage, context, nameFilter, includeDisabled);
     }
 
     @GET
@@ -62,6 +63,14 @@ public class ToggleResource {
         return toggles.stream()
             .map(this::convertToDto)
             .collect(Collectors.toList());
+    }
+
+    @GET
+    @Path("/contexts")
+    @Produces(MediaType.APPLICATION_JSON)
+    @RolesAllowed({Roles.USER})
+    public List<String> getDistinctContexts() {
+        return toggleService.getDistinctContexts();
     }
 
     @POST

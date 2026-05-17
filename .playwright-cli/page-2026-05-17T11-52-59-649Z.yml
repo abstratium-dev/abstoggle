@@ -1,0 +1,29 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - img "Abstratium Logo" [ref=e6]
+        - generic [ref=e7]: ABSTRATIUM
+      - generic [ref=e8]:
+        - button "Switch to dark mode" [ref=e9] [cursor=pointer]: 🌙
+        - link "Legal" [ref=e10] [cursor=pointer]:
+          - /url: https://abstratium.dev/docs/legal
+  - generic [ref=e11]:
+    - strong [ref=e12]: ⚠️ You are in the TEST environment!
+    - button "×" [ref=e13] [cursor=pointer]
+  - generic [ref=e32]:
+    - heading "Approve Application" [level=1] [ref=e33]
+    - paragraph [ref=e34]:
+      - text: Hi Test,
+      - strong [ref=e35]: abstratium abstoggle
+      - text: "wants to access:"
+    - list [ref=e36]:
+      - listitem [ref=e37]: • openid
+      - listitem [ref=e38]: • profile
+      - listitem [ref=e39]: • email
+    - generic [ref=e40]:
+      - generic [ref=e42] [cursor=pointer]:
+        - checkbox "Remember this approval for 30 days" [ref=e43]
+        - text: Remember this approval for 30 days
+      - button "Approve" [active] [ref=e45] [cursor=pointer]
+      - button "Deny" [ref=e47] [cursor=pointer]
