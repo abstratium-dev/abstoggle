@@ -16,7 +16,7 @@ import { Controller } from '../controller';
   styleUrl: './stages.component.scss'
 })
 export class StagesComponent implements OnInit {
-  private modelService = inject(ModelService);
+  protected modelService = inject(ModelService);
   private controller = inject(Controller);
   private toastService = inject(ToastService);
   private confirmService = inject(ConfirmDialogService);
@@ -39,6 +39,7 @@ export class StagesComponent implements OnInit {
   stageDescription = '';
   stageDisplayOrder = 0;
   stageParentName = '';
+  changeNote = '';
 
   // Filter fields
   filterName: string | null = null;
@@ -103,6 +104,7 @@ export class StagesComponent implements OnInit {
     this.stageDescription = '';
     this.stageDisplayOrder = 0;
     this.stageParentName = '';
+    this.changeNote = '';
     this.formError = null;
   }
 
@@ -123,25 +125,13 @@ export class StagesComponent implements OnInit {
       const parentName = this.stageParentName.trim() || undefined;
 
       if (this.editingStage) {
-        const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
-        const changeNote = await this.changeNoteDialog.prompt({
-          title: 'Update Stage',
-          message: isMandatory
-            ? `Enter a change note for updating stage "${this.editingStage.name}":`
-            : `Enter a change note for updating stage "${this.editingStage.name}" (optional):`,
-          confirmText: 'Update',
-          confirmClass: 'btn-primary',
-          optional: !isMandatory
-        });
-        if (changeNote === null) return;
-
         await this.controller.updateStage(
           this.editingStage.id,
           this.stageName.trim(),
           this.stageDescription.trim(),
           this.stageDisplayOrder,
           parentName,
-          changeNote
+          this.changeNote
         );
         this.toastService.success('Stage updated successfully');
       } else {
@@ -149,7 +139,8 @@ export class StagesComponent implements OnInit {
           this.stageName.trim(),
           this.stageDescription.trim(),
           this.stageDisplayOrder,
-          parentName
+          parentName,
+          this.changeNote
         );
         this.toastService.success('Stage created successfully');
       }
@@ -215,5 +206,9 @@ export class StagesComponent implements OnInit {
 
   goToToggles(stage: Stage): void {
     this.router.navigate(['/toggles'], { queryParams: { filterStage: stage.name } });
+  }
+
+  goToHistory(stage: Stage): void {
+    this.router.navigate(['/history'], { queryParams: { entityType: 'Stage', entityId: stage.id } });
   }
 }

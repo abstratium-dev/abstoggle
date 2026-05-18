@@ -55,15 +55,16 @@ export class Controller {
   /**
    * Creates a new stage and refreshes the stage list.
    */
-  async createStage(name: string, description: string, displayOrder: number, parentStageName?: string): Promise<Stage> {
+  async createStage(name: string, description: string, displayOrder: number, parentStageName: string | undefined, changeNote: string): Promise<Stage> {
     try {
+      const params = new HttpParams().set('changeNote', changeNote);
       const response = await firstValueFrom(
         this.http.post<Stage>('/api/stages', {
           name,
           description,
           displayOrder,
           parentStageName
-        })
+        }, { params })
       );
       this.loadStages();
       return response;
@@ -158,15 +159,16 @@ export class Controller {
   /**
    * Creates a new toggle and refreshes the toggle list.
    */
-  async createToggle(name: string, description: string, enabled: boolean, context: string): Promise<Toggle> {
+  async createToggle(name: string, description: string, enabled: boolean, context: string, changeNote: string): Promise<Toggle> {
     try {
+      const params = new HttpParams().set('changeNote', changeNote);
       const response = await firstValueFrom(
         this.http.post<Toggle>('/api/toggles', {
           name,
           description,
           enabled,
           context
-        })
+        }, { params })
       );
       this.loadToggles();
       this.loadToggleContexts();
@@ -282,14 +284,15 @@ export class Controller {
   /**
    * Creates a new reusable rule and refreshes the rule list.
    */
-  async createStandaloneRule(name: string, description: string, criteria: Criterion[]): Promise<Rule> {
+  async createStandaloneRule(name: string, description: string, criteria: Criterion[], changeNote: string): Promise<Rule> {
     try {
+      const params = new HttpParams().set('changeNote', changeNote);
       const response = await firstValueFrom(
         this.http.post<Rule>('/api/rules', {
           name,
           description,
           criteria
-        })
+        }, { params })
       );
       this.loadRules();
       return response;

@@ -1,3 +1,18 @@
+.entity-mode-header {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+
+  h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+}
+
 .search-bar {
   display: flex;
   gap: 0.5rem;

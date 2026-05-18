@@ -33,6 +33,10 @@ function cancelToggleFormButton(page: Page) {
     return page.locator('button.btn-secondary', { hasText: 'Cancel' });
 }
 
+function toggleChangeNoteInput(page: Page) {
+    return page.locator('input#changeNote');
+}
+
 /** Returns the table row for a toggle by its name (in the main toggles table). */
 function toggleRowByName(page: Page, toggleName: string) {
     return page.locator('table.standard-table tbody tr').filter({
@@ -90,6 +94,10 @@ function saveAssignmentButton(page: Page) {
 
 function cancelAssignmentFormButton(page: Page) {
     return page.locator('button.btn-secondary', { hasText: 'Cancel' });
+}
+
+function assignmentChangeNoteInput(page: Page) {
+    return page.locator('input#assignmentChangeNote');
 }
 
 /** Returns a row in the assignments table matching stage + rule names. */
@@ -161,6 +169,9 @@ export async function createToggle(
             await checkbox.uncheck();
         }
     }
+
+    // Fill in change note (required field)
+    await toggleChangeNoteInput(page).fill(`Created toggle ${name}`);
 
     await createToggleSubmitButton(page).click();
 
@@ -300,6 +311,9 @@ export async function addAssignment(
     // Clear and fill value
     await assignmentValueInput(page).fill(value);
 
+    // Fill in change note (required field)
+    await assignmentChangeNoteInput(page).fill(`Added assignment for ${stageName} / ${ruleName}`);
+
     await saveAssignmentButton(page).click();
 
     // Wait for form to close (Add Assignment button reappears)
@@ -377,6 +391,9 @@ export async function editAssignmentValue(
     // Value input is now editable (edit mode)
     await assignmentValueInput(page).waitFor({ state: 'visible', timeout: 10000 });
     await assignmentValueInput(page).fill(newValue);
+
+    // Fill in change note (required field)
+    await assignmentChangeNoteInput(page).fill(`Updated assignment for ${stageName} / ${ruleName}`);
 
     await saveAssignmentButton(page).click();
 

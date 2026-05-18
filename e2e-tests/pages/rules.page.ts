@@ -35,6 +35,10 @@ function criteriaTagList(page: Page) {
     return page.locator('.criteria-list .criteria-tag');
 }
 
+function changeNoteInput(page: Page) {
+    return page.locator('input#changeNote');
+}
+
 function createRuleSubmitButton(page: Page) {
     return page.locator('button.btn-primary', { hasText: /Create Rule|Update Rule/ });
 }
@@ -105,6 +109,9 @@ export async function createRule(
             await expect(tag).toBeVisible({ timeout: 5000 });
         }
     }
+
+    // Fill in change note (required field)
+    await changeNoteInput(page).fill(`Created rule ${name}`);
 
     await createRuleSubmitButton(page).click();
 

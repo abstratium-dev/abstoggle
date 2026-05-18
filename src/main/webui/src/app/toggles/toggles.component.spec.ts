@@ -4,9 +4,10 @@ import { Controller } from '../controller';
 import { ModelService, Toggle } from '../model.service';
 import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
+import { ChangeNoteDialogService } from '../core/change-note-dialog/change-note-dialog.service';
 import { AuthService } from '../core/auth.service';
 import { signal } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 
 describe('TogglesComponent', () => {
   let component: TogglesComponent;
@@ -16,6 +17,7 @@ describe('TogglesComponent', () => {
   let toastService: jasmine.SpyObj<ToastService>;
   let confirmService: jasmine.SpyObj<ConfirmDialogService>;
   let authService: jasmine.SpyObj<AuthService>;
+  let router: Router;
 
   // Store signal references for testing
   let togglesSignal: ReturnType<typeof signal<Toggle[]>>;
@@ -30,7 +32,7 @@ describe('TogglesComponent', () => {
 
   beforeEach(async () => {
     const controllerSpy = jasmine.createSpyObj('Controller', [
-      'loadToggles', 'loadStages', 'loadRules', 'createToggle', 'updateToggle', 'deleteToggle',
+      'loadToggles', 'loadStages', 'loadRules', 'loadToggleContexts', 'createToggle', 'updateToggle', 'deleteToggle',
       'getToggleStageRules', 'createToggleStageRule', 'updateToggleStageRule', 'deleteToggleStageRule'
     ]);
 
@@ -49,10 +51,13 @@ describe('TogglesComponent', () => {
       stages$: signal<[]>([]),
       rules$: rulesSignal,
       rulesLoading$: rulesLoadingSignal,
-      rulesError$: rulesErrorSignal
+      rulesError$: rulesErrorSignal,
+      config$: signal({ changeNoteMandatory: false })
     });
     const toastServiceSpy = jasmine.createSpyObj('ToastService', ['success', 'error']);
     const confirmServiceSpy = jasmine.createSpyObj('ConfirmDialogService', ['confirm']);
+    const changeNoteDialogSpy = jasmine.createSpyObj('ChangeNoteDialogService', ['prompt']);
+    changeNoteDialogSpy.prompt.and.returnValue(Promise.resolve('Test change note'));
     const authServiceSpy = jasmine.createSpyObj('AuthService', ['getEmail']);
     authServiceSpy.getEmail.and.returnValue('test@example.com');
 
@@ -64,6 +69,7 @@ describe('TogglesComponent', () => {
         { provide: ModelService, useValue: modelServiceSpy },
         { provide: ToastService, useValue: toastServiceSpy },
         { provide: ConfirmDialogService, useValue: confirmServiceSpy },
+        { provide: ChangeNoteDialogService, useValue: changeNoteDialogSpy },
         { provide: AuthService, useValue: authServiceSpy }
       ]
     }).compileComponents();
@@ -73,6 +79,7 @@ describe('TogglesComponent', () => {
     toastService = TestBed.inject(ToastService) as jasmine.SpyObj<ToastService>;
     confirmService = TestBed.inject(ConfirmDialogService) as jasmine.SpyObj<ConfirmDialogService>;
     authService = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
+    router = TestBed.inject(Router);
 
     fixture = TestBed.createComponent(TogglesComponent);
     component = fixture.componentInstance;
@@ -144,6 +151,7 @@ describe('TogglesComponent', () => {
       component.toggleName = 'Test';
       component.toggleDescription = 'Description';
       component.toggleEnabled = false;
+      component.changeNote = 'Test note';
       component.formError = 'Error';
 
       component.resetForm();
@@ -151,6 +159,7 @@ describe('TogglesComponent', () => {
       expect(component.toggleName).toBe('');
       expect(component.toggleDescription).toBe('');
       expect(component.toggleEnabled).toBe(true);
+      expect(component.changeNote).toBe('');
       expect(component.formError).toBeNull();
     });
   });
@@ -183,6 +192,7 @@ describe('TogglesComponent', () => {
         'new-toggle',
         'New Description',
         true,
+        '',
         ''
       );
       expect(toastService.success).toHaveBeenCalledWith('Toggle created successfully');
@@ -207,6 +217,7 @@ describe('TogglesComponent', () => {
         'minimal-toggle',
         '',
         true,
+        '',
         ''
       );
     });
@@ -237,6 +248,7 @@ describe('TogglesComponent', () => {
         'Test Toggle',
         'Test Description',
         true,
+        '',
         ''
       );
     });
@@ -263,6 +275,7 @@ describe('TogglesComponent', () => {
         'feature-a',
         'Updated Description',
         false,
+        '',
         ''
       );
       expect(toastService.success).toHaveBeenCalledWith('Toggle updated successfully');
@@ -289,6 +302,7 @@ describe('TogglesComponent', () => {
         'feature-b',
         'Feature B toggle',
         true,
+        '',
         ''
       );
     });
@@ -308,7 +322,7 @@ describe('TogglesComponent', () => {
         cancelText: 'Cancel',
         confirmClass: 'btn-danger'
       });
-      expect(controller.deleteToggle).toHaveBeenCalledWith('toggle-1');
+      expect(controller.deleteToggle).toHaveBeenCalledWith('toggle-1', jasmine.any(String));
       expect(toastService.success).toHaveBeenCalledWith('Toggle deleted successfully');
     });
 
@@ -330,7 +344,7 @@ describe('TogglesComponent', () => {
 
       await component.deleteToggle(mockToggles[0]);
 
-      expect(controller.deleteToggle).toHaveBeenCalledWith('toggle-1');
+      expect(controller.deleteToggle).toHaveBeenCalledWith('toggle-1', jasmine.any(String));
       expect(toastService.error).toHaveBeenCalledWith('Cannot delete toggle with active rules');
     });
   });
@@ -414,7 +428,7 @@ describe('TogglesComponent', () => {
 
       await component.saveStageRule();
 
-      expect(controller.createToggleStageRule).toHaveBeenCalledWith('toggle-1', 'stage-dev', 'rule-1', 5, 'on');
+      expect(controller.createToggleStageRule).toHaveBeenCalledWith('toggle-1', 'stage-dev', 'rule-1', 5, 'on', '');
       expect(toastService.success).toHaveBeenCalledWith('Assignment created successfully');
       expect(component.showAddStageRuleForm).toBe(false);
     });
@@ -441,7 +455,7 @@ describe('TogglesComponent', () => {
 
       await component.saveStageRule();
 
-      expect(controller.updateToggleStageRule).toHaveBeenCalledWith('sr-1', 'off', 10);
+      expect(controller.updateToggleStageRule).toHaveBeenCalledWith('sr-1', 'off', 10, '');
       expect(toastService.success).toHaveBeenCalledWith('Assignment updated successfully');
     });
 
@@ -454,7 +468,7 @@ describe('TogglesComponent', () => {
       await component.deleteStageRule(mockStageRules[0]);
 
       expect(confirmService.confirm).toHaveBeenCalled();
-      expect(controller.deleteToggleStageRule).toHaveBeenCalledWith('sr-1');
+      expect(controller.deleteToggleStageRule).toHaveBeenCalledWith('sr-1', jasmine.any(String));
       expect(toastService.success).toHaveBeenCalledWith('Assignment deleted successfully');
     });
 
@@ -538,6 +552,21 @@ describe('TogglesComponent', () => {
       expect(component.filterStageName).toBeNull();
       expect(component.filterRuleName).toBeNull();
       expect(controller.loadToggles).toHaveBeenCalledWith(undefined, undefined);
+    });
+  });
+
+  describe('Navigation', () => {
+    it('goToToggleHistory should navigate to history with Toggle entity params', async () => {
+      const navigateSpy = spyOn(router, 'navigate');
+      component.goToToggleHistory(mockToggles[0]);
+      expect(navigateSpy).toHaveBeenCalledWith(['/history'], { queryParams: { entityType: 'Toggle', entityId: 'toggle-1' } });
+    });
+
+    it('goToAssignmentHistory should navigate to history with ToggleStageRule entity params', async () => {
+      const navigateSpy = spyOn(router, 'navigate');
+      const stageRule = { id: 'sr-1', toggleId: 'toggle-1', stageId: 'stage-1', ruleId: 'rule-1', toggleValue: 'on', priority: 100 };
+      component.goToAssignmentHistory(stageRule);
+      expect(navigateSpy).toHaveBeenCalledWith(['/history'], { queryParams: { entityType: 'ToggleStageRule', entityId: 'sr-1' } });
     });
   });
 });

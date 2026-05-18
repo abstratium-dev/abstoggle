@@ -4,7 +4,10 @@ import { Controller } from '../controller';
 import { ModelService, Stage } from '../model.service';
 import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
+import { ChangeNoteDialogService } from '../core/change-note-dialog/change-note-dialog.service';
 import { signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { of } from 'rxjs';
 
 describe('StagesComponent', () => {
   let component: StagesComponent;
@@ -13,6 +16,7 @@ describe('StagesComponent', () => {
   let modelService: jasmine.SpyObj<ModelService>;
   let toastService: jasmine.SpyObj<ToastService>;
   let confirmService: jasmine.SpyObj<ConfirmDialogService>;
+  let router: jasmine.SpyObj<Router>;
 
   // Store signal references for testing
   let stagesSignal: ReturnType<typeof signal<Stage[]>>;
@@ -38,10 +42,14 @@ describe('StagesComponent', () => {
     const modelServiceSpy = jasmine.createSpyObj('ModelService', [], {
       stages$: stagesSignal,
       stagesLoading$: loadingSignal,
-      stagesError$: errorSignal
+      stagesError$: errorSignal,
+      config$: signal({ changeNoteMandatory: false })
     });
     const toastServiceSpy = jasmine.createSpyObj('ToastService', ['success', 'error']);
     const confirmServiceSpy = jasmine.createSpyObj('ConfirmDialogService', ['confirm']);
+    const changeNoteDialogSpy = jasmine.createSpyObj('ChangeNoteDialogService', ['prompt']);
+    changeNoteDialogSpy.prompt.and.returnValue(Promise.resolve('Test change note'));
+    const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
 
     await TestBed.configureTestingModule({
       imports: [StagesComponent],
@@ -49,7 +57,10 @@ describe('StagesComponent', () => {
         { provide: Controller, useValue: controllerSpy },
         { provide: ModelService, useValue: modelServiceSpy },
         { provide: ToastService, useValue: toastServiceSpy },
-        { provide: ConfirmDialogService, useValue: confirmServiceSpy }
+        { provide: ConfirmDialogService, useValue: confirmServiceSpy },
+        { provide: ChangeNoteDialogService, useValue: changeNoteDialogSpy },
+        { provide: ActivatedRoute, useValue: { queryParamMap: of({ get: () => null }) } },
+        { provide: Router, useValue: routerSpy }
       ]
     }).compileComponents();
 
@@ -57,6 +68,7 @@ describe('StagesComponent', () => {
     modelService = TestBed.inject(ModelService) as jasmine.SpyObj<ModelService>;
     toastService = TestBed.inject(ToastService) as jasmine.SpyObj<ToastService>;
     confirmService = TestBed.inject(ConfirmDialogService) as jasmine.SpyObj<ConfirmDialogService>;
+    router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
 
     fixture = TestBed.createComponent(StagesComponent);
     component = fixture.componentInstance;
@@ -127,6 +139,7 @@ describe('StagesComponent', () => {
       component.stageDescription = 'Description';
       component.stageDisplayOrder = 5;
       component.stageParentName = 'Parent';
+      component.changeNote = 'Test note';
       component.formError = 'Error';
 
       component.resetForm();
@@ -135,6 +148,7 @@ describe('StagesComponent', () => {
       expect(component.stageDescription).toBe('');
       expect(component.stageDisplayOrder).toBe(0);
       expect(component.stageParentName).toBe('');
+      expect(component.changeNote).toBe('');
       expect(component.formError).toBeNull();
     });
   });
@@ -168,7 +182,8 @@ describe('StagesComponent', () => {
         'New Stage',
         'New Description',
         4,
-        undefined
+        undefined,
+        ''
       );
       expect(toastService.success).toHaveBeenCalledWith('Stage created successfully');
       expect(component.showAddForm).toBe(false);
@@ -196,7 +211,8 @@ describe('StagesComponent', () => {
         'Child Stage',
         '',
         2,
-        'Development'
+        'Development',
+        ''
       );
     });
 
@@ -226,7 +242,8 @@ describe('StagesComponent', () => {
         'Test Stage',
         'Test Description',
         0,
-        undefined
+        undefined,
+        ''
       );
     });
   });
@@ -252,7 +269,8 @@ describe('StagesComponent', () => {
         'Updated Name',
         'Updated Description',
         1,
-        undefined
+        undefined,
+        ''
       );
       expect(toastService.success).toHaveBeenCalledWith('Stage updated successfully');
       expect(component.showAddForm).toBe(false);
@@ -274,7 +292,7 @@ describe('StagesComponent', () => {
         cancelText: 'Cancel',
         confirmClass: 'btn-danger'
       });
-      expect(controller.deleteStage).toHaveBeenCalledWith('1');
+      expect(controller.deleteStage).toHaveBeenCalledWith('1', jasmine.any(String));
       expect(toastService.success).toHaveBeenCalledWith('Stage deleted successfully');
     });
 
@@ -296,7 +314,7 @@ describe('StagesComponent', () => {
 
       await component.deleteStage(mockStages[0]);
 
-      expect(controller.deleteStage).toHaveBeenCalledWith('1');
+      expect(controller.deleteStage).toHaveBeenCalledWith('1', jasmine.any(String));
       expect(toastService.error).toHaveBeenCalledWith('Cannot delete stage with children');
     });
   });
@@ -344,6 +362,18 @@ describe('StagesComponent', () => {
     it('should call controller loadStages on retry', () => {
       component.onRetry();
       expect(controller.loadStages).toHaveBeenCalled();
+    });
+  });
+
+  describe('Navigation', () => {
+    it('goToToggles should navigate to toggles filtered by stage name', () => {
+      component.goToToggles(mockStages[0]);
+      expect(router.navigate).toHaveBeenCalledWith(['/toggles'], { queryParams: { filterStage: 'Development' } });
+    });
+
+    it('goToHistory should navigate to history with Stage entity params', () => {
+      component.goToHistory(mockStages[0]);
+      expect(router.navigate).toHaveBeenCalledWith(['/history'], { queryParams: { entityType: 'Stage', entityId: '1' } });
     });
   });
 });

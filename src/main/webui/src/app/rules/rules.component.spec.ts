@@ -4,9 +4,12 @@ import { Criterion, ModelService, Rule } from '../model.service';
 import { Controller } from '../controller';
 import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
+import { ChangeNoteDialogService } from '../core/change-note-dialog/change-note-dialog.service';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { of } from 'rxjs';
 
 describe('RulesComponent', () => {
   let component: RulesComponent;
@@ -14,6 +17,7 @@ describe('RulesComponent', () => {
   let controller: jasmine.SpyObj<Controller>;
   let toastService: jasmine.SpyObj<ToastService>;
   let confirmService: jasmine.SpyObj<ConfirmDialogService>;
+  let router: jasmine.SpyObj<Router>;
 
   const mockRules: Rule[] = [
     {
@@ -39,6 +43,9 @@ describe('RulesComponent', () => {
     ]);
     const toastSpy = jasmine.createSpyObj('ToastService', ['success', 'error']);
     const confirmSpy = jasmine.createSpyObj('ConfirmDialogService', ['confirm']);
+    const changeNoteDialogSpy = jasmine.createSpyObj('ChangeNoteDialogService', ['prompt']);
+    changeNoteDialogSpy.prompt.and.returnValue(Promise.resolve('Test change note'));
+    const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
 
     await TestBed.configureTestingModule({
       imports: [RulesComponent],
@@ -47,13 +54,17 @@ describe('RulesComponent', () => {
         provideHttpClientTesting(),
         { provide: Controller, useValue: controllerSpy },
         { provide: ToastService, useValue: toastSpy },
-        { provide: ConfirmDialogService, useValue: confirmSpy }
+        { provide: ConfirmDialogService, useValue: confirmSpy },
+        { provide: ChangeNoteDialogService, useValue: changeNoteDialogSpy },
+        { provide: ActivatedRoute, useValue: { queryParamMap: of({ get: () => null }) } },
+        { provide: Router, useValue: routerSpy }
       ]
     }).compileComponents();
 
     controller = TestBed.inject(Controller) as jasmine.SpyObj<Controller>;
     toastService = TestBed.inject(ToastService) as jasmine.SpyObj<ToastService>;
     confirmService = TestBed.inject(ConfirmDialogService) as jasmine.SpyObj<ConfirmDialogService>;
+    router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
 
     fixture = TestBed.createComponent(RulesComponent);
     component = fixture.componentInstance;
@@ -97,8 +108,10 @@ describe('RulesComponent', () => {
 
   it('should reset form when toggling add form', () => {
     component.ruleName = 'test';
+    component.changeNote = 'test note';
     component.toggleAddForm();
     expect(component.ruleName).toBe('');
+    expect(component.changeNote).toBe('');
   });
 
   it('should populate form when editing', () => {
@@ -151,7 +164,7 @@ describe('RulesComponent', () => {
     component.ruleDescription = 'A new rule';
     await component.onSubmit();
     expect(controller.createStandaloneRule).toHaveBeenCalledWith(
-      'new-rule', 'A new rule', []
+      'new-rule', 'A new rule', [], ''
     );
     expect(toastService.success).toHaveBeenCalledWith('Rule created successfully');
   });
@@ -164,7 +177,7 @@ describe('RulesComponent', () => {
     await component.onSubmit();
     expect(controller.updateStandaloneRule).toHaveBeenCalledWith(
       'rule-1', 'updated-name', 'Beta testers rule',
-      [{ criterionKey: 'userId', criterionValue: '^(alice|bob)$' }]
+      [{ criterionKey: 'userId', criterionValue: '^(alice|bob)$' }], ''
     );
     expect(toastService.success).toHaveBeenCalledWith('Rule updated successfully');
   });
@@ -175,7 +188,7 @@ describe('RulesComponent', () => {
     controller.deleteStandaloneRule.and.resolveTo();
     await component.deleteRule(mockRules[0]);
     expect(confirmService.confirm).toHaveBeenCalled();
-    expect(controller.deleteStandaloneRule).toHaveBeenCalledWith('rule-1');
+    expect(controller.deleteStandaloneRule).toHaveBeenCalledWith('rule-1', jasmine.any(String));
     expect(toastService.success).toHaveBeenCalledWith('Rule deleted successfully');
   });
 
@@ -202,5 +215,17 @@ describe('RulesComponent', () => {
     expect(component.formatCriteria(criteria)).toBe('userId: ^alice$, env: prod');
     expect(component.formatCriteria([])).toBe('None (catch-all)');
     expect(component.formatCriteria(null as any)).toBe('None (catch-all)');
+  });
+
+  describe('Navigation', () => {
+    it('goToToggles should navigate to toggles filtered by rule name', () => {
+      component.goToToggles(mockRules[0]);
+      expect(router.navigate).toHaveBeenCalledWith(['/toggles'], { queryParams: { filterRule: 'beta-testers' } });
+    });
+
+    it('goToHistory should navigate to history with Rule entity params', () => {
+      component.goToHistory(mockRules[0]);
+      expect(router.navigate).toHaveBeenCalledWith(['/history'], { queryParams: { entityType: 'Rule', entityId: 'rule-1' } });
+    });
   });
 });

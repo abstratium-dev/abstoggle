@@ -25,6 +25,10 @@ function stageParentNameSelect(page: Page) {
     return page.locator('select#stageParentName');
 }
 
+function changeNoteInput(page: Page) {
+    return page.locator('input#changeNote');
+}
+
 function createStageSubmitButton(page: Page) {
     return page.locator('button.btn-primary', { hasText: /Create Stage|Update Stage/ });
 }
@@ -103,6 +107,9 @@ export async function createStage(
     if (options.parentName) {
         await stageParentNameSelect(page).selectOption({ label: options.parentName });
     }
+
+    // Fill in change note (required field)
+    await changeNoteInput(page).fill(`Created stage ${name}`);
 
     await createStageSubmitButton(page).click();
 

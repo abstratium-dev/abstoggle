@@ -18,7 +18,7 @@ import { AuthService } from '../core/auth.service';
   styleUrl: './toggles.component.scss'
 })
 export class TogglesComponent implements OnInit {
-  private modelService = inject(ModelService);
+  protected modelService = inject(ModelService);
   private controller = inject(Controller);
   private toastService = inject(ToastService);
   private confirmService = inject(ConfirmDialogService);
@@ -47,6 +47,7 @@ export class TogglesComponent implements OnInit {
   toggleDescription = '';
   toggleEnabled = true;
   toggleContext = '';
+  changeNote = '';
 
   // Toggle Stage Rule management
   managingToggle: Toggle | null = null;
@@ -60,8 +61,10 @@ export class TogglesComponent implements OnInit {
   selectedRuleId = '';
   newRulePriority = 100;
   newToggleValue = 'off';
+  newAssignmentChangeNote = '';
   editRulePriority = 100;
   editToggleValue = 'off';
+  editAssignmentChangeNote = '';
 
   // Filter fields
   filterStageName: string | null = null;
@@ -192,6 +195,7 @@ export class TogglesComponent implements OnInit {
     this.toggleDescription = '';
     this.toggleEnabled = true;
     this.toggleContext = '';
+    this.changeNote = '';
     this.formError = null;
   }
 
@@ -221,28 +225,13 @@ export class TogglesComponent implements OnInit {
     try {
       const context = (this.contextAutocomplete?.searchTerm() ?? this.toggleContext).trim();
       if (this.editingToggle) {
-        const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
-        const changeNote = await this.changeNoteDialog.prompt({
-          title: 'Update Toggle',
-          message: isMandatory
-            ? `Enter a change note for updating toggle "${this.editingToggle.name}":`
-            : `Enter a change note for updating toggle "${this.editingToggle.name}" (optional):`,
-          confirmText: 'Update',
-          confirmClass: 'btn-primary',
-          optional: !isMandatory
-        });
-        if (changeNote === null) {
-          this.formSubmitting = false;
-          return;
-        }
-
         await this.controller.updateToggle(
           this.editingToggle.id,
           this.toggleName.trim(),
           this.toggleDescription.trim(),
           this.toggleEnabled,
           context,
-          changeNote
+          this.changeNote
         );
         this.toastService.success('Toggle updated successfully');
       } else {
@@ -250,7 +239,8 @@ export class TogglesComponent implements OnInit {
           this.toggleName.trim(),
           this.toggleDescription.trim(),
           this.toggleEnabled,
-          context
+          context,
+          this.changeNote
         );
         this.toastService.success('Toggle created successfully');
       }
@@ -344,6 +334,7 @@ export class TogglesComponent implements OnInit {
       this.selectedRuleId = '';
       this.newRulePriority = 100;
       this.newToggleValue = 'off';
+      this.newAssignmentChangeNote = '';
     }
   }
 
@@ -351,12 +342,15 @@ export class TogglesComponent implements OnInit {
     this.editingStageRule = stageRule;
     this.editRulePriority = stageRule.priority;
     this.editToggleValue = stageRule.toggleValue;
+    this.editAssignmentChangeNote = '';
     this.showAddStageRuleForm = true;
   }
 
   cancelEditStageRule(): void {
     this.editingStageRule = null;
     this.showAddStageRuleForm = false;
+    this.newAssignmentChangeNote = '';
+    this.editAssignmentChangeNote = '';
   }
 
   onPriorityChange(value: number): void {
@@ -374,23 +368,11 @@ export class TogglesComponent implements OnInit {
 
     try {
       if (this.editingStageRule) {
-        const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
-        const changeNote = await this.changeNoteDialog.prompt({
-          title: 'Update Assignment',
-          message: isMandatory
-            ? `Enter a change note for updating this assignment:`
-            : `Enter a change note for updating this assignment (optional):`,
-          confirmText: 'Update',
-          confirmClass: 'btn-primary',
-          optional: !isMandatory
-        });
-        if (changeNote === null) return;
-
         await this.controller.updateToggleStageRule(
           this.editingStageRule.id,
           this.editToggleValue,
           this.editRulePriority,
-          changeNote
+          this.editAssignmentChangeNote
         );
         this.toastService.success('Assignment updated successfully');
       } else {
@@ -398,25 +380,13 @@ export class TogglesComponent implements OnInit {
           this.toastService.error('Stage and rule are required');
           return;
         }
-        const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
-        const changeNote = await this.changeNoteDialog.prompt({
-          title: 'Create Assignment',
-          message: isMandatory
-            ? `Enter a change note for creating this assignment:`
-            : `Enter a change note for creating this assignment (optional):`,
-          confirmText: 'Create',
-          confirmClass: 'btn-primary',
-          optional: !isMandatory
-        });
-        if (changeNote === null) return;
-
         await this.controller.createToggleStageRule(
           this.managingToggle.id,
           this.selectedStageId,
           this.selectedRuleId,
           this.newRulePriority,
           this.newToggleValue,
-          changeNote
+          this.newAssignmentChangeNote
         );
         this.toastService.success('Assignment created successfully');
       }
@@ -424,6 +394,8 @@ export class TogglesComponent implements OnInit {
       this.editingStageRule = null;
       this.selectedStageId = '';
       this.selectedRuleId = '';
+      this.newAssignmentChangeNote = '';
+      this.editAssignmentChangeNote = '';
       await this.reloadStageRules();
     } catch (err: any) {
       const problem = err.error;
@@ -503,6 +475,14 @@ export class TogglesComponent implements OnInit {
       const filterValue = rule.name || rule.id;
       this.router.navigate(['/rules'], { queryParams: { filterName: filterValue } });
     }
+  }
+
+  goToToggleHistory(toggle: Toggle): void {
+    this.router.navigate(['/history'], { queryParams: { entityType: 'Toggle', entityId: toggle.id } });
+  }
+
+  goToAssignmentHistory(stageRule: ToggleStageRule): void {
+    this.router.navigate(['/history'], { queryParams: { entityType: 'ToggleStageRule', entityId: stageRule.id } });
   }
 
   private async reloadStageRules(): Promise<void> {

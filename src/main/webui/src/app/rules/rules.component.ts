@@ -16,7 +16,7 @@ import { Controller } from '../controller';
   styleUrl: './rules.component.scss'
 })
 export class RulesComponent implements OnInit {
-  private modelService = inject(ModelService);
+  protected modelService = inject(ModelService);
   private controller = inject(Controller);
   private toastService = inject(ToastService);
   private confirmService = inject(ConfirmDialogService);
@@ -41,6 +41,7 @@ export class RulesComponent implements OnInit {
   criteriaKey = '';
   criteriaValue = '';
   criteriaEntries: { criterionKey: string; criterionValue: string }[] = [];
+  changeNote = '';
 
   // Filter fields
   filterName: string | null = null;
@@ -106,6 +107,7 @@ export class RulesComponent implements OnInit {
     this.criteriaKey = '';
     this.criteriaValue = '';
     this.criteriaEntries = [];
+    this.changeNote = '';
     this.formError = null;
     this.criteriaError = null;
   }
@@ -152,31 +154,20 @@ export class RulesComponent implements OnInit {
       const criteria = this.buildCriteriaList();
 
       if (this.editingRule) {
-        const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
-        const changeNote = await this.changeNoteDialog.prompt({
-          title: 'Update Rule',
-          message: isMandatory
-            ? `Enter a change note for updating rule "${this.editingRule.name || this.editingRule.id}":`
-            : `Enter a change note for updating rule "${this.editingRule.name || this.editingRule.id}" (optional):`,
-          confirmText: 'Update',
-          confirmClass: 'btn-primary',
-          optional: !isMandatory
-        });
-        if (changeNote === null) return;
-
         await this.controller.updateStandaloneRule(
           this.editingRule.id,
           this.ruleName.trim(),
           this.ruleDescription.trim(),
           criteria,
-          changeNote
+          this.changeNote
         );
         this.toastService.success('Rule updated successfully');
       } else {
         await this.controller.createStandaloneRule(
           this.ruleName.trim(),
           this.ruleDescription.trim(),
-          criteria
+          criteria,
+          this.changeNote
         );
         this.toastService.success('Rule created successfully');
       }
@@ -237,5 +228,9 @@ export class RulesComponent implements OnInit {
 
   goToToggles(rule: Rule): void {
     this.router.navigate(['/toggles'], { queryParams: { filterRule: rule.name || rule.id } });
+  }
+
+  goToHistory(rule: Rule): void {
+    this.router.navigate(['/history'], { queryParams: { entityType: 'Rule', entityId: rule.id } });
   }
 }

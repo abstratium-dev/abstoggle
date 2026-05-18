@@ -1,6 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { EntityRevision, HistoryChange, HistoryEntry } from '../model.service';
 import { Controller } from '../controller';
 import { ToastService } from '../core/toast/toast.service';
@@ -14,6 +15,8 @@ import { ToastService } from '../core/toast/toast.service';
 export class HistoryComponent implements OnInit {
   private controller = inject(Controller);
   private toastService = inject(ToastService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
   entries: HistoryEntry[] = [];
   loading = false;
@@ -34,6 +37,11 @@ export class HistoryComponent implements OnInit {
   entityHistoryLoading = false;
   entityHistoryError: string | null = null;
 
+  // Entity-scoped mode: navigated here from another page for a specific entity
+  entityMode = false;
+  entityModeType: string | null = null;
+  entityModeId: string | null = null;
+
   readonly REVTYPE_LABELS: Record<number, string> = {
     0: 'ADD',
     1: 'MOD',
@@ -41,7 +49,39 @@ export class HistoryComponent implements OnInit {
   };
 
   ngOnInit(): void {
-    this.loadHistory();
+    this.route.queryParamMap.subscribe(params => {
+      const entityType = params.get('entityType');
+      const entityId = params.get('entityId');
+      if (entityType && entityId) {
+        this.entityMode = true;
+        this.entityModeType = entityType;
+        this.entityModeId = entityId;
+        this.loadEntityModeHistory();
+      } else {
+        this.entityMode = false;
+        this.entityModeType = null;
+        this.entityModeId = null;
+        this.loadHistory();
+      }
+    });
+  }
+
+  async loadEntityModeHistory(): Promise<void> {
+    if (!this.entityModeType || !this.entityModeId) return;
+    this.entityHistoryLoading = true;
+    this.entityHistoryError = null;
+    this.entityHistory = [];
+    try {
+      this.entityHistory = await this.controller.getEntityHistory(this.entityModeType, this.entityModeId);
+    } catch {
+      this.entityHistoryError = 'Failed to load entity history';
+    } finally {
+      this.entityHistoryLoading = false;
+    }
+  }
+
+  backToHistory(): void {
+    this.router.navigate(['/history']);
   }
 
   async loadHistory(): Promise<void> {
