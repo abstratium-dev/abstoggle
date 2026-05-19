@@ -9,7 +9,10 @@ These TODOs are to be resolved by the developer, NOT THE LLM.
 
 ## Today
 
-- fix so refresh works
+- add a marketing page with screen shots
+- BUG: unable to set parent to null for a stage:
+  - Unable to perform requested lazy initialization [dev.abstratium.abstoggle.entity.Stage.name] - no session and settings disallow loading outside the Session
+
 
 ## Tomorrow
 
