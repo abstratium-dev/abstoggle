@@ -121,49 +121,12 @@
                             <td><span class="entity-badge">{{ change.table }}</span></td>
                             <td><span class="revtype-badge" [ngClass]="revtypeCssClass(change.revtype)">{{ revtypeLabel(change.revtype) }}</span></td>
                             <td class="id-cell">
-                              <a class="client-link" (click)="toggleEntityHistory(change.table, change.entityId); $event.stopPropagation()">
+                              <a class="client-link" (click)="navigateToEntityHistory(change.table, change.entityId); $event.stopPropagation()">
                                 {{ change.entityId }}
                               </a>
                             </td>
                             <td class="data-cell">{{ change.data }}</td>
                           </tr>
-                          @if (selectedEntityKey === change.table + ':' + change.entityId) {
-                            <tr class="entity-history-row">
-                              <td colspan="4">
-                                <div class="entity-history-panel">
-                                  <div *ngIf="entityHistoryLoading" class="loading"><p>Loading entity history...</p></div>
-                                  <div *ngIf="entityHistoryError" class="error-box"><p>{{ entityHistoryError }}</p></div>
-                                  <div *ngIf="!entityHistoryLoading && !entityHistoryError">
-                                    <p *ngIf="entityHistory.length === 0" class="empty-state">No history found for this entity.</p>
-                                    <table *ngIf="entityHistory.length > 0" class="entity-history-table">
-                                      <thead>
-                                        <tr>
-                                          <th>Rev</th>
-                                          <th>Timestamp</th>
-                                          <th>User</th>
-                                          <th>Type</th>
-                                          <th>Change Note</th>
-                                          <th>Details</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        @for (eh of entityHistory; track eh.rev) {
-                                          <tr>
-                                            <td class="rev-cell">{{ eh.rev }}</td>
-                                            <td>{{ formatTimestamp(eh.timestamp) }}</td>
-                                            <td>{{ eh.username }}</td>
-                                            <td><span class="revtype-badge" [ngClass]="revtypeCssClass(eh.revtype)">{{ revtypeLabel(eh.revtype) }}</span></td>
-                                            <td>{{ eh.changeNote || '—' }}</td>
-                                            <td class="data-cell">{{ eh.data }}</td>
-                                          </tr>
-                                        }
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          }
                         }
                       </tbody>
                     </table>

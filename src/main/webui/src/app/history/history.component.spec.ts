@@ -142,21 +142,10 @@ describe('HistoryComponent', () => {
       expect(component.selectedEntry).toBeNull();
     }));
 
-    it('toggleEntityHistory should load entity history for a key', fakeAsync(() => {
-      component.toggleEntityHistory('Stage', 'abc-123');
-      tick();
-      expect(controller.getEntityHistory).toHaveBeenCalledWith('Stage', 'abc-123');
-      expect(component.entityHistory).toEqual(mockEntityHistory);
-      expect(component.selectedEntityKey).toBe('Stage:abc-123');
-    }));
-
-    it('toggleEntityHistory same key should deselect', fakeAsync(() => {
-      component.selectedEntityKey = 'Stage:abc-123';
-      component.toggleEntityHistory('Stage', 'abc-123');
-      tick();
-      expect(component.selectedEntityKey).toBeNull();
-      expect(component.entityHistory).toEqual([]);
-    }));
+    it('navigateToEntityHistory should navigate to /history with entityType and entityId params', () => {
+      component.navigateToEntityHistory('Stage', 'abc-123');
+      expect(router.navigate).toHaveBeenCalledWith(['/history'], { queryParams: { entityType: 'Stage', entityId: 'abc-123' } });
+    });
   });
 
   describe('Entity mode', () => {

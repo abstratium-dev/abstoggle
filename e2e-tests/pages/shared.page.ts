@@ -23,6 +23,36 @@ export async function confirmDialog(page: Page, confirmButtonText: string): Prom
 }
 
 /**
+ * Fills in the delete confirmation dialog with change note and confirms.
+ * The dialog is rendered by DeleteConfirmDialogComponent.
+ *
+ * @param page - Playwright page
+ * @param changeNote - The change note text to enter
+ * @param confirmButtonText - Text of the confirm button (e.g. "Delete")
+ */
+export async function confirmDeleteDialog(page: Page, changeNote: string, confirmButtonText: string = 'Delete'): Promise<void> {
+    console.log(`DeleteDialog: filling with change note "${changeNote}" and confirming "${confirmButtonText}"`);
+
+    // Wait for the dialog overlay to be visible
+    const dialog = page.locator('ux-delete-confirm-dialog .dialog-overlay');
+    await dialog.waitFor({ state: 'visible', timeout: 10000 });
+
+    // Fill in the change note input
+    const input = dialog.locator('input#deleteChangeNote');
+    await input.waitFor({ state: 'visible', timeout: 5000 });
+    await input.fill(changeNote);
+
+    // Click the confirm button
+    const confirmButton = dialog.locator('button', { hasText: confirmButtonText });
+    await expect(confirmButton).toBeVisible({ timeout: 5000 });
+    await confirmButton.click();
+
+    // Wait for dialog to close
+    await dialog.waitFor({ state: 'hidden', timeout: 10000 });
+    console.log(`DeleteDialog: confirmed with "${confirmButtonText}"`);
+}
+
+/**
  * Dismisses (cancels) the confirmation dialog.
  */
 export async function cancelDialog(page: Page): Promise<void> {

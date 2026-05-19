@@ -6,16 +6,17 @@
       </div>
       <div class="dialog-body">
         <p class="dialog-message">{{ state().config!.message }}</p>
+        <p class="dialog-item">"{{ state().config!.itemName }}"</p>
         <div class="form-group">
-          <label for="changeNote">
+          <label for="deleteChangeNote">
             Change Note
-            @if (!state().isOptional) {
+            @if (state().config!.changeNoteMandatory) {
               <span class="required">*</span>
             }
           </label>
           <input
             type="text"
-            id="changeNote"
+            id="deleteChangeNote"
             class="form-control"
             [placeholder]="state().config!.placeholder"
             [value]="state().changeNote"
@@ -28,16 +29,11 @@
         <button type="button" class="btn btn-secondary" (click)="cancel()">
           {{ state().config!.cancelText }}
         </button>
-        @if (state().isOptional) {
-          <button type="button" class="btn btn-secondary" (click)="skip()">
-            {{ state().config!.skipText }}
-          </button>
-        }
         <button
           type="button"
-          [ngClass]="state().config!.confirmClass"
+          class="btn btn-danger"
           (click)="confirm()"
-          [disabled]="!state().isOptional && !state().changeNote.trim()"
+          [disabled]="state().config!.changeNoteMandatory && !state().changeNote.trim()"
         >
           {{ state().config!.confirmText }}
         </button>

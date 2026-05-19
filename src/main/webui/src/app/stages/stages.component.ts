@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
-import { ChangeNoteDialogService } from '../core/change-note-dialog/change-note-dialog.service';
+import { DeleteConfirmDialogService } from '../core/delete-confirm-dialog/delete-confirm-dialog.service';
 import { InfoButtonComponent } from '../core/info-button/info-button.component';
 import { Stage, ModelService } from '../model.service';
 import { Controller } from '../controller';
@@ -20,7 +20,7 @@ export class StagesComponent implements OnInit {
   private controller = inject(Controller);
   private toastService = inject(ToastService);
   private confirmService = inject(ConfirmDialogService);
-  private changeNoteDialog = inject(ChangeNoteDialogService);
+  private deleteConfirmDialog = inject(DeleteConfirmDialogService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
@@ -156,29 +156,19 @@ export class StagesComponent implements OnInit {
   }
 
   async deleteStage(stage: Stage): Promise<void> {
-    const confirmed = await this.confirmService.confirm({
+    const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
+    const changeNote = await this.deleteConfirmDialog.confirm({
       title: 'Delete Stage',
-      message: `Are you sure you want to delete the stage "${stage.name}"? This action cannot be undone.`,
+      message: 'Are you sure you want to delete this stage? This action cannot be undone.',
+      itemName: stage.name,
       confirmText: 'Delete',
       cancelText: 'Cancel',
-      confirmClass: 'btn-danger'
+      changeNoteMandatory: isMandatory
     });
 
-    if (!confirmed) {
+    if (changeNote === null) {
       return;
     }
-
-    const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
-    const changeNote = await this.changeNoteDialog.prompt({
-      title: 'Delete Stage',
-      message: isMandatory
-        ? `Enter a change note for deleting stage "${stage.name}":`
-        : `Enter a change note for deleting stage "${stage.name}" (optional):`,
-      confirmText: 'Delete',
-      confirmClass: 'btn-danger',
-      optional: !isMandatory
-    });
-    if (changeNote === null) return;
 
     try {
       await this.controller.deleteStage(stage.id, changeNote);

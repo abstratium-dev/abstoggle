@@ -25,22 +25,26 @@ docker run -it --rm \
   -e QUARKUS_DATASOURCE_JDBC_URL=jdbc:mysql://abstratium-mysql:3306/abstoggle \
   -e QUARKUS_DATASOURCE_USERNAME=abstoggle \
   -e QUARKUS_DATASOURCE_PASSWORD=secret \
+  -e ABSTRATIUM_CLIENT_ID="abstratium-abstoggle" \
   -e ABSTRATIUM_CLIENT_SECRET="${ABSTRATIUM_CLIENT_SECRET}" \
+  -e QUARKUS_OIDC_AUTH_SERVER_URL="https://auth-t.abstratium.dev" \
+  -e QUARKUS_OIDC_AUTHENTICATION_FORCE_REDIRECT_HTTPS_SCHEME=false \
   -e CSRF_TOKEN_SIGNATURE_KEY="KU/PESqYGdsE0psW7aOaXF/tszvDKCecFo/1u3tSKoQmo4YZfEjZNvUppot1svY1Yj9oub4GSy/5mueqfRlKOw==" \
   -e COOKIE_ENCRYPTION_SECRET="dnde2xhez89RGV0nJHqSR8Khu3SFCE6fxqCgDzu9Hng=" \
   -e OAUTH_REDIRECT_URI="http://localhost:8087/oauth/callback" \
   -e QUARKUS_MANAGEMENT_HOST=0.0.0.0 \
+  -e DEPLOYMENT_ENV="dev" \
+  -e PUBLIC_API_ENABLED=true \
+  -e TOGGLE_CACHE_ENABLED=true \
+  -e TOGGLE_CACHE_TTL_SECONDS=60 \
+  -e TOGGLE_CACHE_MAX_SIZE_MB=5 \
+  -e STAGE="dev" \
+  -e CHANGE_NOTE_MANDATORY=true \
   ghcr.io/abstratium-dev/abstoggle:latest
 ```
 
 e2e tests will work against this running image. see dev readme for tips on how to run them manually.
 
-TODO, delete what exactly?
-Delete test accounts as follows (which cascade deletes other data like federated identities, roles, credentials, authorization codes, etc.):
-
-```
-delete from T_TODO;
-```
 
 ### Deploy to GitHub Container Registry
 

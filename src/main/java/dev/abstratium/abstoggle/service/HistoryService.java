@@ -158,13 +158,13 @@ public class HistoryService {
             return "id=" + fallbackId;
         }
         if (entity instanceof Toggle t) {
-            return "name=" + t.getName() + ", enabled=" + t.getEnabled() + ", context=" + t.getContext();
+            return "name=" + t.getName() + ", enabled=" + t.getEnabled() + ", context=" + t.getContext() + ", description=" + t.getDescription();
         }
         if (entity instanceof Stage s) {
-            return "name=" + s.getName() + ", displayOrder=" + s.getDisplayOrder();
+            return "name=" + s.getName() + ", description=" + s.getDescription() + ", displayOrder=" + s.getDisplayOrder() + ", parentStageName=" + (s.getParentStage() != null ? s.getParentStage().getName() : null);
         }
         if (entity instanceof Rule r) {
-            return "name=" + r.getName();
+            return "name=" + r.getName() + ", description=" + r.getDescription();
         }
         if (entity instanceof Criterion c) {
             return "key=" + c.getCriterionKey() + ", value=" + c.getCriterionValue();

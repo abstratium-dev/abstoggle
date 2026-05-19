@@ -4,7 +4,7 @@ import { Criterion, ModelService, Rule } from '../model.service';
 import { Controller } from '../controller';
 import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
-import { ChangeNoteDialogService } from '../core/change-note-dialog/change-note-dialog.service';
+import { DeleteConfirmDialogService } from '../core/delete-confirm-dialog/delete-confirm-dialog.service';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
@@ -17,6 +17,7 @@ describe('RulesComponent', () => {
   let controller: jasmine.SpyObj<Controller>;
   let toastService: jasmine.SpyObj<ToastService>;
   let confirmService: jasmine.SpyObj<ConfirmDialogService>;
+  let deleteConfirmDialog: jasmine.SpyObj<DeleteConfirmDialogService>;
   let router: jasmine.SpyObj<Router>;
 
   const mockRules: Rule[] = [
@@ -43,8 +44,8 @@ describe('RulesComponent', () => {
     ]);
     const toastSpy = jasmine.createSpyObj('ToastService', ['success', 'error']);
     const confirmSpy = jasmine.createSpyObj('ConfirmDialogService', ['confirm']);
-    const changeNoteDialogSpy = jasmine.createSpyObj('ChangeNoteDialogService', ['prompt']);
-    changeNoteDialogSpy.prompt.and.returnValue(Promise.resolve('Test change note'));
+    const deleteConfirmDialogSpy = jasmine.createSpyObj('DeleteConfirmDialogService', ['confirm']);
+    deleteConfirmDialogSpy.confirm.and.returnValue(Promise.resolve('Test change note'));
     const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
 
     await TestBed.configureTestingModule({
@@ -55,7 +56,7 @@ describe('RulesComponent', () => {
         { provide: Controller, useValue: controllerSpy },
         { provide: ToastService, useValue: toastSpy },
         { provide: ConfirmDialogService, useValue: confirmSpy },
-        { provide: ChangeNoteDialogService, useValue: changeNoteDialogSpy },
+        { provide: DeleteConfirmDialogService, useValue: deleteConfirmDialogSpy },
         { provide: ActivatedRoute, useValue: { queryParamMap: of({ get: () => null }) } },
         { provide: Router, useValue: routerSpy }
       ]
@@ -64,6 +65,7 @@ describe('RulesComponent', () => {
     controller = TestBed.inject(Controller) as jasmine.SpyObj<Controller>;
     toastService = TestBed.inject(ToastService) as jasmine.SpyObj<ToastService>;
     confirmService = TestBed.inject(ConfirmDialogService) as jasmine.SpyObj<ConfirmDialogService>;
+    deleteConfirmDialog = TestBed.inject(DeleteConfirmDialogService) as jasmine.SpyObj<DeleteConfirmDialogService>;
     router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
 
     fixture = TestBed.createComponent(RulesComponent);
@@ -184,26 +186,27 @@ describe('RulesComponent', () => {
 
   it('should delete rule after confirmation', async () => {
     fixture.detectChanges();
-    confirmService.confirm.and.resolveTo(true);
+    deleteConfirmDialog.confirm.and.resolveTo('Test change note');
     controller.deleteStandaloneRule.and.resolveTo();
     await component.deleteRule(mockRules[0]);
-    expect(confirmService.confirm).toHaveBeenCalled();
-    expect(controller.deleteStandaloneRule).toHaveBeenCalledWith('rule-1', jasmine.any(String));
+    expect(deleteConfirmDialog.confirm).toHaveBeenCalled();
+    expect(controller.deleteStandaloneRule).toHaveBeenCalledWith('rule-1', 'Test change note');
     expect(toastService.success).toHaveBeenCalledWith('Rule deleted successfully');
   });
 
   it('should not delete rule if cancelled', async () => {
     fixture.detectChanges();
-    confirmService.confirm.and.resolveTo(false);
+    deleteConfirmDialog.confirm.and.resolveTo(null);
     await component.deleteRule(mockRules[0]);
     expect(controller.deleteStandaloneRule).not.toHaveBeenCalled();
   });
 
   it('should show error toast on delete failure', async () => {
     fixture.detectChanges();
-    confirmService.confirm.and.resolveTo(true);
+    deleteConfirmDialog.confirm.and.resolveTo('Test change note');
     controller.deleteStandaloneRule.and.rejectWith({ error: { detail: 'Rule is still assigned' } });
     await component.deleteRule(mockRules[0]);
+    expect(controller.deleteStandaloneRule).toHaveBeenCalledWith('rule-1', 'Test change note');
     expect(toastService.error).toHaveBeenCalledWith('Rule is still assigned');
   });
 

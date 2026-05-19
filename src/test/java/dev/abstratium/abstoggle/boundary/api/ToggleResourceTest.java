@@ -237,6 +237,7 @@ class ToggleResourceTest {
 
         given()
             .contentType("application/json")
+            .queryParam("changeNote", "Creating toggle via API")
             .body(request)
             .when()
             .post("/api/toggles")
@@ -258,12 +259,30 @@ class ToggleResourceTest {
 
         given()
             .contentType("application/json")
+            .queryParam("changeNote", "Missing name test")
             .body(request)
             .when()
             .post("/api/toggles")
             .then()
             .statusCode(400)
             .body("detail", containsString("Toggle name is required"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testCreateToggle_missingChangeNote_returns400() {
+        ToggleDto request = new ToggleDto();
+        request.setName("api-toggle-no-note");
+        request.setEnabled(true);
+
+        given()
+            .contentType("application/json")
+            .body(request)
+            .when()
+            .post("/api/toggles")
+            .then()
+            .statusCode(400)
+            .body("detail", containsString("changeNote"));
     }
 
     @Test
@@ -275,6 +294,7 @@ class ToggleResourceTest {
 
         given()
             .contentType("application/json")
+            .queryParam("changeNote", "Null name test")
             .body(request)
             .when()
             .post("/api/toggles")
@@ -292,6 +312,7 @@ class ToggleResourceTest {
 
         given()
             .contentType("application/json")
+            .queryParam("changeNote", "Blank name test")
             .body(request)
             .when()
             .post("/api/toggles")
@@ -317,6 +338,7 @@ class ToggleResourceTest {
 
         given()
             .contentType("application/json")
+            .queryParam("changeNote", "Duplicate toggle test")
             .body(request)
             .when()
             .post("/api/toggles")
@@ -333,6 +355,7 @@ class ToggleResourceTest {
 
         given()
             .contentType("application/json")
+            .queryParam("changeNote", "Default fields test")
             .body(request)
             .when()
             .post("/api/toggles")

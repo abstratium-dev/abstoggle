@@ -4,7 +4,7 @@ import { Controller } from '../controller';
 import { ModelService, Stage } from '../model.service';
 import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
-import { ChangeNoteDialogService } from '../core/change-note-dialog/change-note-dialog.service';
+import { DeleteConfirmDialogService } from '../core/delete-confirm-dialog/delete-confirm-dialog.service';
 import { signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of } from 'rxjs';
@@ -16,6 +16,7 @@ describe('StagesComponent', () => {
   let modelService: jasmine.SpyObj<ModelService>;
   let toastService: jasmine.SpyObj<ToastService>;
   let confirmService: jasmine.SpyObj<ConfirmDialogService>;
+  let deleteConfirmDialog: jasmine.SpyObj<DeleteConfirmDialogService>;
   let router: jasmine.SpyObj<Router>;
 
   // Store signal references for testing
@@ -47,8 +48,8 @@ describe('StagesComponent', () => {
     });
     const toastServiceSpy = jasmine.createSpyObj('ToastService', ['success', 'error']);
     const confirmServiceSpy = jasmine.createSpyObj('ConfirmDialogService', ['confirm']);
-    const changeNoteDialogSpy = jasmine.createSpyObj('ChangeNoteDialogService', ['prompt']);
-    changeNoteDialogSpy.prompt.and.returnValue(Promise.resolve('Test change note'));
+    const deleteConfirmDialogSpy = jasmine.createSpyObj('DeleteConfirmDialogService', ['confirm']);
+    deleteConfirmDialogSpy.confirm.and.returnValue(Promise.resolve('Test change note'));
     const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
 
     await TestBed.configureTestingModule({
@@ -58,7 +59,7 @@ describe('StagesComponent', () => {
         { provide: ModelService, useValue: modelServiceSpy },
         { provide: ToastService, useValue: toastServiceSpy },
         { provide: ConfirmDialogService, useValue: confirmServiceSpy },
-        { provide: ChangeNoteDialogService, useValue: changeNoteDialogSpy },
+        { provide: DeleteConfirmDialogService, useValue: deleteConfirmDialogSpy },
         { provide: ActivatedRoute, useValue: { queryParamMap: of({ get: () => null }) } },
         { provide: Router, useValue: routerSpy }
       ]
@@ -68,6 +69,7 @@ describe('StagesComponent', () => {
     modelService = TestBed.inject(ModelService) as jasmine.SpyObj<ModelService>;
     toastService = TestBed.inject(ToastService) as jasmine.SpyObj<ToastService>;
     confirmService = TestBed.inject(ConfirmDialogService) as jasmine.SpyObj<ConfirmDialogService>;
+    deleteConfirmDialog = TestBed.inject(DeleteConfirmDialogService) as jasmine.SpyObj<DeleteConfirmDialogService>;
     router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
 
     fixture = TestBed.createComponent(StagesComponent);
@@ -280,41 +282,42 @@ describe('StagesComponent', () => {
 
   describe('Delete Stage', () => {
     it('should delete stage after confirmation', async () => {
-      confirmService.confirm.and.returnValue(Promise.resolve(true));
+      deleteConfirmDialog.confirm.and.returnValue(Promise.resolve('Test change note'));
       controller.deleteStage.and.returnValue(Promise.resolve());
 
       await component.deleteStage(mockStages[0]);
 
-      expect(confirmService.confirm).toHaveBeenCalledWith({
+      expect(deleteConfirmDialog.confirm).toHaveBeenCalledWith({
         title: 'Delete Stage',
-        message: 'Are you sure you want to delete the stage "Development"? This action cannot be undone.',
+        message: 'Are you sure you want to delete this stage? This action cannot be undone.',
+        itemName: 'Development',
         confirmText: 'Delete',
         cancelText: 'Cancel',
-        confirmClass: 'btn-danger'
+        changeNoteMandatory: false
       });
-      expect(controller.deleteStage).toHaveBeenCalledWith('1', jasmine.any(String));
+      expect(controller.deleteStage).toHaveBeenCalledWith('1', 'Test change note');
       expect(toastService.success).toHaveBeenCalledWith('Stage deleted successfully');
     });
 
     it('should not delete if user cancels', async () => {
-      confirmService.confirm.and.returnValue(Promise.resolve(false));
+      deleteConfirmDialog.confirm.and.returnValue(Promise.resolve(null));
 
       await component.deleteStage(mockStages[0]);
 
-      expect(confirmService.confirm).toHaveBeenCalled();
+      expect(deleteConfirmDialog.confirm).toHaveBeenCalled();
       expect(controller.deleteStage).not.toHaveBeenCalled();
       expect(toastService.success).not.toHaveBeenCalled();
     });
 
     it('should show error toast on delete failure', async () => {
-      confirmService.confirm.and.returnValue(Promise.resolve(true));
+      deleteConfirmDialog.confirm.and.returnValue(Promise.resolve('Test change note'));
       controller.deleteStage.and.returnValue(Promise.reject({
         error: { detail: 'Cannot delete stage with children' }
       }));
 
       await component.deleteStage(mockStages[0]);
 
-      expect(controller.deleteStage).toHaveBeenCalledWith('1', jasmine.any(String));
+      expect(controller.deleteStage).toHaveBeenCalledWith('1', 'Test change note');
       expect(toastService.error).toHaveBeenCalledWith('Cannot delete stage with children');
     });
   });

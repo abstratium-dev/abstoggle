@@ -4,12 +4,12 @@ import { CommonModule } from '@angular/common';
 import { HeaderComponent } from './header/header.component';
 import { ToastComponent } from './core/toast/toast.component';
 import { ConfirmDialogComponent } from './core/confirm-dialog/confirm-dialog.component';
-import { ChangeNoteDialogComponent } from './core/change-note-dialog/change-note-dialog.component';
+import { DeleteConfirmDialogComponent } from './core/delete-confirm-dialog/delete-confirm-dialog.component';
 import { ModelService } from './model.service';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, RouterOutlet, HeaderComponent, ToastComponent, ConfirmDialogComponent, ChangeNoteDialogComponent],
+  imports: [CommonModule, RouterOutlet, HeaderComponent, ToastComponent, ConfirmDialogComponent, DeleteConfirmDialogComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })

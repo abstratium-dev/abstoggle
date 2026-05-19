@@ -113,6 +113,7 @@ class RuleResourceTest {
 
         given()
             .contentType("application/json")
+            .queryParam("changeNote", "Creating rule via API")
             .body(request)
             .when()
             .post("/api/rules")
@@ -131,11 +132,28 @@ class RuleResourceTest {
     void testCreateRule_nullRequest_returns400() {
         given()
             .contentType("application/json")
+            .queryParam("changeNote", "Testing null body")
             .when()
             .post("/api/rules")
             .then()
             .statusCode(400)
             .body("detail", containsString("Request body is required"));
+    }
+
+    @Test
+    @TestSecurity(user = "testuser@example.com", roles = { "abstratium-abstoggle_user" })
+    void testCreateRule_missingChangeNote_returns400() {
+        RuleDto request = new RuleDto();
+        request.setName("api-rule-no-note");
+
+        given()
+            .contentType("application/json")
+            .body(request)
+            .when()
+            .post("/api/rules")
+            .then()
+            .statusCode(400)
+            .body("detail", containsString("changeNote"));
     }
 
     @Test
@@ -154,6 +172,7 @@ class RuleResourceTest {
 
         given()
             .contentType("application/json")
+            .queryParam("changeNote", "Duplicate rule attempt")
             .body(request)
             .when()
             .post("/api/rules")
@@ -171,6 +190,7 @@ class RuleResourceTest {
 
         given()
             .contentType("application/json")
+            .queryParam("changeNote", "Empty name rule")
             .body(request)
             .when()
             .post("/api/rules")
@@ -371,6 +391,7 @@ class RuleResourceTest {
 
         given()
             .contentType("application/json")
+            .queryParam("changeNote", "Creating rule without criteria")
             .body(request)
             .when()
             .post("/api/rules")

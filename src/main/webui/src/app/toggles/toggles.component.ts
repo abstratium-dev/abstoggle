@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
-import { ChangeNoteDialogService } from '../core/change-note-dialog/change-note-dialog.service';
+import { DeleteConfirmDialogService } from '../core/delete-confirm-dialog/delete-confirm-dialog.service';
 import { InfoButtonComponent } from '../core/info-button/info-button.component';
 import { AutocompleteComponent, AutocompleteOption } from '../core/autocomplete/autocomplete.component';
 import { Toggle, ModelService, Stage, Rule, ToggleStageRule } from '../model.service';
@@ -22,7 +22,7 @@ export class TogglesComponent implements OnInit {
   private controller = inject(Controller);
   private toastService = inject(ToastService);
   private confirmService = inject(ConfirmDialogService);
-  private changeNoteDialog = inject(ChangeNoteDialogService);
+  private deleteConfirmDialog = inject(DeleteConfirmDialogService);
   private authService = inject(AuthService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -256,29 +256,19 @@ export class TogglesComponent implements OnInit {
   }
 
   async deleteToggle(toggle: Toggle): Promise<void> {
-    const confirmed = await this.confirmService.confirm({
+    const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
+    const changeNote = await this.deleteConfirmDialog.confirm({
       title: 'Delete Toggle',
-      message: `Are you sure you want to delete the toggle "${toggle.name}"? This action cannot be undone.`,
+      message: 'Are you sure you want to delete this toggle? This action cannot be undone.',
+      itemName: toggle.name,
       confirmText: 'Delete',
       cancelText: 'Cancel',
-      confirmClass: 'btn-danger'
+      changeNoteMandatory: isMandatory
     });
 
-    if (!confirmed) {
+    if (changeNote === null) {
       return;
     }
-
-    const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
-    const changeNote = await this.changeNoteDialog.prompt({
-      title: 'Delete Toggle',
-      message: isMandatory
-        ? `Enter a change note for deleting toggle "${toggle.name}":`
-        : `Enter a change note for deleting toggle "${toggle.name}" (optional):`,
-      confirmText: 'Delete',
-      confirmClass: 'btn-danger',
-      optional: !isMandatory
-    });
-    if (changeNote === null) return;
 
     try {
       await this.controller.deleteToggle(toggle.id, changeNote);
@@ -411,29 +401,19 @@ export class TogglesComponent implements OnInit {
 
     const stageName = this.getStageName(stageRule.stageId);
     const ruleName = this.getRuleName(stageRule.ruleId);
-    const confirmed = await this.confirmService.confirm({
+    const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
+    const changeNote = await this.deleteConfirmDialog.confirm({
       title: 'Delete Assignment',
       message: `Remove the assignment for stage "${stageName}" and rule "${ruleName}"?`,
+      itemName: '',
       confirmText: 'Delete',
       cancelText: 'Cancel',
-      confirmClass: 'btn-danger'
+      changeNoteMandatory: isMandatory
     });
 
-    if (!confirmed) {
+    if (changeNote === null) {
       return;
     }
-
-    const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
-    const changeNote = await this.changeNoteDialog.prompt({
-      title: 'Delete Assignment',
-      message: isMandatory
-        ? `Enter a change note for deleting this assignment:`
-        : `Enter a change note for deleting this assignment (optional):`,
-      confirmText: 'Delete',
-      confirmClass: 'btn-danger',
-      optional: !isMandatory
-    });
-    if (changeNote === null) return;
 
     try {
       await this.controller.deleteToggleStageRule(stageRule.id, changeNote);

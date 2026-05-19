@@ -77,6 +77,7 @@ public class ToggleResource {
     @POST
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
+    @RequiresChangeNote
     public ToggleDto createToggle(ToggleDto request) {
         if (request.getName() == null || request.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("Toggle name is required");

@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
-import { ChangeNoteDialogService } from '../core/change-note-dialog/change-note-dialog.service';
+import { DeleteConfirmDialogService } from '../core/delete-confirm-dialog/delete-confirm-dialog.service';
 import { InfoButtonComponent } from '../core/info-button/info-button.component';
 import { Criterion, Rule, ModelService } from '../model.service';
 import { Controller } from '../controller';
@@ -20,7 +20,7 @@ export class RulesComponent implements OnInit {
   private controller = inject(Controller);
   private toastService = inject(ToastService);
   private confirmService = inject(ConfirmDialogService);
-  private changeNoteDialog = inject(ChangeNoteDialogService);
+  private deleteConfirmDialog = inject(DeleteConfirmDialogService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
@@ -183,29 +183,19 @@ export class RulesComponent implements OnInit {
   }
 
   async deleteRule(rule: Rule): Promise<void> {
-    const confirmed = await this.confirmService.confirm({
+    const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
+    const changeNote = await this.deleteConfirmDialog.confirm({
       title: 'Delete Rule',
-      message: `Are you sure you want to delete the rule "${rule.name || rule.id}"? This action cannot be undone.`,
+      message: 'Are you sure you want to delete this rule? This action cannot be undone.',
+      itemName: rule.name || rule.id,
       confirmText: 'Delete',
       cancelText: 'Cancel',
-      confirmClass: 'btn-danger'
+      changeNoteMandatory: isMandatory
     });
 
-    if (!confirmed) {
+    if (changeNote === null) {
       return;
     }
-
-    const isMandatory = this.modelService.config$()?.changeNoteMandatory ?? true;
-    const changeNote = await this.changeNoteDialog.prompt({
-      title: 'Delete Rule',
-      message: isMandatory
-        ? `Enter a change note for deleting rule "${rule.name || rule.id}":`
-        : `Enter a change note for deleting rule "${rule.name || rule.id}" (optional):`,
-      confirmText: 'Delete',
-      confirmClass: 'btn-danger',
-      optional: !isMandatory
-    });
-    if (changeNote === null) return;
 
     try {
       await this.controller.deleteStandaloneRule(rule.id, changeNote);

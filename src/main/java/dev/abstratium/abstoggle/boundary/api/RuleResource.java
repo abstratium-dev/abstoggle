@@ -44,6 +44,7 @@ public class RuleResource {
     @POST
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
+    @RequiresChangeNote
     public RuleDto createRule(RuleDto request) {
         if (request == null) {
             throw new IllegalArgumentException("Request body is required");

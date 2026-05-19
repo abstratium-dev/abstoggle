@@ -1,5 +1,5 @@
 import { expect, Page } from '@playwright/test';
-import { confirmDialog, assertErrorToast, dismissErrorToast } from './shared.page';
+import { confirmDialog, confirmDeleteDialog, assertErrorToast, dismissErrorToast } from './shared.page';
 
 // ---------------------------------------------------------------------------
 // Low-level element accessors
@@ -135,7 +135,7 @@ export async function tryDeleteRuleAndAssertError(
     const row = ruleRowByName(page, ruleName);
     await expect(row).toBeVisible({ timeout: 10000 });
     await deleteButtonInRow(row).click();
-    await confirmDialog(page, 'Delete');
+    await confirmDeleteDialog(page, `Attempted to delete "${ruleName}"`, 'Delete');
     await assertErrorToast(page, expectedErrorText);
     await dismissErrorToast(page);
     await expect(row).toBeVisible({ timeout: 5000 });
@@ -160,7 +160,7 @@ export async function deleteRuleIfExists(page: Page, ruleName: string): Promise<
 
     console.log(`Rules: deleting rule "${ruleName}"`);
     await deleteButtonInRow(row).click();
-    await confirmDialog(page, 'Delete');
+    await confirmDeleteDialog(page, `Deleted rule "${ruleName}"`, 'Delete');
     await assertRuleAbsent(page, ruleName);
     console.log(`Rules: rule "${ruleName}" deleted and confirmed absent`);
 }

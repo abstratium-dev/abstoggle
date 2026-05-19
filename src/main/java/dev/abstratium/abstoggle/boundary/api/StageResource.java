@@ -42,6 +42,7 @@ public class StageResource {
     @POST
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({Roles.USER})
+    @RequiresChangeNote
     public StageDto createStage(StageDto request) {
         if (request.getName() == null || request.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("Stage name is required");

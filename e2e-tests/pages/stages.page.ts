@@ -1,5 +1,5 @@
 import { expect, Page } from '@playwright/test';
-import { confirmDialog, assertErrorToast, dismissErrorToast } from './shared.page';
+import { confirmDialog, confirmDeleteDialog, assertErrorToast, dismissErrorToast } from './shared.page';
 
 // ---------------------------------------------------------------------------
 // Low-level element accessors
@@ -133,7 +133,7 @@ export async function tryDeleteStageAndAssertError(
     const row = stageRowByNameExact(page, stageName);
     await expect(row).toBeVisible({ timeout: 10000 });
     await deleteButtonInRow(row).click();
-    await confirmDialog(page, 'Delete');
+    await confirmDeleteDialog(page, `Attempted to delete "${stageName}"`, 'Delete');
     await assertErrorToast(page, expectedErrorText);
     await dismissErrorToast(page);
     await expect(row).toBeVisible({ timeout: 5000 });
@@ -158,7 +158,7 @@ export async function deleteStageIfExists(page: Page, stageName: string): Promis
 
     console.log(`Stages: deleting stage "${stageName}"`);
     await deleteButtonInRow(row).click();
-    await confirmDialog(page, 'Delete');
+    await confirmDeleteDialog(page, `Deleted stage "${stageName}"`, 'Delete');
 
     // Check for a toast error (e.g. referential integrity prevented deletion)
     await page.waitForTimeout(500);

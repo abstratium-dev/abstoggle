@@ -53,6 +53,7 @@ class HistoryResourceTest {
         // Create a toggle via REST so Envers records a revision
         given()
             .contentType(ContentType.JSON)
+            .queryParam("changeNote", "Creating hist-toggle-1")
             .body(Map.of("name", "hist-toggle-1", "enabled", true, "context", "global"))
             .when()
             .post("/api/toggles")
@@ -73,6 +74,7 @@ class HistoryResourceTest {
         // Create toggle via REST to produce an audit entry with username "testuser@example.com"
         given()
             .contentType(ContentType.JSON)
+            .queryParam("changeNote", "Creating hist-toggle-search")
             .body(Map.of("name", "hist-toggle-search", "enabled", true, "context", "global"))
             .when()
             .post("/api/toggles")
@@ -97,6 +99,7 @@ class HistoryResourceTest {
         // Create something so the table is not empty
         given()
             .contentType(ContentType.JSON)
+            .queryParam("changeNote", "Creating hist-toggle-nomatch")
             .body(Map.of("name", "hist-toggle-nomatch", "enabled", true, "context", "global"))
             .when()
             .post("/api/toggles")
@@ -121,6 +124,7 @@ class HistoryResourceTest {
         for (int i = 1; i <= 3; i++) {
             given()
                 .contentType(ContentType.JSON)
+                .queryParam("changeNote", "Creating paging toggle " + i)
                 .body(Map.of("name", "hist-paging-toggle-" + i, "enabled", true, "context", "global"))
                 .when()
                 .post("/api/toggles")
@@ -191,6 +195,7 @@ class HistoryResourceTest {
         // Create a toggle via REST so Envers records a revision
         given()
             .contentType(ContentType.JSON)
+            .queryParam("changeNote", "Creating hist-detail-toggle")
             .body(Map.of("name", "hist-detail-toggle", "enabled", true, "context", "global"))
             .when()
             .post("/api/toggles")
@@ -245,6 +250,7 @@ class HistoryResourceTest {
         // Create a toggle, then update it with a change note so that the change note appears in REVINFO
         String toggleId = given()
             .contentType(ContentType.JSON)
+            .queryParam("changeNote", "Creating hist-note-toggle")
             .body(Map.of("name", "hist-note-toggle", "enabled", true, "context", "global"))
             .when()
             .post("/api/toggles")
@@ -282,6 +288,7 @@ class HistoryResourceTest {
         // Create a toggle via REST to produce audit entries
         String toggleId = given()
             .contentType(ContentType.JSON)
+            .queryParam("changeNote", "Creating hist-entity-toggle")
             .body(Map.of("name", "hist-entity-toggle", "enabled", true, "context", "global"))
             .when()
             .post("/api/toggles")

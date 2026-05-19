@@ -4,7 +4,7 @@ import { Controller } from '../controller';
 import { ModelService, Toggle } from '../model.service';
 import { ToastService } from '../core/toast/toast.service';
 import { ConfirmDialogService } from '../core/confirm-dialog/confirm-dialog.service';
-import { ChangeNoteDialogService } from '../core/change-note-dialog/change-note-dialog.service';
+import { DeleteConfirmDialogService } from '../core/delete-confirm-dialog/delete-confirm-dialog.service';
 import { AuthService } from '../core/auth.service';
 import { signal } from '@angular/core';
 import { provideRouter, Router } from '@angular/router';
@@ -16,6 +16,7 @@ describe('TogglesComponent', () => {
   let modelService: jasmine.SpyObj<ModelService>;
   let toastService: jasmine.SpyObj<ToastService>;
   let confirmService: jasmine.SpyObj<ConfirmDialogService>;
+  let deleteConfirmDialog: jasmine.SpyObj<DeleteConfirmDialogService>;
   let authService: jasmine.SpyObj<AuthService>;
   let router: Router;
 
@@ -56,8 +57,8 @@ describe('TogglesComponent', () => {
     });
     const toastServiceSpy = jasmine.createSpyObj('ToastService', ['success', 'error']);
     const confirmServiceSpy = jasmine.createSpyObj('ConfirmDialogService', ['confirm']);
-    const changeNoteDialogSpy = jasmine.createSpyObj('ChangeNoteDialogService', ['prompt']);
-    changeNoteDialogSpy.prompt.and.returnValue(Promise.resolve('Test change note'));
+    const deleteConfirmDialogSpy = jasmine.createSpyObj('DeleteConfirmDialogService', ['confirm']);
+    deleteConfirmDialogSpy.confirm.and.returnValue(Promise.resolve('Test change note'));
     const authServiceSpy = jasmine.createSpyObj('AuthService', ['getEmail']);
     authServiceSpy.getEmail.and.returnValue('test@example.com');
 
@@ -69,7 +70,7 @@ describe('TogglesComponent', () => {
         { provide: ModelService, useValue: modelServiceSpy },
         { provide: ToastService, useValue: toastServiceSpy },
         { provide: ConfirmDialogService, useValue: confirmServiceSpy },
-        { provide: ChangeNoteDialogService, useValue: changeNoteDialogSpy },
+        { provide: DeleteConfirmDialogService, useValue: deleteConfirmDialogSpy },
         { provide: AuthService, useValue: authServiceSpy }
       ]
     }).compileComponents();
@@ -78,6 +79,7 @@ describe('TogglesComponent', () => {
     modelService = TestBed.inject(ModelService) as jasmine.SpyObj<ModelService>;
     toastService = TestBed.inject(ToastService) as jasmine.SpyObj<ToastService>;
     confirmService = TestBed.inject(ConfirmDialogService) as jasmine.SpyObj<ConfirmDialogService>;
+    deleteConfirmDialog = TestBed.inject(DeleteConfirmDialogService) as jasmine.SpyObj<DeleteConfirmDialogService>;
     authService = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
     router = TestBed.inject(Router);
 
@@ -310,41 +312,42 @@ describe('TogglesComponent', () => {
 
   describe('Delete Toggle', () => {
     it('should delete toggle after confirmation', async () => {
-      confirmService.confirm.and.returnValue(Promise.resolve(true));
+      deleteConfirmDialog.confirm.and.returnValue(Promise.resolve('Test change note'));
       controller.deleteToggle.and.returnValue(Promise.resolve());
 
       await component.deleteToggle(mockToggles[0]);
 
-      expect(confirmService.confirm).toHaveBeenCalledWith({
+      expect(deleteConfirmDialog.confirm).toHaveBeenCalledWith({
         title: 'Delete Toggle',
-        message: 'Are you sure you want to delete the toggle "feature-a"? This action cannot be undone.',
+        message: 'Are you sure you want to delete this toggle? This action cannot be undone.',
+        itemName: 'feature-a',
         confirmText: 'Delete',
         cancelText: 'Cancel',
-        confirmClass: 'btn-danger'
+        changeNoteMandatory: false
       });
-      expect(controller.deleteToggle).toHaveBeenCalledWith('toggle-1', jasmine.any(String));
+      expect(controller.deleteToggle).toHaveBeenCalledWith('toggle-1', 'Test change note');
       expect(toastService.success).toHaveBeenCalledWith('Toggle deleted successfully');
     });
 
     it('should not delete if user cancels', async () => {
-      confirmService.confirm.and.returnValue(Promise.resolve(false));
+      deleteConfirmDialog.confirm.and.returnValue(Promise.resolve(null));
 
       await component.deleteToggle(mockToggles[0]);
 
-      expect(confirmService.confirm).toHaveBeenCalled();
+      expect(deleteConfirmDialog.confirm).toHaveBeenCalled();
       expect(controller.deleteToggle).not.toHaveBeenCalled();
       expect(toastService.success).not.toHaveBeenCalled();
     });
 
     it('should show error toast on delete failure', async () => {
-      confirmService.confirm.and.returnValue(Promise.resolve(true));
+      deleteConfirmDialog.confirm.and.returnValue(Promise.resolve('Test change note'));
       controller.deleteToggle.and.returnValue(Promise.reject({
         error: { detail: 'Cannot delete toggle with active rules' }
       }));
 
       await component.deleteToggle(mockToggles[0]);
 
-      expect(controller.deleteToggle).toHaveBeenCalledWith('toggle-1', jasmine.any(String));
+      expect(controller.deleteToggle).toHaveBeenCalledWith('toggle-1', 'Test change note');
       expect(toastService.error).toHaveBeenCalledWith('Cannot delete toggle with active rules');
     });
   });
@@ -460,20 +463,20 @@ describe('TogglesComponent', () => {
     });
 
     it('should delete stage rule after confirmation', async () => {
-      confirmService.confirm.and.returnValue(Promise.resolve(true));
+      deleteConfirmDialog.confirm.and.returnValue(Promise.resolve('Test change note'));
       controller.deleteToggleStageRule.and.returnValue(Promise.resolve());
       controller.getToggleStageRules.and.returnValue(Promise.resolve([]));
 
       component.managingToggle = mockToggles[0];
       await component.deleteStageRule(mockStageRules[0]);
 
-      expect(confirmService.confirm).toHaveBeenCalled();
-      expect(controller.deleteToggleStageRule).toHaveBeenCalledWith('sr-1', jasmine.any(String));
+      expect(deleteConfirmDialog.confirm).toHaveBeenCalled();
+      expect(controller.deleteToggleStageRule).toHaveBeenCalledWith('sr-1', 'Test change note');
       expect(toastService.success).toHaveBeenCalledWith('Assignment deleted successfully');
     });
 
     it('should not delete stage rule if user cancels', async () => {
-      confirmService.confirm.and.returnValue(Promise.resolve(false));
+      deleteConfirmDialog.confirm.and.returnValue(Promise.resolve(null));
 
       component.managingToggle = mockToggles[0];
       await component.deleteStageRule(mockStageRules[0]);

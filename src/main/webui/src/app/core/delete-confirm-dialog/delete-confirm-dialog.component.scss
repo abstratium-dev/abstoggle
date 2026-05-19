@@ -23,11 +23,11 @@
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
-  border: 1px solid var(--color-border-primary);
+  border: 1px solid var(--color-danger);
 
   [data-theme="dark"] & {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    border: 1px solid var(--color-border-secondary);
+    border: 1px solid var(--color-danger);
   }
 }
 
@@ -39,7 +39,7 @@
     margin: 0;
     font-size: 1.25rem;
     font-weight: 600;
-    color: var(--color-text-primary);
+    color: var(--color-danger);
   }
 }
 
@@ -47,9 +47,16 @@
   padding: 1.5rem;
 
   .dialog-message {
-    margin: 0 0 1rem 0;
+    margin: 0 0 0.5rem 0;
     color: var(--color-text-secondary);
     line-height: 1.5;
+  }
+
+  .dialog-item {
+    margin: 0 0 1.5rem 0;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    font-style: italic;
   }
 
   .form-group {
@@ -79,8 +86,8 @@
 
       &:focus {
         outline: none;
-        border-color: var(--color-info);
-        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        border-color: var(--color-danger);
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
       }
 
       &::placeholder {

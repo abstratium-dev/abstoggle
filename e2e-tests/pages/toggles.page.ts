@@ -1,5 +1,5 @@
 import { expect, Page } from '@playwright/test';
-import { confirmDialog, selectAutocompleteOption, assertErrorToast, dismissErrorToast } from './shared.page';
+import { confirmDialog, confirmDeleteDialog, selectAutocompleteOption, assertErrorToast, dismissErrorToast } from './shared.page';
 
 // ---------------------------------------------------------------------------
 // Low-level element accessors – Toggle form
@@ -195,7 +195,7 @@ export async function tryDeleteToggleAndAssertError(
     const row = toggleRowByName(page, toggleName);
     await expect(row).toBeVisible({ timeout: 10000 });
     await deleteToggleButtonInRow(row).click();
-    await confirmDialog(page, 'Delete');
+    await confirmDeleteDialog(page, `Attempted to delete "${toggleName}"`, 'Delete');
     await assertErrorToast(page, expectedErrorText);
     await dismissErrorToast(page);
     await expect(row).toBeVisible({ timeout: 5000 });
@@ -220,7 +220,7 @@ export async function deleteToggleIfExists(page: Page, toggleName: string): Prom
 
     console.log(`Toggles: deleting toggle "${toggleName}"`);
     await deleteToggleButtonInRow(row).click();
-    await confirmDialog(page, 'Delete');
+    await confirmDeleteDialog(page, `Deleted toggle "${toggleName}"`, 'Delete');
     await assertToggleAbsent(page, toggleName);
     console.log(`Toggles: toggle "${toggleName}" deleted and confirmed absent`);
 }
@@ -338,7 +338,7 @@ export async function deleteAllAssignments(page: Page): Promise<void> {
         }
         console.log(`Toggles: ${count} assignment(s) remaining, deleting first`);
         await deleteAssignmentButtonInRow(rows.first()).click();
-        await confirmDialog(page, 'Delete');
+        await confirmDeleteDialog(page, 'Deleted assignment', 'Delete');
         deleted++;
         // Small wait for DOM update
         await page.waitForTimeout(300);

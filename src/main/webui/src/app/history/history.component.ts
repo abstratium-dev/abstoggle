@@ -31,16 +31,13 @@ export class HistoryComponent implements OnInit {
   detailLoading = false;
   detailError: string | null = null;
 
-  // Entity history (inline expansion within detail panel)
-  selectedEntityKey: string | null = null;
-  entityHistory: EntityRevision[] = [];
-  entityHistoryLoading = false;
-  entityHistoryError: string | null = null;
-
   // Entity-scoped mode: navigated here from another page for a specific entity
   entityMode = false;
   entityModeType: string | null = null;
   entityModeId: string | null = null;
+  entityHistory: EntityRevision[] = [];
+  entityHistoryLoading = false;
+  entityHistoryError: string | null = null;
 
   readonly REVTYPE_LABELS: Record<number, string> = {
     0: 'ADD',
@@ -121,16 +118,12 @@ export class HistoryComponent implements OnInit {
     if (this.selectedEntry?.rev === entry.rev) {
       this.selectedEntry = null;
       this.detailChanges = [];
-      this.selectedEntityKey = null;
-      this.entityHistory = [];
       return;
     }
     this.selectedEntry = entry;
     this.detailChanges = [];
     this.detailLoading = true;
     this.detailError = null;
-    this.selectedEntityKey = null;
-    this.entityHistory = [];
     try {
       this.detailChanges = await this.controller.getRevisionDetails(entry.rev);
     } catch {
@@ -140,24 +133,8 @@ export class HistoryComponent implements OnInit {
     }
   }
 
-  async toggleEntityHistory(table: string, entityId: string): Promise<void> {
-    const key = `${table}:${entityId}`;
-    if (this.selectedEntityKey === key) {
-      this.selectedEntityKey = null;
-      this.entityHistory = [];
-      return;
-    }
-    this.selectedEntityKey = key;
-    this.entityHistory = [];
-    this.entityHistoryLoading = true;
-    this.entityHistoryError = null;
-    try {
-      this.entityHistory = await this.controller.getEntityHistory(table, entityId);
-    } catch {
-      this.entityHistoryError = 'Failed to load entity history';
-    } finally {
-      this.entityHistoryLoading = false;
-    }
+  navigateToEntityHistory(table: string, entityId: string): void {
+    this.router.navigate(['/history'], { queryParams: { entityType: table, entityId } });
   }
 
   formatTimestamp(ts: number): string {
